@@ -1,0 +1,14 @@
+// Mirror Maven for legacy Flutter plugin subprojects (buildscript repositories).
+gradle.beforeProject { project ->
+    def projectPath = project.projectDir.absolutePath.replace('\\', '/')
+    if (projectPath.contains('flutter_tools/gradle')) {
+        return
+    }
+
+    project.buildscript.repositories {
+        maven { url 'https://maven.myket.ir/' }
+    }
+    project.repositories {
+        maven { url 'https://maven.myket.ir/' }
+    }
+}

@@ -1,0 +1,4 @@
+enum ReviewRating {
+  know,
+  dontKnow,
+}
