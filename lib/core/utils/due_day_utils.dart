@@ -15,9 +15,6 @@ DateTime calendarDay(DateTime value) =>
     DateTime(value.year, value.month, value.day);
 
 DateTime cardDueDay(Flashcard card, {DateTime? now}) {
-  if (card.lastReviewed == null) {
-    return calendarDay(now ?? DateTime.now());
-  }
   return calendarDay(nextReviewDate(card));
 }
 
