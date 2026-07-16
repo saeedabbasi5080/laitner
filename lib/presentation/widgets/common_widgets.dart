@@ -8,12 +8,14 @@ class CircleIconButton extends StatelessWidget {
     required this.onPressed,
     this.label,
     this.back = false,
+    this.color,
   });
 
   final IconData icon;
   final VoidCallback onPressed;
   final String? label;
   final bool back;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -33,13 +35,11 @@ class CircleIconButton extends StatelessWidget {
           child: SizedBox(
             width: 40,
             height: 40,
-            // In Persian RTL, back sits on the right. Keep the glyph ← (LTR)
-            // so it points into the page — Material auto-mirror feels reversed here.
+            // arrow_back is directional and Flutter mirrors it to → in RTL.
             child: Icon(
               back ? Icons.arrow_back : icon,
               size: 18,
-              color: colors.mutedForeground,
-              textDirection: back ? TextDirection.ltr : null,
+              color: color ?? colors.mutedForeground,
             ),
           ),
         ),
@@ -185,7 +185,10 @@ Future<bool?> showConfirmDialog(
         ),
         FilledButton(
           onPressed: () => Navigator.pop(ctx, true),
-          style: FilledButton.styleFrom(backgroundColor: AppColors.peach),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.danger,
+            foregroundColor: Colors.white,
+          ),
           child: Text(confirmLabel),
         ),
       ],

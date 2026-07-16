@@ -4,10 +4,11 @@ class StudyConfig {
     this.allDue = false,
     this.boxNumber,
     this.reversed = false,
+    this.dueDay,
+    this.overdueOnly = false,
   });
 
-  const StudyConfig.deck(String deckId)
-      : this._(deckId: deckId);
+  const StudyConfig.deck(String deckId) : this._(deckId: deckId);
 
   const StudyConfig.allDue() : this._(allDue: true);
 
@@ -16,12 +17,22 @@ class StudyConfig {
     int box, {
     String? deckId,
     bool reversed = false,
-  }) : this._(boxNumber: box, deckId: deckId, reversed: reversed);
+    DateTime? dueDay,
+    bool overdueOnly = false,
+  }) : this._(
+         boxNumber: box,
+         deckId: deckId,
+         reversed: reversed,
+         dueDay: dueDay,
+         overdueOnly: overdueOnly,
+       );
 
   final String? deckId;
   final bool allDue;
   final int? boxNumber;
   final bool reversed;
+  final DateTime? dueDay;
+  final bool overdueOnly;
 
   bool get isBoxReview => boxNumber != null;
 }

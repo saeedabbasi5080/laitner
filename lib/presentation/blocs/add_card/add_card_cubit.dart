@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/data/datasources/local_data_source.dart';
+import 'package:recall/domain/entities/duplicate_card.dart';
 import 'package:recall/domain/entities/flashcard.dart';
 import 'package:recall/domain/usecases/add_card_usecase.dart';
 
@@ -11,27 +13,39 @@ class AddCardCubit extends Cubit<AddCardState> {
     required String deckId,
     required AddCardUseCase addCardUseCase,
     required LocalDataSource localDataSource,
-  })  : _deckId = deckId,
-        _addCardUseCase = addCardUseCase,
-        _localDataSource = localDataSource,
-        super(const AddCardState());
+  }) : _deckId = deckId,
+       _addCardUseCase = addCardUseCase,
+       _localDataSource = localDataSource,
+       super(const AddCardState());
 
   final String _deckId;
   final AddCardUseCase _addCardUseCase;
   final LocalDataSource _localDataSource;
 
   void updateFront(String value) {
-    emit(state.copyWith(front: value));
+    emit(
+      state.copyWith(
+        front: value,
+        status: AddCardStatus.initial,
+        clearError: true,
+      ),
+    );
   }
 
   void updateBack(String value) {
-    emit(state.copyWith(back: value));
+    emit(
+      state.copyWith(
+        back: value,
+        status: AddCardStatus.initial,
+        clearError: true,
+      ),
+    );
   }
 
   Future<bool> save() async {
     if (!state.canSave) return false;
 
-    emit(state.copyWith(status: AddCardStatus.saving));
+    emit(state.copyWith(status: AddCardStatus.saving, clearError: true));
     try {
       final card = Flashcard(
         id: _localDataSource.generateId(),
@@ -44,12 +58,17 @@ class AddCardCubit extends Cubit<AddCardState> {
       await _addCardUseCase(card);
       emit(state.copyWith(status: AddCardStatus.saved));
       return true;
-    } catch (e) {
+    } on DuplicateCardException catch (e) {
       emit(
         state.copyWith(
-          status: AddCardStatus.error,
-          errorMessage: e.toString(),
+          status: AddCardStatus.duplicate,
+          errorMessage: AppStrings.duplicateCardInDeck(e.deckName),
         ),
+      );
+      return false;
+    } catch (e) {
+      emit(
+        state.copyWith(status: AddCardStatus.error, errorMessage: e.toString()),
       );
       return false;
     }

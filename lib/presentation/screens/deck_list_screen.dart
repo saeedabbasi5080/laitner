@@ -12,6 +12,7 @@ import 'package:recall/presentation/screens/box_cards_screen.dart';
 import 'package:recall/presentation/screens/deck_detail_screen.dart';
 import 'package:recall/presentation/screens/excel_library_screen.dart';
 import 'package:recall/presentation/screens/settings_screen.dart';
+import 'package:recall/presentation/screens/statistics_screen.dart';
 import 'package:recall/presentation/screens/study_screen.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 import 'package:recall/presentation/widgets/deck_card_sheets.dart';
@@ -45,11 +46,8 @@ class _DeckListViewState extends State<_DeckListView> {
       body: SafeArea(
         child: BlocBuilder<DeckListCubit, DeckListState>(
           builder: (context, state) {
-            if (state.status == DeckListStatus.loading &&
-                state.decks.isEmpty) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+            if (state.status == DeckListStatus.loading && state.decks.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
             }
 
             return Stack(
@@ -83,14 +81,28 @@ class _DeckListViewState extends State<_DeckListView> {
                               ),
                             ],
                           ),
-                          CircleIconButton(
-                            icon: Icons.settings_outlined,
-                            label: AppStrings.settings,
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => const SettingsScreen(),
+                          Row(
+                            children: [
+                              CircleIconButton(
+                                icon: Icons.insights_outlined,
+                                label: AppStrings.statistics,
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const StatisticsScreen(),
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 8),
+                              CircleIconButton(
+                                icon: Icons.settings_outlined,
+                                label: AppStrings.settings,
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const SettingsScreen(),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -146,8 +158,7 @@ class _DeckListViewState extends State<_DeckListView> {
                               due: state.dueCounts[deck.id] ?? 0,
                               onStudy: () => _openStudy(context, deck.id),
                               onEdit: () => _editDeck(context, deck),
-                              onOpenDetail: () =>
-                                  _openDetail(context, deck.id),
+                              onOpenDetail: () => _openDetail(context, deck.id),
                             ),
                           ),
                         ),
@@ -178,10 +189,10 @@ class _DeckListViewState extends State<_DeckListView> {
                             shape: BoxShape.circle,
                             boxShadow: AppShadows.floating(context),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.add,
                             size: 28,
-                            color: Color(0xFF1A1D24),
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         ),
                       ),
@@ -202,13 +213,13 @@ class _DeckListViewState extends State<_DeckListView> {
       decks: state.decks,
       onAddDeck: () => _showNewDeck(context),
       onAddCard: (deckId) => _openAddCard(context, deckId),
-      onImportExcel: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => const ExcelLibraryScreen(),
-        ),
-      ).then((_) {
-        if (context.mounted) context.read<DeckListCubit>().load();
-      }),
+      onImportExcel: () => Navigator.of(context)
+          .push(
+            MaterialPageRoute<void>(builder: (_) => const ExcelLibraryScreen()),
+          )
+          .then((_) {
+            if (context.mounted) context.read<DeckListCubit>().load();
+          }),
     );
   }
 
@@ -232,8 +243,8 @@ class _DeckListViewState extends State<_DeckListView> {
       builder: (_) => DeckFormSheet(
         deck: deck,
         onSubmit: (name, color) => context.read<DeckListCubit>().updateDeck(
-              deck.copyWith(name: name.trim(), color: color),
-            ),
+          deck.copyWith(name: name.trim(), color: color),
+        ),
         onDelete: () async {
           final confirmed = await showConfirmDialog(
             context,
@@ -249,61 +260,68 @@ class _DeckListViewState extends State<_DeckListView> {
   }
 
   void _openStudy(BuildContext context, String deckId) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => StudyScreen(config: StudyConfig.deck(deckId)),
-      ),
-    ).then((_) {
-      if (context.mounted) context.read<DeckListCubit>().load();
-    });
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => StudyScreen(config: StudyConfig.deck(deckId)),
+          ),
+        )
+        .then((_) {
+          if (context.mounted) context.read<DeckListCubit>().load();
+        });
   }
 
   void _openAllDueStudy(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => StudyScreen(config: const StudyConfig.allDue()),
-      ),
-    ).then((_) {
-      if (context.mounted) context.read<DeckListCubit>().load();
-    });
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => StudyScreen(config: const StudyConfig.allDue()),
+          ),
+        )
+        .then((_) {
+          if (context.mounted) context.read<DeckListCubit>().load();
+        });
   }
 
   void _openBoxCards(BuildContext context, int box) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => BoxCardsScreen(boxNumber: box),
-      ),
-    ).then((_) {
-      if (context.mounted) context.read<DeckListCubit>().load();
-    });
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => BoxCardsScreen(boxNumber: box),
+          ),
+        )
+        .then((_) {
+          if (context.mounted) context.read<DeckListCubit>().load();
+        });
   }
 
   void _openAddCard(BuildContext context, String deckId) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => AddCardScreen(deckId: deckId),
-      ),
-    ).then((_) {
-      if (context.mounted) context.read<DeckListCubit>().load();
-    });
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => AddCardScreen(deckId: deckId),
+          ),
+        )
+        .then((_) {
+          if (context.mounted) context.read<DeckListCubit>().load();
+        });
   }
 
   void _openDetail(BuildContext context, String deckId) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => DeckDetailScreen(deckId: deckId),
-      ),
-    ).then((_) {
-      if (context.mounted) context.read<DeckListCubit>().load();
-    });
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => DeckDetailScreen(deckId: deckId),
+          ),
+        )
+        .then((_) {
+          if (context.mounted) context.read<DeckListCubit>().load();
+        });
   }
 }
 
 class _BoxOverviewRow extends StatelessWidget {
-  const _BoxOverviewRow({
-    required this.boxCounts,
-    required this.onBoxTap,
-  });
+  const _BoxOverviewRow({required this.boxCounts, required this.onBoxTap});
 
   final Map<int, int> boxCounts;
   final ValueChanged<int> onBoxTap;
@@ -374,8 +392,7 @@ class _EmptyDecks extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(Icons.layers_outlined,
-              size: 32, color: colors.mutedForeground),
+          Icon(Icons.layers_outlined, size: 32, color: colors.mutedForeground),
           const SizedBox(height: 12),
           Text(
             AppStrings.emptyDecks,
@@ -466,16 +483,21 @@ class _DeckCard extends StatelessWidget {
               const SizedBox(width: 8),
               IconButton(
                 onPressed: onEdit,
-                icon: Icon(Icons.more_vert,
-                    size: 20, color: colors.mutedForeground),
+                icon: Icon(
+                  Icons.more_vert,
+                  size: 20,
+                  color: colors.mutedForeground,
+                ),
                 style: IconButton.styleFrom(
                   minimumSize: const Size(36, 36),
                   padding: EdgeInsets.zero,
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: due > 0 ? accent : colors.muted,
                   borderRadius: BorderRadius.circular(999),

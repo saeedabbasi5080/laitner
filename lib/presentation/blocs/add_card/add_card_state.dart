@@ -1,6 +1,6 @@
 part of 'add_card_cubit.dart';
 
-enum AddCardStatus { initial, saving, saved, error }
+enum AddCardStatus { initial, saving, saved, duplicate, error }
 
 class AddCardState extends Equatable {
   const AddCardState({
@@ -15,19 +15,23 @@ class AddCardState extends Equatable {
   final AddCardStatus status;
   final String? errorMessage;
 
-  bool get canSave => front.trim().isNotEmpty && back.trim().isNotEmpty;
+  bool get canSave =>
+      front.trim().isNotEmpty &&
+      back.trim().isNotEmpty &&
+      status != AddCardStatus.saving;
 
   AddCardState copyWith({
     String? front,
     String? back,
     AddCardStatus? status,
     String? errorMessage,
+    bool clearError = false,
   }) {
     return AddCardState(
       front: front ?? this.front,
       back: back ?? this.back,
       status: status ?? this.status,
-      errorMessage: errorMessage,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
 

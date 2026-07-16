@@ -336,7 +336,11 @@ class _CardListItem extends StatelessWidget {
           ),
           IconButton(
             onPressed: onDelete,
-            icon: Icon(Icons.delete_outline, size: 18, color: AppColors.peach),
+            icon: Icon(
+              Icons.delete_outline,
+              size: 18,
+              color: AppColors.danger,
+            ),
           ),
         ],
       ),

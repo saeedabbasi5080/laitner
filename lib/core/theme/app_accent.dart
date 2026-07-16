@@ -3,24 +3,24 @@ import 'package:flutter/material.dart';
 /// پنج رنگ اصلی تم برنامه (seed برای [ColorScheme.fromSeed]).
 enum AppAccent {
   lavender(
-    Color(0xFFC9B8E8),
-    'یاسی',
+    Color(0xFF7C3AED),
+    'بنفش',
   ),
   mint(
-    Color(0xFFA8E6CF),
-    'نعنایی',
+    Color(0xFF00A86B),
+    'سبز',
   ),
   peach(
-    Color(0xFFFFD4B8),
-    'هلویی',
+    Color(0xFFFF6D00),
+    'نارنجی',
   ),
   sky(
-    Color(0xFFB8D4F0),
-    'آسمانی',
+    Color(0xFF1976D2),
+    'آبی',
   ),
   rose(
-    Color(0xFFF5B8C8),
-    'گل‌سرخی',
+    Color(0xFFE91E63),
+    'صورتی',
   );
 
   const AppAccent(this.seed, this.label);

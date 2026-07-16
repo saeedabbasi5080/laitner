@@ -94,8 +94,22 @@ class _AddCardViewState extends State<_AddCardView> {
                           controller: _frontController,
                           hint: AppStrings.frontHint,
                           autofocus: true,
+                          hasError: state.status == AddCardStatus.duplicate,
                           onChanged: context.read<AddCardCubit>().updateFront,
                         ),
+                        if (state.errorMessage != null) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            state.errorMessage!,
+                            style: TextStyle(
+                              fontSize: 13,
+                              height: 1.5,
+                              color: state.status == AddCardStatus.duplicate
+                                  ? AppColors.danger
+                                  : colors.mutedForeground,
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 48),
                         Divider(color: colors.border, height: 1),
                         const SizedBox(height: 48),
@@ -113,9 +127,9 @@ class _AddCardViewState extends State<_AddCardView> {
                 Container(
                   padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .scaffoldBackgroundColor
-                        .withValues(alpha: 0.9),
+                    color: Theme.of(
+                      context,
+                    ).scaffoldBackgroundColor.withValues(alpha: 0.9),
                     border: Border(top: BorderSide(color: colors.border)),
                   ),
                   child: Row(
@@ -132,17 +146,28 @@ class _AddCardViewState extends State<_AddCardView> {
                         child: FilledButton(
                           onPressed: state.canSave
                               ? () async {
-                                  final saved =
-                                      await context.read<AddCardCubit>().save();
-                                  if (saved && context.mounted) {
+                                  final saved = await context
+                                      .read<AddCardCubit>()
+                                      .save();
+                                  if (!context.mounted) return;
+                                  if (saved) {
                                     Navigator.of(context).pop();
+                                    return;
+                                  }
+                                  final message = context
+                                      .read<AddCardCubit>()
+                                      .state
+                                      .errorMessage;
+                                  if (message != null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(message)),
+                                    );
                                   }
                                 }
                               : null,
                           style: FilledButton.styleFrom(
-                            foregroundColor: const Color(0xFF1A1D24),
-                            disabledBackgroundColor:
-                                context.accentColor.withValues(alpha: 0.4),
+                            disabledBackgroundColor: context.accentColor
+                                .withValues(alpha: 0.4),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(999),
@@ -172,12 +197,14 @@ class _AutoTextField extends StatelessWidget {
     required this.hint,
     required this.onChanged,
     this.autofocus = false,
+    this.hasError = false,
   });
 
   final TextEditingController controller;
   final String hint;
   final ValueChanged<String> onChanged;
   final bool autofocus;
+  final bool hasError;
 
   @override
   Widget build(BuildContext context) {
@@ -186,10 +213,11 @@ class _AutoTextField extends StatelessWidget {
       autofocus: autofocus,
       onChanged: onChanged,
       maxLines: null,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 24,
         fontWeight: FontWeight.w500,
         height: 1.4,
+        color: hasError ? AppColors.danger : null,
       ),
       decoration: InputDecoration(
         hintText: hint,

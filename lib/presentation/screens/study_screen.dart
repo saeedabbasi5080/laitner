@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
+import 'package:recall/core/tts/tts_service.dart';
 import 'package:recall/domain/entities/review_rating.dart';
 import 'package:recall/injection.dart';
+import 'package:recall/presentation/blocs/settings/settings_cubit.dart';
 import 'package:recall/presentation/blocs/study/study_config.dart';
 import 'package:recall/presentation/blocs/study/study_cubit.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
@@ -35,9 +37,7 @@ class _StudyView extends StatelessWidget {
         child: BlocBuilder<StudyCubit, StudyState>(
           builder: (context, state) {
             if (state.status == StudyStatus.loading) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
 
             if (state.status == StudyStatus.error) {
@@ -74,6 +74,12 @@ class _StudyView extends StatelessWidget {
                       if (!state.isFinished && card != null) ...[
                         const SizedBox(width: 8),
                         CircleIconButton(
+                          icon: Icons.volume_up_outlined,
+                          label: AppStrings.speak,
+                          onPressed: () => _speak(context, questionText),
+                        ),
+                        const SizedBox(width: 8),
+                        CircleIconButton(
                           icon: Icons.edit_outlined,
                           label: AppStrings.editCard,
                           onPressed: () => _editCard(context, state),
@@ -82,6 +88,7 @@ class _StudyView extends StatelessWidget {
                         CircleIconButton(
                           icon: Icons.delete_outline,
                           label: AppStrings.deleteCard,
+                          color: AppColors.danger,
                           onPressed: () => _deleteCard(context),
                         ),
                       ],
@@ -116,38 +123,17 @@ class _StudyView extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (state.isFreeReview && !state.isFinished)
+                if (state.isFreeReview &&
+                    !state.isFinished &&
+                    state.boxNumber != null)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                    child: Row(
-                      children: [
-                        FilterChip(
-                          avatar: Icon(
-                            state.reversed
-                                ? Icons.swap_vert
-                                : Icons.swap_horiz,
-                            size: 16,
-                          ),
-                          label: Text(
-                            state.reversed
-                                ? AppStrings.reversedReview
-                                : AppStrings.normalReview,
-                          ),
-                          selected: state.reversed,
-                          onSelected: (_) =>
-                              context.read<StudyCubit>().toggleReversed(),
-                        ),
-                        if (state.boxNumber != null) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            '${AppStrings.box} ${state.boxNumber}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: context.recallColors.mutedForeground,
-                            ),
-                          ),
-                        ],
-                      ],
+                    child: Text(
+                      '${AppStrings.box} ${state.boxNumber}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.recallColors.mutedForeground,
+                      ),
                     ),
                   ),
                 Expanded(
@@ -157,12 +143,12 @@ class _StudyView extends StatelessWidget {
                       child: state.isFinished
                           ? _FinishedView(total: state.queue.length)
                           : card != null
-                              ? _FlashcardView(
-                                  text: questionText,
-                                  onTap: () =>
-                                      context.read<StudyCubit>().flipCard(),
-                                )
-                              : const SizedBox.shrink(),
+                          ? _FlashcardView(
+                              text: questionText,
+                              onTap: () =>
+                                  context.read<StudyCubit>().flipCard(),
+                            )
+                          : const SizedBox.shrink(),
                     ),
                   ),
                 ),
@@ -184,8 +170,9 @@ class _StudyView extends StatelessWidget {
                                 icon: const Icon(Icons.restart_alt, size: 18),
                                 label: const Text(AppStrings.resetToBox1),
                                 style: OutlinedButton.styleFrom(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(999),
                                   ),
@@ -202,21 +189,21 @@ class _StudyView extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: RateButton(
-                                    label: AppStrings.dontKnow,
-                                    color: AppColors.peach,
-                                    onPressed: () => context
-                                        .read<StudyCubit>()
-                                        .rateCard(ReviewRating.dontKnow),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: RateButton(
                                     label: AppStrings.know,
                                     color: AppColors.mint,
                                     onPressed: () => context
                                         .read<StudyCubit>()
                                         .rateCard(ReviewRating.know),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: RateButton(
+                                    label: AppStrings.dontKnow,
+                                    color: AppColors.peach,
+                                    onPressed: () => context
+                                        .read<StudyCubit>()
+                                        .rateCard(ReviewRating.dontKnow),
                                   ),
                                 ),
                               ],
@@ -246,12 +233,28 @@ class _StudyView extends StatelessWidget {
     return isFlipped ? front : back;
   }
 
+  Future<void> _speak(BuildContext context, String text) async {
+    if (text.trim().isEmpty) return;
+    final language = context.read<SettingsCubit>().state.ttsLanguage;
+    final messenger = ScaffoldMessenger.of(context);
+    final tts = sl<TtsService>();
+
+    final available = await tts.isLanguageAvailable(language.code);
+    if (!available) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text(AppStrings.ttsUnavailable)),
+      );
+      return;
+    }
+    await tts.speak(text, languageCode: language.code);
+  }
+
   Future<void> _resetToBox1(BuildContext context) async {
     await context.read<StudyCubit>().resetCurrentCardToBox1();
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.resetToBox1Done)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(AppStrings.resetToBox1Done)));
     }
   }
 
@@ -283,10 +286,7 @@ class _StudyView extends StatelessWidget {
 }
 
 class _FlashcardView extends StatelessWidget {
-  const _FlashcardView({
-    required this.text,
-    required this.onTap,
-  });
+  const _FlashcardView({required this.text, required this.onTap});
 
   final String text;
   final VoidCallback onTap;

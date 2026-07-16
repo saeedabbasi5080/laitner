@@ -1,3 +1,4 @@
+import 'package:recall/domain/entities/duplicate_card.dart';
 import 'package:recall/domain/entities/excel_import.dart';
 import 'package:recall/domain/repositories/excel_import_repository.dart';
 import 'package:recall/domain/repositories/flashcard_repository.dart';
@@ -11,18 +12,16 @@ class SyncExcelImportAddedStatusUseCase {
   final IExcelImportRepository _excelRepository;
   final IFlashcardRepository _flashcardRepository;
 
-  /// Marks excel rows as added when matching cards already exist in any deck.
+  /// Marks excel rows as added when the front field already exists in any deck.
   Future<ExcelImport> call(ExcelImport import) async {
     final cards = await _flashcardRepository.getAllCards();
-    final cardKeys = cards
-        .map((c) => _key(c.front, c.back))
-        .toSet();
+    final cardKeys = cards.map((c) => normalizeCardFront(c.front)).toSet();
 
     var changed = false;
     final now = DateTime.now();
     final updatedRows = import.rows.map((row) {
       if (row.isAdded) return row;
-      if (cardKeys.contains(_key(row.front, row.back))) {
+      if (cardKeys.contains(normalizeCardFront(row.front))) {
         changed = true;
         return row.copyWith(isAdded: true, addedAt: now);
       }
@@ -35,7 +34,4 @@ class SyncExcelImportAddedStatusUseCase {
     await _excelRepository.updateImport(updated);
     return updated;
   }
-
-  String _key(String front, String back) =>
-      '${front.trim().toLowerCase()}\u0000${back.trim().toLowerCase()}';
 }

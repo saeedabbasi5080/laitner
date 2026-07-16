@@ -9,6 +9,7 @@ import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/excel_library/excel_library_cubit.dart';
 import 'package:recall/presentation/screens/excel_import_detail_screen.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
+import 'package:recall/presentation/widgets/excel_format_guide_sheet.dart';
 
 class ExcelLibraryScreen extends StatelessWidget {
   const ExcelLibraryScreen({super.key, this.initialDeckId});
@@ -84,7 +85,7 @@ class _ExcelLibraryView extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _pickAndSaveExcel(context),
+        onPressed: () => _startExcelImport(context),
         icon: const Icon(Icons.upload_file),
         label: const Text(AppStrings.importExcelFile),
       ),
@@ -99,15 +100,17 @@ class _ExcelLibraryView extends StatelessWidget {
     }
 
     if (state.imports.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Text(
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+        children: [
+          const ExcelFormatGuideCard(),
+          const SizedBox(height: 24),
+          Text(
             AppStrings.excelLibraryEmpty,
             textAlign: TextAlign.center,
             style: TextStyle(color: context.recallColors.mutedForeground),
           ),
-        ),
+        ],
       );
     }
 
@@ -124,6 +127,13 @@ class _ExcelLibraryView extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _startExcelImport(BuildContext context) async {
+    final proceed = await showExcelFormatGuideSheet(context);
+    if (proceed && context.mounted) {
+      await _pickAndSaveExcel(context);
+    }
   }
 
   Future<void> _pickAndSaveExcel(BuildContext context) async {
@@ -281,7 +291,7 @@ class _ImportListTile extends StatelessWidget {
                 onPressed: onDelete,
                 icon: Icon(
                   Icons.delete_outline,
-                  color: AppColors.peach,
+                  color: AppColors.danger,
                   size: 20,
                 ),
               ),

@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:recall/core/utils/due_day_utils.dart';
 import 'package:recall/domain/entities/flashcard.dart';
 import 'package:recall/domain/entities/review_rating.dart';
 import 'package:recall/domain/usecases/delete_card_usecase.dart';
@@ -21,14 +22,14 @@ class StudyCubit extends Cubit<StudyState> {
     required ReviewCardUseCase reviewCardUseCase,
     required UpdateCardUseCase updateCardUseCase,
     required DeleteCardUseCase deleteCardUseCase,
-  })  : _config = config,
-        _getDueCardsUseCase = getDueCardsUseCase,
-        _getAllDueCardsUseCase = getAllDueCardsUseCase,
-        _getCardsByBoxUseCase = getCardsByBoxUseCase,
-        _reviewCardUseCase = reviewCardUseCase,
-        _updateCardUseCase = updateCardUseCase,
-        _deleteCardUseCase = deleteCardUseCase,
-        super(const StudyState());
+  }) : _config = config,
+       _getDueCardsUseCase = getDueCardsUseCase,
+       _getAllDueCardsUseCase = getAllDueCardsUseCase,
+       _getCardsByBoxUseCase = getCardsByBoxUseCase,
+       _reviewCardUseCase = reviewCardUseCase,
+       _updateCardUseCase = updateCardUseCase,
+       _deleteCardUseCase = deleteCardUseCase,
+       super(const StudyState());
 
   final StudyConfig _config;
   final GetDueCardsUseCase _getDueCardsUseCase;
@@ -37,6 +38,7 @@ class StudyCubit extends Cubit<StudyState> {
   final ReviewCardUseCase _reviewCardUseCase;
   final UpdateCardUseCase _updateCardUseCase;
   final DeleteCardUseCase _deleteCardUseCase;
+  bool _isRating = false;
 
   Future<void> load() async {
     emit(state.copyWith(status: StudyStatus.loading));
@@ -44,9 +46,14 @@ class StudyCubit extends Cubit<StudyState> {
       final List<Flashcard> cards;
 
       if (_config.boxNumber != null) {
-        cards = await _getCardsByBoxUseCase(
+        final boxCards = await _getCardsByBoxUseCase(
           _config.boxNumber!,
           deckId: _config.deckId,
+        );
+        cards = filterCardsByDueDay(
+          boxCards,
+          dueDay: _config.dueDay,
+          overdueOnly: _config.overdueOnly,
         );
       } else if (_config.allDue) {
         cards = await _getAllDueCardsUseCase();
@@ -67,10 +74,7 @@ class StudyCubit extends Cubit<StudyState> {
       );
     } catch (e) {
       emit(
-        state.copyWith(
-          status: StudyStatus.error,
-          errorMessage: e.toString(),
-        ),
+        state.copyWith(status: StudyStatus.error, errorMessage: e.toString()),
       );
     }
   }
@@ -98,16 +102,21 @@ class StudyCubit extends Cubit<StudyState> {
 
   Future<void> rateCard(ReviewRating rating) async {
     final card = state.currentCard;
-    if (card == null || !state.isFlipped) return;
+    if (_isRating || card == null || !state.isFlipped) return;
 
-    await _reviewCardUseCase(card, rating);
-
-    emit(
-      state.copyWith(
-        currentIndex: state.currentIndex + 1,
-        isFlipped: false,
-      ),
-    );
+    _isRating = true;
+    try {
+      // Free review is a preview session: answers must not change the card's
+      // box, last-reviewed date, normal schedule, or review statistics.
+      if (!state.isFreeReview) {
+        await _reviewCardUseCase(card, rating);
+      }
+      emit(
+        state.copyWith(currentIndex: state.currentIndex + 1, isFlipped: false),
+      );
+    } finally {
+      _isRating = false;
+    }
   }
 
   Future<void> updateCurrentCard(String front, String back) async {
@@ -129,7 +138,8 @@ class StudyCubit extends Cubit<StudyState> {
 
     await _deleteCardUseCase(card.id);
 
-    final queue = List<Flashcard>.from(state.queue)..removeAt(state.currentIndex);
+    final queue = List<Flashcard>.from(state.queue)
+      ..removeAt(state.currentIndex);
     emit(state.copyWith(queue: queue, isFlipped: false));
   }
 }

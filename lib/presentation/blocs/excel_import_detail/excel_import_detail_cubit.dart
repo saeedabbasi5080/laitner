@@ -7,6 +7,7 @@ import 'package:recall/domain/usecases/add_selected_excel_rows_usecase.dart';
 import 'package:recall/domain/usecases/delete_excel_import_usecase.dart';
 import 'package:recall/domain/usecases/get_decks_usecase.dart';
 import 'package:recall/domain/usecases/get_excel_imports_usecase.dart';
+import 'package:recall/domain/usecases/remove_excel_rows_usecase.dart';
 import 'package:recall/domain/usecases/sync_excel_import_added_status_usecase.dart';
 
 part 'excel_import_detail_state.dart';
@@ -19,22 +20,25 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
     required GetDecksUseCase getDecksUseCase,
     required AddSelectedExcelRowsUseCase addSelectedRowsUseCase,
     required SyncExcelImportAddedStatusUseCase syncAddedStatusUseCase,
+    required RemoveExcelRowsUseCase removeExcelRowsUseCase,
     required DeleteExcelImportUseCase deleteImportUseCase,
     required LocalDataSource localDataSource,
-  })  : _importId = importId,
-        _getImportUseCase = getImportUseCase,
-        _getDecksUseCase = getDecksUseCase,
-        _addSelectedRowsUseCase = addSelectedRowsUseCase,
-        _syncAddedStatusUseCase = syncAddedStatusUseCase,
-        _deleteImportUseCase = deleteImportUseCase,
-        _localDataSource = localDataSource,
-        super(ExcelImportDetailState(selectedDeckId: initialDeckId));
+  }) : _importId = importId,
+       _getImportUseCase = getImportUseCase,
+       _getDecksUseCase = getDecksUseCase,
+       _addSelectedRowsUseCase = addSelectedRowsUseCase,
+       _syncAddedStatusUseCase = syncAddedStatusUseCase,
+       _removeExcelRowsUseCase = removeExcelRowsUseCase,
+       _deleteImportUseCase = deleteImportUseCase,
+       _localDataSource = localDataSource,
+       super(ExcelImportDetailState(selectedDeckId: initialDeckId));
 
   final String _importId;
   final GetExcelImportUseCase _getImportUseCase;
   final GetDecksUseCase _getDecksUseCase;
   final AddSelectedExcelRowsUseCase _addSelectedRowsUseCase;
   final SyncExcelImportAddedStatusUseCase _syncAddedStatusUseCase;
+  final RemoveExcelRowsUseCase _removeExcelRowsUseCase;
   final DeleteExcelImportUseCase _deleteImportUseCase;
   final LocalDataSource _localDataSource;
 
@@ -53,7 +57,8 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
           status: ExcelImportDetailStatus.loaded,
           import: syncedImport,
           decks: decks,
-          selectedDeckId: state.selectedDeckId ??
+          selectedDeckId:
+              state.selectedDeckId ??
               (decks.isNotEmpty ? decks.first.id : null),
           selectedRowIds: {},
         ),
@@ -100,18 +105,22 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
     emit(state.copyWith(pendingOnly: value));
   }
 
-  Future<int> addSelectedToDeck() async {
+  Future<ExcelImportAddResult> addSelectedToDeck() async {
     final deckId = state.selectedDeckId;
-    if (deckId == null || state.selectedRowIds.isEmpty) return 0;
+    if (deckId == null || state.selectedRowIds.isEmpty) {
+      return const ExcelImportAddResult(addedCount: 0, duplicates: []);
+    }
 
     final pendingSelected = state.selectedRowIds.where((id) {
       final row = state.import?.rows.where((r) => r.id == id).firstOrNull;
       return row != null && !row.isAdded;
     }).toList();
 
-    if (pendingSelected.isEmpty) return 0;
+    if (pendingSelected.isEmpty) {
+      return const ExcelImportAddResult(addedCount: 0, duplicates: []);
+    }
 
-    final count = await _addSelectedRowsUseCase(
+    final result = await _addSelectedRowsUseCase(
       importId: _importId,
       deckId: deckId,
       rowIds: pendingSelected,
@@ -119,18 +128,26 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
     );
 
     final import = await _getImportUseCase(_importId);
-    final syncedImport =
-        import != null ? await _syncAddedStatusUseCase(import) : null;
-    emit(
-      state.copyWith(
-        import: syncedImport,
-        selectedRowIds: {},
-      ),
-    );
-    return count;
+    final syncedImport = import != null
+        ? await _syncAddedStatusUseCase(import)
+        : null;
+    emit(state.copyWith(import: syncedImport, selectedRowIds: {}));
+    return result;
   }
 
   Future<void> deleteImport() async {
     await _deleteImportUseCase(_importId);
+  }
+
+  Future<int> removeRows(Iterable<String> rowIds) async {
+    final removed = await _removeExcelRowsUseCase(
+      importId: _importId,
+      rowIds: rowIds,
+    );
+    if (removed > 0) {
+      final import = await _getImportUseCase(_importId);
+      emit(state.copyWith(import: import, selectedRowIds: {}));
+    }
+    return removed;
   }
 }

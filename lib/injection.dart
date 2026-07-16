@@ -1,19 +1,25 @@
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:get_it/get_it.dart';
+import 'package:recall/core/tts/tts_service.dart';
 import 'package:recall/data/datasources/excel_import_store.dart';
 import 'package:recall/data/datasources/local_data_source.dart';
+import 'package:recall/data/datasources/review_history_store.dart';
 import 'package:recall/data/datasources/storage_setup.dart';
 import 'package:recall/data/repositories/deck_repository_impl.dart';
 import 'package:recall/data/repositories/excel_import_repository_impl.dart';
 import 'package:recall/data/repositories/flashcard_repository_impl.dart';
+import 'package:recall/data/repositories/review_history_repository_impl.dart';
 import 'package:recall/domain/repositories/deck_repository.dart';
 import 'package:recall/domain/repositories/excel_import_repository.dart';
 import 'package:recall/domain/repositories/flashcard_repository.dart';
+import 'package:recall/domain/repositories/review_history_repository.dart';
 import 'package:recall/domain/usecases/add_card_usecase.dart';
 import 'package:recall/domain/usecases/add_deck_usecase.dart';
 import 'package:recall/domain/usecases/add_selected_excel_rows_usecase.dart';
 import 'package:recall/domain/usecases/delete_card_usecase.dart';
 import 'package:recall/domain/usecases/delete_deck_usecase.dart';
 import 'package:recall/domain/usecases/delete_excel_import_usecase.dart';
+import 'package:recall/domain/usecases/find_duplicate_card_usecase.dart';
 import 'package:recall/domain/usecases/get_all_due_cards_usecase.dart';
 import 'package:recall/domain/usecases/get_cards_by_deck_usecase.dart';
 import 'package:recall/domain/usecases/get_deck_usecase.dart';
@@ -22,6 +28,7 @@ import 'package:recall/domain/usecases/get_cards_by_box_usecase.dart';
 import 'package:recall/domain/usecases/get_due_cards_usecase.dart';
 import 'package:recall/domain/usecases/get_excel_imports_usecase.dart';
 import 'package:recall/domain/usecases/parse_and_save_excel_import_usecase.dart';
+import 'package:recall/domain/usecases/remove_excel_rows_usecase.dart';
 import 'package:recall/domain/usecases/review_card_usecase.dart';
 import 'package:recall/domain/usecases/sync_excel_import_added_status_usecase.dart';
 import 'package:recall/domain/usecases/update_card_usecase.dart';
@@ -32,6 +39,7 @@ import 'package:recall/presentation/blocs/deck_list/deck_list_cubit.dart';
 import 'package:recall/presentation/blocs/excel_import_detail/excel_import_detail_cubit.dart';
 import 'package:recall/presentation/blocs/excel_library/excel_library_cubit.dart';
 import 'package:recall/presentation/blocs/settings/settings_cubit.dart';
+import 'package:recall/presentation/blocs/statistics/statistics_cubit.dart';
 import 'package:recall/presentation/blocs/study/study_config.dart';
 import 'package:recall/presentation/blocs/study/study_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -45,11 +53,13 @@ Future<void> configureDependencies() async {
   final localDataSource = await createLocalDataSource(prefs);
   sl.registerSingleton<LocalDataSource>(localDataSource);
 
-  sl.registerLazySingleton<IDeckRepository>(
-    () => DeckRepositoryImpl(sl()),
-  );
+  sl.registerLazySingleton<IDeckRepository>(() => DeckRepositoryImpl(sl()));
   sl.registerLazySingleton<IFlashcardRepository>(
     () => FlashcardRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton<ReviewHistoryStore>(() => ReviewHistoryStore(sl()));
+  sl.registerLazySingleton<IReviewHistoryRepository>(
+    () => ReviewHistoryRepositoryImpl(sl()),
   );
   sl.registerLazySingleton<ExcelImportStore>(() => ExcelImportStore(sl()));
   sl.registerLazySingleton<IExcelImportRepository>(
@@ -65,29 +75,36 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => GetDueCardsUseCase(sl()));
   sl.registerLazySingleton(() => GetAllDueCardsUseCase(sl()));
   sl.registerLazySingleton(() => GetCardsByBoxUseCase(sl()));
-  sl.registerLazySingleton(() => ReviewCardUseCase(sl()));
-  sl.registerLazySingleton(() => AddCardUseCase(sl()));
+  sl.registerLazySingleton(() => ReviewCardUseCase(sl(), sl()));
+  sl.registerLazySingleton(() => FindDuplicateCardUseCase(sl(), sl()));
+  sl.registerLazySingleton(() => AddCardUseCase(sl(), sl()));
   sl.registerLazySingleton(() => UpdateCardUseCase(sl()));
   sl.registerLazySingleton(() => DeleteCardUseCase(sl()));
   sl.registerLazySingleton(() => ParseAndSaveExcelImportUseCase(sl()));
   sl.registerLazySingleton(() => GetExcelImportsUseCase(sl()));
   sl.registerLazySingleton(() => GetExcelImportUseCase(sl()));
-  sl.registerLazySingleton(() => AddSelectedExcelRowsUseCase(sl(), sl()));
+  sl.registerLazySingleton(() => AddSelectedExcelRowsUseCase(sl(), sl(), sl()));
   sl.registerLazySingleton(() => SyncExcelImportAddedStatusUseCase(sl(), sl()));
+  sl.registerLazySingleton(() => RemoveExcelRowsUseCase(sl()));
   sl.registerLazySingleton(() => DeleteExcelImportUseCase(sl()));
 
   sl.registerLazySingleton(() => SettingsCubit(sl()));
 
-  sl.registerFactory(() => DeckListCubit(
-        getDecksUseCase: sl(),
-        getDueCardsUseCase: sl(),
-        getCardsByDeckUseCase: sl(),
-        addDeckUseCase: sl(),
-        updateDeckUseCase: sl(),
-        deleteDeckUseCase: sl(),
-        flashcardRepository: sl(),
-        localDataSource: sl(),
-      ));
+  sl.registerLazySingleton<TtsService>(() => TtsService(FlutterTts()));
+
+  sl.registerFactory(
+    () => DeckListCubit(
+      getDecksUseCase: sl(),
+      getDueCardsUseCase: sl(),
+      getCardsByDeckUseCase: sl(),
+      addDeckUseCase: sl(),
+      updateDeckUseCase: sl(),
+      deleteDeckUseCase: sl(),
+      flashcardRepository: sl(),
+      localDataSource: sl(),
+    ),
+  );
+  sl.registerFactory(() => StatisticsCubit(sl(), sl()));
 
   sl.registerFactoryParam<StudyCubit, StudyConfig, void>(
     (config, _) => StudyCubit(
@@ -122,12 +139,14 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  sl.registerFactory(() => ExcelLibraryCubit(
-        getImportsUseCase: sl(),
-        parseAndSaveUseCase: sl(),
-        deleteImportUseCase: sl(),
-        localDataSource: sl(),
-      ));
+  sl.registerFactory(
+    () => ExcelLibraryCubit(
+      getImportsUseCase: sl(),
+      parseAndSaveUseCase: sl(),
+      deleteImportUseCase: sl(),
+      localDataSource: sl(),
+    ),
+  );
 
   sl.registerFactoryParam<ExcelImportDetailCubit, String, String?>(
     (importId, initialDeckId) => ExcelImportDetailCubit(
@@ -137,6 +156,7 @@ Future<void> configureDependencies() async {
       getDecksUseCase: sl(),
       addSelectedRowsUseCase: sl(),
       syncAddedStatusUseCase: sl(),
+      removeExcelRowsUseCase: sl(),
       deleteImportUseCase: sl(),
       localDataSource: sl(),
     ),

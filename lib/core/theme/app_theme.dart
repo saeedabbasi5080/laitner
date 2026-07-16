@@ -9,6 +9,7 @@ class AppColors {
   static const peach = Color(0xFFFFD4B8);
   static const sky = Color(0xFFB8D4F0);
   static const rose = Color(0xFFF5B8C8);
+  static const danger = Color(0xFFD32F2F);
   static const lemon = Color(0xFFF5E6A8);
   static const coral = Color(0xFFFFB8A8);
   static const teal = Color(0xFFA8E0D8);
@@ -119,17 +120,18 @@ class AppTheme {
     required AppAccent accent,
   }) {
     final isDark = brightness == Brightness.dark;
-    final recallColors =
-        isDark ? RecallColors.dark(accent.seed) : RecallColors.light(accent.seed);
-
     final colorScheme = ColorScheme.fromSeed(
       seedColor: accent.seed,
       brightness: brightness,
-      dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+      dynamicSchemeVariant: DynamicSchemeVariant.vibrant,
+      contrastLevel: 0.1,
     ).copyWith(
       surface: isDark ? const Color(0xFF1A1D24) : const Color(0xFFFAFAFA),
       onSurface: isDark ? const Color(0xFFF5F5F7) : const Color(0xFF1A1D24),
     );
+    final recallColors = isDark
+        ? RecallColors.dark(colorScheme.primary)
+        : RecallColors.light(colorScheme.primary);
 
     final base = ThemeData(
       useMaterial3: true,
@@ -151,32 +153,34 @@ class AppTheme {
       splashColor: foreground.withValues(alpha: 0.08),
       highlightColor: foreground.withValues(alpha: 0.08),
       progressIndicatorTheme: ProgressIndicatorThemeData(
-        color: accent.seed,
+        color: colorScheme.primary,
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: accent.seed,
-        foregroundColor: const Color(0xFF1A1D24),
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return accent.seed;
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.primary;
+          }
           return null;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return accent.seed.withValues(alpha: 0.45);
+            return colorScheme.primaryContainer;
           }
           return null;
         }),
       ),
       chipTheme: base.chipTheme.copyWith(
-        selectedColor: accent.seed.withValues(alpha: 0.28),
-        checkmarkColor: foreground,
+        selectedColor: colorScheme.primaryContainer,
+        checkmarkColor: colorScheme.onPrimaryContainer,
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: accent.seed,
-          foregroundColor: const Color(0xFF1A1D24),
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
         ),
       ),
     );

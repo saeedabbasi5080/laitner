@@ -26,8 +26,7 @@ abstract final class AppStrings {
   static const cancel = 'انصراف';
   static const delete = 'حذف';
   static const importExcel = 'ورود از اکسل';
-  static const importExcelHint =
-      'ستون اول: روی کارت — ستون دوم: پشت کارت';
+  static const importExcelHint = 'ستون اول: روی کارت — ستون دوم: پشت کارت';
   static const importSuccess = 'کارت با موفقیت وارد شد';
   static const importFailed = 'خطا در خواندن فایل اکسل';
   static const noFileSelected = 'فایلی انتخاب نشده';
@@ -42,6 +41,19 @@ abstract final class AppStrings {
       'فایل‌ها ذخیره می‌مانند؛ هر بار لغات دلخواه را انتخاب کنید';
   static const excelLibraryEmpty =
       'هنوز فایل اکسلی اضافه نکرده‌اید. با دکمه پایین یک فایل انتخاب کنید.';
+  static const excelFormatGuideTitle = 'راهنمای فایل اکسل';
+  static const excelFormatGuideIntro =
+      'قبل از انتخاب فایل، مطمئن شوید اکسل شما مطابق قالب زیر است:';
+  static const excelFormatRuleFormat = 'فرمت فایل: xlsx یا xls';
+  static const excelFormatRuleColumnA = 'ستون اول (A): روی کارت';
+  static const excelFormatRuleColumnB = 'ستون دوم (B): پشت کارت';
+  static const excelFormatRuleSheet = 'فقط برگه اول فایل خوانده می‌شود';
+  static const excelFormatRuleRows =
+      'هر ردیفی که هر دو ستون پر باشد یک کارت می‌شود؛ ردیف‌های خالی نادیده گرفته می‌شوند';
+  static const excelFormatExampleTitle = 'مثال';
+  static const excelFormatExampleFront = 'hello';
+  static const excelFormatExampleBack = 'سلام';
+  static const excelSelectFile = 'انتخاب فایل اکسل';
   static const importExcelFile = 'افزودن فایل اکسل';
   static const excelFileSaved = 'فایل ذخیره شد';
   static const excelNoRows =
@@ -80,6 +92,22 @@ abstract final class AppStrings {
   static const backHint = 'پاسخ، تعریف یا ترجمه.';
   static const saveCard = 'ذخیره کارت';
   static const newCard = 'کارت جدید';
+  static String duplicateCardInDeck(String deckName) =>
+      'این کلمه قبلاً اضافه شده و در دستهٔ «$deckName» وجود دارد.';
+  static const excelDuplicatesSkipped =
+      'کلمهٔ تکراری رد شد و به دسته اضافه نشد.';
+  static const excelImportResult = 'نتیجه افزودن کلمات';
+  static String excelImportResultSummary(int total, int added, int duplicate) =>
+      'از $total کلمهٔ انتخاب‌شده، $added کلمه اضافه شد و '
+      '$duplicate کلمه به دلیل تکراری بودن اضافه نشد.';
+  static const duplicateWords = 'کلمات تکراری';
+  static String duplicateExistsInDeck(String deckName) =>
+      'از قبل در دستهٔ «$deckName» وجود دارد';
+  static const removeDuplicateWords = 'حذف کلمات تکراری از فایل';
+  static const removeDuplicateWordsQuestion =
+      'آیا می‌خواهید کلمات تکراری از نسخهٔ ذخیره‌شدهٔ این فایل در کتابخانه اکسل حذف شوند؟';
+  static const removeDuplicateWordsConfirm =
+      'کلمات تکراری حذف شدند و دیگر در این فایل نمایش داده نمی‌شوند.';
   static const box = 'خانه';
   static const boxOverview = 'کارت‌ها در هر خانه';
   static const boxNCards = 'کارت در خانه';
@@ -87,6 +115,13 @@ abstract final class AppStrings {
   static const freeReview = 'مرور آزاد';
   static const freeReviewSetup = 'تنظیم مرور آزاد';
   static const selectBox = 'انتخاب خانه';
+  static const selectReviewDay = 'انتخاب روز مرور';
+  static const allReviewDays = 'همه روزها';
+  static const reviewSchedule = 'برنامه مرور این خانه';
+  static const reviewScheduleHint =
+      'تعداد کارت‌ها بر اساس زمان سررسید بعدی تفکیک شده است';
+  static const freeReviewPreviewHint =
+      'مرور آزاد فقط برای تمرین است و خانه یا زمان‌بندی کارت را تغییر نمی‌دهد.';
   static const normalReview = 'نرمال (رو به پشت)';
   static const reversedReview = 'برعکس (پشت به رو)';
   static const resetToBox1 = 'برگرد به خانه ۱';
@@ -99,6 +134,31 @@ abstract final class AppStrings {
   static const selectDeck = 'انتخاب دسته';
   static const noDecksForCard = 'ابتدا یک دسته بسازید.';
   static const whatToAdd = 'چه چیزی می‌خواهید اضافه کنید؟';
+
+  // آمار
+  static const statistics = 'آمار یادگیری';
+  static const learningOverview = 'نمای کلی روند یادگیری شما';
+  static const mastery = 'درصد تسلط';
+  static const masteryHint = 'کارت‌های رسیده به خانه ۴ و ۵';
+  static const masteredCards = 'کارت مسلط';
+  static const boxDistribution = 'توزیع خانه‌ها';
+  static const boxDistributionHint = 'جایگاه فعلی همه کارت‌ها';
+  static const dailyReviews = 'مرورهای روزانه';
+  static const lastSevenDays = '۷ روز اخیر';
+  static const answerRate = 'نرخ پاسخ‌ها';
+  static const answerRateHint = 'بر اساس تمام مرورهای ثبت‌شده';
+  static const currentStreak = 'تداوم فعلی';
+  static const bestStreak = 'بهترین تداوم';
+  static const day = 'روز';
+  static const futureDue = 'سررسید آینده';
+  static const nextSevenDays = '۷ روز آینده؛ معوق‌ها در امروز محاسبه شده‌اند';
+  static const todayShort = 'امروز';
+  static const tomorrowShort = 'فردا';
+  static const noReviewHistory =
+      'هنوز مروری ثبت نشده است. از این به بعد نتیجه مرورها در این بخش نمایش داده می‌شود.';
+  static const reviewHistoryNote =
+      'آمار مرور از زمان فعال‌شدن این قابلیت ثبت می‌شود.';
+  static const retry = 'تلاش دوباره';
 
   // جزئیات دسته
   static const deck = 'دسته';
@@ -114,7 +174,45 @@ abstract final class AppStrings {
   static const lightMode = 'حالت روز';
   static const themeMode = 'تم برنامه';
   static const themeAccent = 'رنگ تم';
-  static const themeAccentHint = 'یکی از رنگ‌ها را برای ظاهر برنامه انتخاب کنید';
+  static const themeAccentHint =
+      'یکی از رنگ‌ها را برای ظاهر برنامه انتخاب کنید';
+  static const pronunciation = 'تلفظ';
+  static const ttsLanguage = 'زبان تلفظ';
+  static const ttsLanguageHint =
+      'کلمات با موتور تبدیل متن به گفتار دستگاه و بر اساس زبان انتخابی خوانده می‌شوند';
+  static const selectTtsLanguage = 'انتخاب زبان تلفظ';
+  static const speak = 'تلفظ کلمه';
+  static const ttsUnavailable =
+      'این زبان روی دستگاه شما نصب نیست. از تنظیمات گوشی، بستهٔ زبان تبدیل متن به گفتار را نصب کنید.';
+  static const about = 'درباره';
+  static const aboutApp = 'درباره برنامه';
+  static const aboutDeveloper = 'درباره توسعه‌دهنده';
+  static const appName = 'Recall';
+  static const appVersion = 'نسخه ۱.۰.۰';
+  static const appBusinessTitle = 'یادگیری ماندگار، با مرور در زمان مناسب';
+  static const appDescription =
+      'Recall یک ابزار فارسی برای مدیریت یادگیری با روش لایتنر و تکرار فاصله‌دار است. هدف برنامه این است که به‌جای مرور پراکنده و فراموش‌شدنی، هر کارت را درست زمانی که نیاز دارد دوباره به شما نشان دهد.';
+  static const appValueTitle = 'Recall چه کمکی می‌کند؟';
+  static const appValueDescription =
+      'ساخت و دسته‌بندی فلش‌کارت، ورود گروهی از اکسل، مرور روزانه و آزاد، تلفظ کلمات با موتور گوشی و مشاهده آمار پیشرفت؛ همه در یک تجربه ساده و فارسی.';
+  static const appAudienceTitle = 'برای چه کسانی ساخته شده؟';
+  static const appAudienceDescription =
+      'زبان‌آموزان، دانش‌آموزان، دانشجویان و هر کسی که می‌خواهد واژگان، مفاهیم یا نکات مهم را با یک برنامه مرور منظم به حافظه بلندمدت بسپارد.';
+  static const appPrivacyTitle = 'حریم خصوصی و مالکیت داده';
+  static const appPrivacyDescription =
+      'کارت‌ها، فایل‌های واردشده و تاریخچه مرور روی دستگاه شما نگهداری می‌شوند. Recall برای نمایش تبلیغات یا فروش اطلاعات شخصی طراحی نشده است.';
+  static const developerName = 'سعید عباسی';
+  static const developerTitle = 'طراح و توسعه‌دهنده Recall';
+  static const developerDescription =
+      'Recall با تمرکز بر تجربه فارسی، سادگی، حفظ حریم خصوصی و یادگیری مؤثر به‌صورت مستقل طراحی و توسعه داده شده است.';
+  static const contactDeveloper = 'راه‌های ارتباطی';
+  static const sendEmail = 'ارسال ایمیل';
+  static const telegram = 'ارسال پیام در تلگرام';
+  static const github = 'مشاهده GitHub';
+  static const developerEmail = 'saeed.abasi5080@gmail.com';
+  static const developerGithub = 'github.com/saeedabbasi5080';
+  static const telegramNotConfigured = 'آیدی تلگرام هنوز ثبت نشده است';
+  static const linkOpenFailed = 'امکان بازکردن این لینک وجود ندارد.';
 
   // عمومی
   static const error = 'خطایی رخ داد';
