@@ -1,6 +1,5 @@
 import 'package:isar/isar.dart';
 import 'package:recall/data/datasources/local_data_source.dart';
-import 'package:recall/data/datasources/seed_data.dart';
 import 'package:recall/data/models/deck_model.dart';
 import 'package:recall/data/models/flashcard_model.dart';
 import 'package:recall/domain/entities/deck.dart';
@@ -12,23 +11,6 @@ class IsarLocalDataSource implements LocalDataSource {
 
   final Isar _isar;
   final _uuid = const Uuid();
-
-  @override
-  Future<void> seedIfEmpty() async {
-    final count = await _isar.deckModels.count();
-    if (count > 0) return;
-
-    final sample = SeedData.sample(DateTime.now());
-
-    await _isar.writeTxn(() async {
-      await _isar.deckModels.putAll(
-        sample.decks.map(DeckModelMapper.fromEntity).toList(),
-      );
-      await _isar.flashcardModels.putAll(
-        sample.cards.map(FlashcardModelMapper.fromEntity).toList(),
-      );
-    });
-  }
 
   @override
   Future<List<Deck>> getAllDecks() async {

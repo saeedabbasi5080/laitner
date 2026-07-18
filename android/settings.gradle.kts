@@ -12,9 +12,16 @@ pluginManagement {
 
     repositories {
         maven { url = uri("https://maven.myket.ir/") }
-        google()
-        mavenCentral()
-        gradlePluginPortal()
+    }
+}
+
+// Flutter plugins often declare google()/mavenCentral() in their own Gradle
+// files. Prefer the settings repository so all regular dependencies are
+// resolved through Myket without contacting external repositories.
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        maven { url = uri("https://maven.myket.ir/") }
     }
 }
 

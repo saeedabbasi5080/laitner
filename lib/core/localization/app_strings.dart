@@ -122,6 +122,8 @@ abstract final class AppStrings {
       'تعداد کارت‌ها بر اساس زمان سررسید بعدی تفکیک شده است';
   static const freeReviewPreviewHint =
       'مرور آزاد فقط برای تمرین است و خانه یا زمان‌بندی کارت را تغییر نمی‌دهد.';
+  static const freeReviewStudyBadge =
+      'مرور تمرینی؛ پاسخ‌ها خانه را تغییر نمی‌دهند';
   static const normalReview = 'نرمال (رو به پشت)';
   static const reversedReview = 'برعکس (پشت به رو)';
   static const resetToBox1 = 'برگرد به خانه ۱';
@@ -184,11 +186,24 @@ abstract final class AppStrings {
   static const speak = 'تلفظ کلمه';
   static const ttsUnavailable =
       'این زبان روی دستگاه شما نصب نیست. از تنظیمات گوشی، بستهٔ زبان تبدیل متن به گفتار را نصب کنید.';
+  static const reviewSettings = 'تنظیمات مرور';
+  static const randomReviewOrder = 'نمایش تصادفی کارت‌ها';
+  static const randomReviewOrderHint =
+      'کارت‌های مرور امروز و مرور آزاد خانه‌ها با ترتیب تصادفی نمایش داده شوند';
+  static const cardFontSize = 'اندازه فونت کارت';
+  static const cardFontSizeHint =
+      'با اسلایدر اندازه را تنظیم کنید؛ پیش‌نمایش همان لحظه به‌روز می‌شود';
+  static const cardFontSizePreview = 'نمونه متن کارت';
+  static const cardFontSizePreviewWord = 'Hello';
+  static String cardFontSizeValue(int size) => 'اندازه فونت $size';
+  static const autoSpeak = 'تلفظ خودکار کارت';
+  static const autoSpeakHint =
+      'با باز شدن هر کارت جدید، فقط یک‌بار متن روی کارت خوانده می‌شود؛ پشت‌ورو کردن تلفظ نمی‌کند';
   static const about = 'درباره';
   static const aboutApp = 'درباره برنامه';
   static const aboutDeveloper = 'درباره توسعه‌دهنده';
   static const appName = 'Recall';
-  static const appVersion = 'نسخه ۱.۰.۰';
+  static const appVersion = 'نسخه ۱.۰.۱';
   static const appBusinessTitle = 'یادگیری ماندگار، با مرور در زمان مناسب';
   static const appDescription =
       'Recall یک ابزار فارسی برای مدیریت یادگیری با روش لایتنر و تکرار فاصله‌دار است. هدف برنامه این است که به‌جای مرور پراکنده و فراموش‌شدنی، هر کارت را درست زمانی که نیاز دارد دوباره به شما نشان دهد.';

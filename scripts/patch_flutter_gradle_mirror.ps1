@@ -20,16 +20,20 @@ if (-not (Test-Path $settingsFile)) {
 }
 
 $content = Get-Content $settingsFile -Raw
-if ($content -match 'maven\.myket\.ir') {
-    Write-Host "Myket mirror already configured in Flutter SDK Gradle settings."
-    exit 0
-}
 
-$newContent = $content -replace 'repositories \{', @'
+# Remove foreign repository fallbacks so sanctioned networks never attempt to
+# contact Google, Maven Central, or the Gradle Plugin Portal.
+$content = $content -replace '(?m)^\s*google\(\)\s*\r?\n?', ''
+$content = $content -replace '(?m)^\s*mavenCentral\(\)\s*\r?\n?', ''
+$content = $content -replace '(?m)^\s*gradlePluginPortal\(\)\s*\r?\n?', ''
+
+if ($content -notmatch 'maven\.myket\.ir') {
+    $content = $content -replace 'repositories \{', @'
 repositories {
         maven { url = uri("https://maven.myket.ir/") }
 '@
+}
 
-Set-Content -Path $settingsFile -Value $newContent -Encoding UTF8
+Set-Content -Path $settingsFile -Value $content -Encoding UTF8
 Write-Host "Patched Flutter SDK Gradle settings:"
 Write-Host $settingsFile

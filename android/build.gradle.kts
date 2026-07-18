@@ -1,11 +1,3 @@
-allprojects {
-    repositories {
-        maven { url = uri("https://maven.myket.ir/") }
-        google()
-        mavenCentral()
-    }
-}
-
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../../build")
@@ -16,8 +8,6 @@ subprojects {
     buildscript {
         repositories {
             maven { url = uri("https://maven.myket.ir/") }
-            google()
-            mavenCentral()
         }
     }
 

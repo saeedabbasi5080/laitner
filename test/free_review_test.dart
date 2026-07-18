@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:recall/core/utils/due_day_utils.dart';
 import 'package:recall/domain/entities/flashcard.dart';
@@ -77,6 +79,35 @@ void main() {
       filterCardsByDueDay(cards, dueDay: today, now: today).single.id,
       'today',
     );
+  });
+
+  test('random order shuffles the complete free-review queue once', () async {
+    final now = DateTime.now();
+    final cards = List.generate(
+      8,
+      (index) => _card('card-$index', box: 3, reviewedAt: now),
+    );
+    final repository = _FakeFlashcardRepository(cards);
+    final history = _FakeReviewHistoryRepository();
+    final cubit = StudyCubit(
+      config: StudyConfig.byBox(3).withRandomOrder(true),
+      getDueCardsUseCase: GetDueCardsUseCase(repository),
+      getAllDueCardsUseCase: GetAllDueCardsUseCase(repository),
+      getCardsByBoxUseCase: GetCardsByBoxUseCase(repository),
+      reviewCardUseCase: ReviewCardUseCase(repository, history),
+      updateCardUseCase: UpdateCardUseCase(repository),
+      deleteCardUseCase: DeleteCardUseCase(repository),
+      random: Random(42),
+    );
+
+    await cubit.load();
+
+    final originalIds = cards.map((card) => card.id).toList();
+    final shuffledIds = cubit.state.queue.map((card) => card.id).toList();
+    expect(shuffledIds, isNot(originalIds));
+    expect(shuffledIds.toSet(), originalIds.toSet());
+
+    await cubit.close();
   });
 }
 

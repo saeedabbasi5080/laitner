@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_accent.dart';
 import 'package:recall/core/theme/app_theme.dart';
+import 'package:recall/core/theme/card_font_size.dart';
 import 'package:recall/core/tts/tts_language.dart';
+import 'package:recall/core/utils/responsive.dart';
 import 'package:recall/presentation/blocs/settings/settings_cubit.dart';
 import 'package:recall/presentation/screens/about_app_screen.dart';
 import 'package:recall/presentation/screens/developer_screen.dart';
@@ -84,8 +86,10 @@ class SettingsScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: colors.border),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    alignment: WrapAlignment.spaceBetween,
                     children: [
                       for (final option in AppAccent.values)
                         _AccentSwatch(
@@ -111,12 +115,55 @@ class SettingsScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: colors.border),
                   ),
-                  child: ListTile(
-                    leading: Icon(Icons.volume_up_outlined, color: accent),
-                    title: const Text(AppStrings.ttsLanguage),
-                    subtitle: Text(state.ttsLanguage.label),
-                    trailing: const Icon(Icons.chevron_left),
-                    onTap: () => _selectTtsLanguage(context, state.ttsLanguage),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: Icon(Icons.volume_up_outlined, color: accent),
+                        title: const Text(AppStrings.ttsLanguage),
+                        subtitle: Text(state.ttsLanguage.label),
+                        trailing: const Icon(Icons.chevron_left),
+                        onTap: () =>
+                            _selectTtsLanguage(context, state.ttsLanguage),
+                      ),
+                      Divider(height: 1, color: colors.border),
+                      SwitchListTile(
+                        secondary: Icon(Icons.record_voice_over, color: accent),
+                        title: const Text(AppStrings.autoSpeak),
+                        subtitle: const Text(AppStrings.autoSpeakHint),
+                        value: state.autoSpeak,
+                        onChanged: (enabled) =>
+                            context.read<SettingsCubit>().setAutoSpeak(enabled),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+                const SectionLabel(AppStrings.reviewSettings),
+                const SizedBox(height: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: colors.card,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: colors.border),
+                  ),
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        secondary: Icon(Icons.shuffle, color: accent),
+                        title: const Text(AppStrings.randomReviewOrder),
+                        subtitle: const Text(AppStrings.randomReviewOrderHint),
+                        value: state.randomReviewOrder,
+                        onChanged: (enabled) => context
+                            .read<SettingsCubit>()
+                            .setRandomReviewOrder(enabled),
+                      ),
+                      Divider(height: 1, color: colors.border),
+                      _CardFontSizePicker(
+                        value: state.cardFontSize,
+                        onChanged: (size) =>
+                            context.read<SettingsCubit>().setCardFontSize(size),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -193,6 +240,7 @@ class _TtsLanguageSheet extends StatelessWidget {
     final accent = context.accentColor;
 
     return Container(
+      constraints: BoxConstraints(maxHeight: context.sheetMaxHeight * 0.85),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
@@ -248,6 +296,136 @@ class _TtsLanguageSheet extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CardFontSizePicker extends StatelessWidget {
+  const _CardFontSizePicker({required this.value, required this.onChanged});
+
+  final CardFontSize value;
+  final ValueChanged<CardFontSize> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.recallColors;
+    final accent = context.accentColor;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.format_size, color: accent),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  AppStrings.cardFontSize,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  value.label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: accent,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            AppStrings.cardFontSizeHint,
+            style: TextStyle(fontSize: 12, color: colors.mutedForeground),
+          ),
+          const SizedBox(height: 14),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            decoration: BoxDecoration(
+              color: colors.muted.withValues(alpha: 0.35),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: colors.border),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  AppStrings.cardFontSizePreview,
+                  style: TextStyle(fontSize: 11, color: colors.mutedForeground),
+                ),
+                const SizedBox(height: 10),
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 160),
+                  style: TextStyle(
+                    fontSize: value.pointSize,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  child: const Text(
+                    AppStrings.cardFontSizePreviewWord,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Material: discrete slider with end icons; keep LTR so small→large
+          // reads left→right as in the official slider guidelines.
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.text_fields,
+                  size: 18,
+                  color: colors.mutedForeground,
+                ),
+                Expanded(
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      activeTrackColor: accent,
+                      inactiveTrackColor: accent.withValues(alpha: 0.2),
+                      thumbColor: accent,
+                      overlayColor: accent.withValues(alpha: 0.12),
+                      valueIndicatorColor: accent,
+                      showValueIndicator: ShowValueIndicator.never,
+                    ),
+                    child: Slider(
+                      value: value.pointSize,
+                      min: CardFontSize.minPointSize,
+                      max: CardFontSize.maxPointSize,
+                      divisions: CardFontSize.divisions,
+                      label: value.label,
+                      semanticFormatterCallback: (v) =>
+                          AppStrings.cardFontSizeValue(v.round()),
+                      onChanged: (next) =>
+                          onChanged(CardFontSize.fromPointSize(next)),
+                    ),
+                  ),
+                ),
+                Icon(Icons.text_fields, size: 28, color: accent),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -60,7 +60,8 @@ void main() {
     expect(cubit.state.currentStreak, 3);
     expect(cubit.state.bestStreak, 3);
     expect(cubit.state.dailyReviewCounts, [0, 0, 1, 0, 1, 1, 1]);
-    expect(cubit.state.futureDueCounts.first, 2);
+    expect(cubit.state.futureDueCounts.first, 1);
+    expect(cubit.state.futureDueCounts[1], 1);
 
     await cubit.close();
   });

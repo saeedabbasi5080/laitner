@@ -3,6 +3,7 @@ import 'package:recall/core/constants/leitner_constants.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/core/utils/due_day_utils.dart';
+import 'package:recall/core/utils/responsive.dart';
 import 'package:recall/domain/entities/flashcard.dart';
 import 'package:recall/domain/usecases/get_cards_by_box_usecase.dart';
 import 'package:recall/injection.dart';
@@ -70,6 +71,7 @@ Future<void> showFreeReviewSheet(
             ? AppStrings.allReviewDays
             : dueDayLabel(DueDayBucket(day: selectedDueDay, cards: const []));
         return Container(
+          constraints: BoxConstraints(maxHeight: context.sheetMaxHeight),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: colors.card,
@@ -78,143 +80,148 @@ Future<void> showFreeReviewSheet(
           ),
           child: SafeArea(
             top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  AppStrings.freeReviewSetup,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppStrings.freeReviewSetup,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  AppStrings.selectBox,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: colors.mutedForeground,
+                  const SizedBox(height: 20),
+                  Text(
+                    AppStrings.selectBox,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: colors.mutedForeground,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: List.generate(maxBox, (index) {
-                    final box = index + 1;
-                    final count = boxCounts[box] ?? 0;
-                    final enabled = count > 0;
-                    final selected = selectedBox == box;
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: List.generate(maxBox, (index) {
+                      final box = index + 1;
+                      final count = boxCounts[box] ?? 0;
+                      final enabled = count > 0;
+                      final selected = selectedBox == box;
 
-                    return FilterChip(
-                      label: Text('${AppStrings.box} $box ($count)'),
-                      selected: selected,
-                      onSelected: enabled
-                          ? (_) => setState(() {
-                              selectedBox = box;
-                              selectedDueDay = null;
-                              selectedOverdue = false;
-                            })
-                          : null,
-                    );
-                  }),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  AppStrings.selectReviewDay,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: colors.mutedForeground,
+                      return FilterChip(
+                        label: Text('${AppStrings.box} $box ($count)'),
+                        selected: selected,
+                        onSelected: enabled
+                            ? (_) => setState(() {
+                                selectedBox = box;
+                                selectedDueDay = null;
+                                selectedOverdue = false;
+                              })
+                            : null,
+                      );
+                    }),
                   ),
-                ),
-                const SizedBox(height: 8),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      ChoiceChip(
-                        label: Text(
-                          '${AppStrings.allReviewDays} '
-                          '(${cardsByBox[selectedBox]?.length ?? 0})',
-                        ),
-                        selected: selectedDueDay == null && !selectedOverdue,
-                        onSelected: (_) => setState(() {
-                          selectedDueDay = null;
-                          selectedOverdue = false;
-                        }),
-                      ),
-                      for (final bucket in dayBuckets) ...[
-                        const SizedBox(width: 8),
+                  const SizedBox(height: 16),
+                  Text(
+                    AppStrings.selectReviewDay,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: colors.mutedForeground,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
                         ChoiceChip(
                           label: Text(
-                            '${dueDayLabel(bucket)} (${bucket.count})',
+                            '${AppStrings.allReviewDays} '
+                            '(${cardsByBox[selectedBox]?.length ?? 0})',
                           ),
-                          selected: bucket.isOverdue
-                              ? selectedOverdue
-                              : selectedDueDay == bucket.day,
+                          selected: selectedDueDay == null && !selectedOverdue,
                           onSelected: (_) => setState(() {
-                            selectedOverdue = bucket.isOverdue;
-                            selectedDueDay = bucket.isOverdue
-                                ? null
-                                : bucket.day;
+                            selectedDueDay = null;
+                            selectedOverdue = false;
                           }),
                         ),
+                        for (final bucket in dayBuckets) ...[
+                          const SizedBox(width: 8),
+                          ChoiceChip(
+                            label: Text(
+                              '${dueDayLabel(bucket)} (${bucket.count})',
+                            ),
+                            selected: bucket.isOverdue
+                                ? selectedOverdue
+                                : selectedDueDay == bucket.day,
+                            onSelected: (_) => setState(() {
+                              selectedOverdue = bucket.isOverdue;
+                              selectedDueDay = bucket.isOverdue
+                                  ? null
+                                  : bucket.day;
+                            }),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  AppStrings.freeReviewPreviewHint,
-                  style: TextStyle(
-                    fontSize: 11,
-                    height: 1.5,
-                    color: colors.mutedForeground,
+                  const SizedBox(height: 12),
+                  Text(
+                    AppStrings.freeReviewPreviewHint,
+                    style: TextStyle(
+                      fontSize: 11,
+                      height: 1.5,
+                      color: colors.mutedForeground,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    reversed
-                        ? AppStrings.reversedReview
-                        : AppStrings.normalReview,
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      reversed
+                          ? AppStrings.reversedReview
+                          : AppStrings.normalReview,
+                    ),
+                    value: reversed,
+                    onChanged: (v) => setState(() => reversed = v),
                   ),
-                  value: reversed,
-                  onChanged: (v) => setState(() => reversed = v),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {
-                      Navigator.pop(
-                        ctx,
-                        _FreeReviewLaunch(
-                          box: selectedBox,
-                          reversed: reversed,
-                          dueDay: selectedDueDay,
-                          overdueOnly: selectedOverdue,
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () {
+                        Navigator.pop(
+                          ctx,
+                          _FreeReviewLaunch(
+                            box: selectedBox,
+                            reversed: reversed,
+                            dueDay: selectedDueDay,
+                            overdueOnly: selectedOverdue,
+                          ),
+                        );
+                      },
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
                         ),
-                      );
-                    },
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '${AppStrings.startReview} — ${AppStrings.box} '
+                        '$selectedBox — $selectedDayLabel',
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
-                    child: Text(
-                      '${AppStrings.startReview} — ${AppStrings.box} '
-                      '$selectedBox — $selectedDayLabel',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );

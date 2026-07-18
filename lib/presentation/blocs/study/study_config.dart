@@ -6,6 +6,7 @@ class StudyConfig {
     this.reversed = false,
     this.dueDay,
     this.overdueOnly = false,
+    this.randomOrder = false,
   });
 
   const StudyConfig.deck(String deckId) : this._(deckId: deckId);
@@ -33,6 +34,17 @@ class StudyConfig {
   final bool reversed;
   final DateTime? dueDay;
   final bool overdueOnly;
+  final bool randomOrder;
 
   bool get isBoxReview => boxNumber != null;
+
+  StudyConfig withRandomOrder(bool enabled) => StudyConfig._(
+    deckId: deckId,
+    allDue: allDue,
+    boxNumber: boxNumber,
+    reversed: reversed,
+    dueDay: dueDay,
+    overdueOnly: overdueOnly,
+    randomOrder: enabled,
+  );
 }

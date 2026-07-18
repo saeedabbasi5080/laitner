@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/constants/leitner_constants.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
+import 'package:recall/core/utils/responsive.dart';
 import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/deck_list/deck_list_cubit.dart';
@@ -37,7 +40,46 @@ class _DeckListView extends StatefulWidget {
   State<_DeckListView> createState() => _DeckListViewState();
 }
 
-class _DeckListViewState extends State<_DeckListView> {
+class _DeckListViewState extends State<_DeckListView>
+    with WidgetsBindingObserver {
+  Timer? _dayBoundaryTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _scheduleDayBoundaryRefresh();
+  }
+
+  @override
+  void dispose() {
+    _dayBoundaryTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      context.read<DeckListCubit>().load();
+      _scheduleDayBoundaryRefresh();
+    }
+  }
+
+  void _scheduleDayBoundaryRefresh() {
+    _dayBoundaryTimer?.cancel();
+    final now = DateTime.now();
+    final nextDay = DateTime(now.year, now.month, now.day + 1);
+    _dayBoundaryTimer = Timer(
+      nextDay.difference(now) + const Duration(seconds: 1),
+      () {
+        if (!mounted) return;
+        context.read<DeckListCubit>().load();
+        _scheduleDayBoundaryRefresh();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.recallColors;
@@ -53,33 +95,41 @@ class _DeckListViewState extends State<_DeckListView> {
             return Stack(
               children: [
                 SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
+                  padding: EdgeInsets.fromLTRB(
+                    context.pageHorizontalPadding,
+                    24,
+                    context.pageHorizontalPadding,
+                    120,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                AppStrings.today,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: colors.mutedForeground,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  AppStrings.today,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: colors.mutedForeground,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                AppStrings.yourDecks,
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
+                                const SizedBox(height: 4),
+                                Text(
+                                  AppStrings.yourDecks,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: context.isCompactWidth ? 24 : 28,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           Row(
                             children: [
@@ -351,19 +401,27 @@ class _BoxOverviewRow extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      Text(
-                        '${AppStrings.box} $box',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: colors.mutedForeground,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '${AppStrings.box} $box',
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: colors.mutedForeground,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        '$count',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '$count',
+                          maxLines: 1,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],

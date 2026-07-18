@@ -161,6 +161,4 @@ Future<void> configureDependencies() async {
       localDataSource: sl(),
     ),
   );
-
-  await sl<LocalDataSource>().seedIfEmpty();
 }

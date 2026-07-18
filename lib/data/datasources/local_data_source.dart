@@ -2,8 +2,6 @@ import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/domain/entities/flashcard.dart';
 
 abstract class LocalDataSource {
-  Future<void> seedIfEmpty();
-
   Future<List<Deck>> getAllDecks();
   Future<Deck?> getDeckById(String id);
   Future<Deck> addDeck(Deck deck);

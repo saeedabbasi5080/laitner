@@ -29,8 +29,8 @@ void main() {
     });
 
     test('become due the next day (Box 1 interval)', () {
-      expect(isCardDue(card, DateTime(2026, 7, 17, 15, 30)), isTrue);
-      expect(nextReviewDate(card), DateTime(2026, 7, 17, 15, 30));
+      expect(isCardDue(card, DateTime(2026, 7, 17)), isTrue);
+      expect(nextReviewDate(card), DateTime(2026, 7, 17));
       expect(cardDueDay(card), DateTime(2026, 7, 17));
     });
   });
@@ -41,7 +41,18 @@ void main() {
       final card = _card(createdAt: reviewedAt, lastReviewed: reviewedAt);
 
       expect(isCardDue(card, DateTime(2026, 7, 16, 22)), isFalse);
-      expect(isCardDue(card, DateTime(2026, 7, 17, 10)), isTrue);
+      expect(isCardDue(card, DateTime(2026, 7, 17)), isTrue);
+    });
+
+    test('calendar intervals cross month and year boundaries', () {
+      final reviewedAt = DateTime(2026, 12, 31, 23);
+      final card = _card(
+        createdAt: reviewedAt,
+        lastReviewed: reviewedAt,
+        box: 2,
+      );
+
+      expect(nextReviewDate(card), DateTime(2027, 1, 2));
     });
   });
 }

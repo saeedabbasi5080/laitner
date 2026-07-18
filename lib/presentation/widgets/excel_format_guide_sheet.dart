@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
+import 'package:recall/core/utils/responsive.dart';
 
 Future<bool> showExcelFormatGuideSheet(BuildContext context) {
   final colors = context.recallColors;
@@ -10,6 +11,7 @@ Future<bool> showExcelFormatGuideSheet(BuildContext context) {
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (ctx) => Container(
+      constraints: BoxConstraints(maxHeight: context.sheetMaxHeight),
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
       decoration: BoxDecoration(
         color: colors.card,
@@ -18,64 +20,66 @@ Future<bool> showExcelFormatGuideSheet(BuildContext context) {
       ),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  color: context.accentColor,
-                  size: 22,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: context.accentColor,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      AppStrings.excelFormatGuideTitle,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                AppStrings.excelFormatGuideIntro,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.5,
+                  color: colors.mutedForeground,
                 ),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Text(
-                    AppStrings.excelFormatGuideTitle,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+              ),
+              const SizedBox(height: 16),
+              const ExcelFormatGuideCard(compact: true),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  icon: const Icon(Icons.upload_file, size: 20),
+                  label: const Text(AppStrings.excelSelectFile),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              AppStrings.excelFormatGuideIntro,
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.5,
-                color: colors.mutedForeground,
               ),
-            ),
-            const SizedBox(height: 16),
-            const ExcelFormatGuideCard(compact: true),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () => Navigator.pop(ctx, true),
-                icon: const Icon(Icons.upload_file, size: 20),
-                label: const Text(AppStrings.excelSelectFile),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(999),
-                  ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text(AppStrings.cancel),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text(AppStrings.cancel),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     ),
@@ -153,11 +157,7 @@ class ExcelFormatGuideCard extends StatelessWidget {
 }
 
 class _RuleRow extends StatelessWidget {
-  const _RuleRow({
-    required this.icon,
-    required this.text,
-    required this.color,
-  });
+  const _RuleRow({required this.icon, required this.text, required this.color});
 
   final IconData icon;
   final String text;
@@ -171,10 +171,7 @@ class _RuleRow extends StatelessWidget {
         Icon(icon, size: 16, color: color),
         const SizedBox(width: 8),
         Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(fontSize: 13, height: 1.45),
-          ),
+          child: Text(text, style: const TextStyle(fontSize: 13, height: 1.45)),
         ),
       ],
     );
@@ -190,10 +187,7 @@ class _ExampleTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Table(
-      columnWidths: const {
-        0: FlexColumnWidth(1),
-        1: FlexColumnWidth(1),
-      },
+      columnWidths: const {0: FlexColumnWidth(1), 1: FlexColumnWidth(1)},
       border: TableBorder.all(color: colors.border),
       children: [
         TableRow(
@@ -209,12 +203,7 @@ class _ExampleTable extends StatelessWidget {
             _ExampleCell(AppStrings.excelFormatExampleBack),
           ],
         ),
-        const TableRow(
-          children: [
-            _ExampleCell('book'),
-            _ExampleCell('کتاب'),
-          ],
-        ),
+        const TableRow(children: [_ExampleCell('book'), _ExampleCell('کتاب')]),
       ],
     );
   }

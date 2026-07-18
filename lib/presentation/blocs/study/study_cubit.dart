@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/utils/due_day_utils.dart';
@@ -22,6 +24,7 @@ class StudyCubit extends Cubit<StudyState> {
     required ReviewCardUseCase reviewCardUseCase,
     required UpdateCardUseCase updateCardUseCase,
     required DeleteCardUseCase deleteCardUseCase,
+    Random? random,
   }) : _config = config,
        _getDueCardsUseCase = getDueCardsUseCase,
        _getAllDueCardsUseCase = getAllDueCardsUseCase,
@@ -29,6 +32,7 @@ class StudyCubit extends Cubit<StudyState> {
        _reviewCardUseCase = reviewCardUseCase,
        _updateCardUseCase = updateCardUseCase,
        _deleteCardUseCase = deleteCardUseCase,
+       _random = random ?? Random(),
        super(const StudyState());
 
   final StudyConfig _config;
@@ -38,6 +42,7 @@ class StudyCubit extends Cubit<StudyState> {
   final ReviewCardUseCase _reviewCardUseCase;
   final UpdateCardUseCase _updateCardUseCase;
   final DeleteCardUseCase _deleteCardUseCase;
+  final Random _random;
   bool _isRating = false;
 
   Future<void> load() async {
@@ -61,10 +66,15 @@ class StudyCubit extends Cubit<StudyState> {
         cards = await _getDueCardsUseCase(_config.deckId!);
       }
 
+      final queue = List<Flashcard>.of(cards);
+      if (_config.randomOrder) {
+        queue.shuffle(_random);
+      }
+
       emit(
         state.copyWith(
           status: StudyStatus.ready,
-          queue: cards,
+          queue: queue,
           currentIndex: 0,
           isFlipped: false,
           isAllDue: _config.allDue,

@@ -4,6 +4,7 @@ import 'package:recall/domain/entities/review_log.dart';
 import 'package:recall/domain/entities/review_rating.dart';
 import 'package:recall/domain/repositories/flashcard_repository.dart';
 import 'package:recall/domain/repositories/review_history_repository.dart';
+import 'package:recall/domain/usecases/leitner_logic.dart';
 import 'package:recall/domain/usecases/review_card_usecase.dart';
 
 void main() {
@@ -35,7 +36,8 @@ void main() {
 
   test('ReviewCardUseCase persists a review log', () async {
     final history = _FakeReviewHistoryRepository();
-    final useCase = ReviewCardUseCase(_FakeFlashcardRepository(), history);
+    final repository = _FakeFlashcardRepository();
+    final useCase = ReviewCardUseCase(repository, history);
     final now = DateTime(2026, 7, 13);
     final card = Flashcard(
       id: '1',
@@ -52,10 +54,29 @@ void main() {
     expect(history.logs.single.boxBefore, 2);
     expect(history.logs.single.boxAfter, 3);
     expect(history.logs.single.rating, ReviewRating.know);
+    expect(repository.updatedCard?.box, 3);
+    expect(repository.updatedCard?.lastReviewed, now);
+  });
+
+  test('new Box 1 card becomes due at next local midnight', () {
+    final card = Flashcard(
+      id: 'midnight',
+      deckId: 'd1',
+      front: 'Test',
+      back: 'Answer',
+      box: 1,
+      createdAt: DateTime(2026, 7, 16, 22),
+    );
+
+    expect(isCardDue(card, DateTime(2026, 7, 16, 23, 59)), isFalse);
+    expect(isCardDue(card, DateTime(2026, 7, 17)), isTrue);
+    expect(nextReviewDate(card), DateTime(2026, 7, 17));
   });
 }
 
 class _FakeFlashcardRepository implements IFlashcardRepository {
+  Flashcard? updatedCard;
+
   @override
   Future<Flashcard> addCard(Flashcard card) async => card;
 
@@ -72,7 +93,10 @@ class _FakeFlashcardRepository implements IFlashcardRepository {
   Future<List<Flashcard>> getCardsByDeckId(String deckId) async => [];
 
   @override
-  Future<Flashcard> updateCard(Flashcard card) async => card;
+  Future<Flashcard> updateCard(Flashcard card) async {
+    updatedCard = card;
+    return card;
+  }
 }
 
 class _FakeReviewHistoryRepository implements IReviewHistoryRepository {

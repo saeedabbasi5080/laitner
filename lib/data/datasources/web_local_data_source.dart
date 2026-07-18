@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:recall/data/datasources/local_data_source.dart';
-import 'package:recall/data/datasources/seed_data.dart';
 import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/domain/entities/deck_color.dart';
 import 'package:recall/domain/entities/flashcard.dart';
@@ -17,15 +16,6 @@ class WebLocalDataSource implements LocalDataSource {
 
   static const _decksKey = 'recall_web_decks';
   static const _cardsKey = 'recall_web_cards';
-
-  @override
-  Future<void> seedIfEmpty() async {
-    if (_prefs.containsKey(_decksKey)) return;
-
-    final sample = SeedData.sample(DateTime.now());
-    await _saveDecks(sample.decks);
-    await _saveCards(sample.cards);
-  }
 
   List<Deck> _loadDecks() {
     final raw = _prefs.getString(_decksKey);

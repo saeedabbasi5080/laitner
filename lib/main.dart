@@ -34,14 +34,19 @@ class RecallApp extends StatelessWidget {
             darkTheme: AppTheme.dark(settings.accent),
             themeMode: settings.themeMode,
             locale: const Locale('fa', 'IR'),
-            supportedLocales: const [
-              Locale('fa', 'IR'),
-            ],
+            supportedLocales: const [Locale('fa', 'IR')],
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
+            builder: (context, child) {
+              return MediaQuery.withClampedTextScaling(
+                minScaleFactor: 0.9,
+                maxScaleFactor: 1.25,
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
             home: const DeckListScreen(),
           );
         },
@@ -54,10 +59,12 @@ class RecallApp extends StatelessWidget {
       SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-        systemNavigationBarColor:
-            isDark ? const Color(0xFF1A1D24) : const Color(0xFFFAFAFA),
-        systemNavigationBarIconBrightness:
-            isDark ? Brightness.light : Brightness.dark,
+        systemNavigationBarColor: isDark
+            ? const Color(0xFF1A1D24)
+            : const Color(0xFFFAFAFA),
+        systemNavigationBarIconBrightness: isDark
+            ? Brightness.light
+            : Brightness.dark,
       ),
     );
   }
