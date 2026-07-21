@@ -15,6 +15,7 @@ part 'excel_import_detail_state.dart';
 class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
   ExcelImportDetailCubit({
     required String importId,
+    required String spaceId,
     String? initialDeckId,
     required GetExcelImportUseCase getImportUseCase,
     required GetDecksUseCase getDecksUseCase,
@@ -24,6 +25,7 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
     required DeleteExcelImportUseCase deleteImportUseCase,
     required LocalDataSource localDataSource,
   }) : _importId = importId,
+       _spaceId = spaceId,
        _getImportUseCase = getImportUseCase,
        _getDecksUseCase = getDecksUseCase,
        _addSelectedRowsUseCase = addSelectedRowsUseCase,
@@ -34,6 +36,7 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
        super(ExcelImportDetailState(selectedDeckId: initialDeckId));
 
   final String _importId;
+  final String _spaceId;
   final GetExcelImportUseCase _getImportUseCase;
   final GetDecksUseCase _getDecksUseCase;
   final AddSelectedExcelRowsUseCase _addSelectedRowsUseCase;
@@ -51,7 +54,7 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
         return;
       }
       final syncedImport = await _syncAddedStatusUseCase(import);
-      final decks = await _getDecksUseCase();
+      final decks = await _getDecksUseCase(_spaceId);
       emit(
         state.copyWith(
           status: ExcelImportDetailStatus.loaded,

@@ -9,8 +9,8 @@ class AddCardUseCase {
   final IFlashcardRepository _repository;
   final FindDuplicateCardUseCase _findDuplicateCardUseCase;
 
-  Future<Flashcard> call(Flashcard card) async {
-    final duplicate = await _findDuplicateCardUseCase(card.front);
+  Future<Flashcard> call(Flashcard card, {required String spaceId}) async {
+    final duplicate = await _findDuplicateCardUseCase(spaceId, card.front);
     if (duplicate != null) {
       throw DuplicateCardException(
         existingCard: duplicate.card,

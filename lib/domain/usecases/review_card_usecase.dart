@@ -32,6 +32,7 @@ class ReviewCardUseCase {
   Future<Flashcard> call(
     Flashcard card,
     ReviewRating rating, {
+    required String spaceId,
     DateTime? now,
   }) async {
     final reviewedAt = now ?? DateTime.now();
@@ -41,6 +42,7 @@ class ReviewCardUseCase {
     await _reviewHistoryRepository.add(
       ReviewLog(
         id: '${reviewedAt.microsecondsSinceEpoch}-${card.id}',
+        spaceId: spaceId,
         cardId: card.id,
         deckId: card.deckId,
         rating: rating,

@@ -12,4 +12,8 @@ class ReviewHistoryRepositoryImpl implements IReviewHistoryRepository {
 
   @override
   Future<List<ReviewLog>> getAll() async => _store.getAll();
+
+  @override
+  Future<List<ReviewLog>> getBySpaceId(String spaceId) async =>
+      _store.getBySpaceId(spaceId);
 }

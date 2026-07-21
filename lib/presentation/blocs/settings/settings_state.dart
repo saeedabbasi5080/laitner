@@ -4,6 +4,7 @@ class SettingsState extends Equatable {
   const SettingsState({
     this.themeMode = ThemeMode.dark,
     this.accent = AppAccent.lavender,
+    this.currentSpaceId,
     this.ttsLanguage = TtsLanguage.englishUs,
     this.randomReviewOrder = false,
     this.cardFontSize = CardFontSize.size16,
@@ -12,6 +13,7 @@ class SettingsState extends Equatable {
 
   final ThemeMode themeMode;
   final AppAccent accent;
+  final String? currentSpaceId;
   final TtsLanguage ttsLanguage;
   final bool randomReviewOrder;
   final CardFontSize cardFontSize;
@@ -20,6 +22,7 @@ class SettingsState extends Equatable {
   SettingsState copyWith({
     ThemeMode? themeMode,
     AppAccent? accent,
+    String? currentSpaceId,
     TtsLanguage? ttsLanguage,
     bool? randomReviewOrder,
     CardFontSize? cardFontSize,
@@ -28,6 +31,7 @@ class SettingsState extends Equatable {
     return SettingsState(
       themeMode: themeMode ?? this.themeMode,
       accent: accent ?? this.accent,
+      currentSpaceId: currentSpaceId ?? this.currentSpaceId,
       ttsLanguage: ttsLanguage ?? this.ttsLanguage,
       randomReviewOrder: randomReviewOrder ?? this.randomReviewOrder,
       cardFontSize: cardFontSize ?? this.cardFontSize,
@@ -39,6 +43,7 @@ class SettingsState extends Equatable {
   List<Object?> get props => [
     themeMode,
     accent,
+    currentSpaceId,
     ttsLanguage,
     randomReviewOrder,
     cardFontSize,

@@ -11,6 +11,9 @@ class DeckModel {
   @Index(unique: true)
   late String uuid;
 
+  @Index()
+  late String spaceId;
+
   late String name;
 
   late String color;
@@ -22,6 +25,7 @@ extension DeckModelMapper on DeckModel {
   Deck toEntity() {
     return Deck(
       id: uuid,
+      spaceId: spaceId,
       name: name,
       color: DeckColor.fromString(color),
       createdAt: createdAt,
@@ -31,6 +35,7 @@ extension DeckModelMapper on DeckModel {
   static DeckModel fromEntity(Deck deck) {
     return DeckModel()
       ..uuid = deck.id
+      ..spaceId = deck.spaceId
       ..name = deck.name
       ..color = deck.color.name
       ..createdAt = deck.createdAt;

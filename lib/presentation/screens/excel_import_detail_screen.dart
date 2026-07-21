@@ -12,18 +12,29 @@ class ExcelImportDetailScreen extends StatelessWidget {
   const ExcelImportDetailScreen({
     super.key,
     required this.importId,
+    required this.spaceId,
     this.initialDeckId,
   });
 
   final String importId;
+  final String spaceId;
   final String? initialDeckId;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          sl<ExcelImportDetailCubit>(param1: importId, param2: initialDeckId)
-            ..load(),
+      create: (_) => ExcelImportDetailCubit(
+        importId: importId,
+        spaceId: spaceId,
+        initialDeckId: initialDeckId,
+        getImportUseCase: sl(),
+        getDecksUseCase: sl(),
+        addSelectedRowsUseCase: sl(),
+        syncAddedStatusUseCase: sl(),
+        removeExcelRowsUseCase: sl(),
+        deleteImportUseCase: sl(),
+        localDataSource: sl(),
+      )..load(),
       child: const _ExcelImportDetailView(),
     );
   }

@@ -7,6 +7,7 @@ import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/core/utils/responsive.dart';
 import 'package:recall/domain/entities/deck.dart';
+import 'package:recall/domain/entities/learning_space.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/deck_list/deck_list_cubit.dart';
 import 'package:recall/presentation/blocs/study/study_config.dart';
@@ -22,19 +23,23 @@ import 'package:recall/presentation/widgets/deck_card_sheets.dart';
 import 'package:recall/presentation/widgets/free_review_sheet.dart';
 
 class DeckListScreen extends StatelessWidget {
-  const DeckListScreen({super.key});
+  const DeckListScreen({super.key, required this.space});
+
+  final LearningSpace space;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => sl<DeckListCubit>()..load(),
-      child: const _DeckListView(),
+      create: (_) => sl<DeckListCubit>(param1: space.id)..load(),
+      child: _DeckListView(space: space),
     );
   }
 }
 
 class _DeckListView extends StatefulWidget {
-  const _DeckListView();
+  const _DeckListView({required this.space});
+
+  final LearningSpace space;
 
   @override
   State<_DeckListView> createState() => _DeckListViewState();
@@ -106,6 +111,12 @@ class _DeckListViewState extends State<_DeckListView>
                     children: [
                       Row(
                         children: [
+                          CircleIconButton(
+                            back: true,
+                            icon: Icons.arrow_back,
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,7 +131,7 @@ class _DeckListViewState extends State<_DeckListView>
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  AppStrings.yourDecks,
+                                  widget.space.name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
@@ -138,7 +149,9 @@ class _DeckListViewState extends State<_DeckListView>
                                 label: AppStrings.statistics,
                                 onPressed: () => Navigator.of(context).push(
                                   MaterialPageRoute<void>(
-                                    builder: (_) => const StatisticsScreen(),
+                                    builder: (_) => StatisticsScreen(
+                                      spaceId: widget.space.id,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -148,7 +161,9 @@ class _DeckListViewState extends State<_DeckListView>
                                 label: AppStrings.settings,
                                 onPressed: () => Navigator.of(context).push(
                                   MaterialPageRoute<void>(
-                                    builder: (_) => const SettingsScreen(),
+                                    builder: (_) => SettingsScreen(
+                                      spaceId: widget.space.id,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -178,6 +193,7 @@ class _DeckListViewState extends State<_DeckListView>
                             onPressed: () async {
                               await showFreeReviewSheet(
                                 context,
+                                spaceId: widget.space.id,
                                 boxCounts: state.boxCounts,
                               );
                               if (context.mounted) {
@@ -265,7 +281,9 @@ class _DeckListViewState extends State<_DeckListView>
       onAddCard: (deckId) => _openAddCard(context, deckId),
       onImportExcel: () => Navigator.of(context)
           .push(
-            MaterialPageRoute<void>(builder: (_) => const ExcelLibraryScreen()),
+            MaterialPageRoute<void>(
+              builder: (_) => ExcelLibraryScreen(spaceId: widget.space.id),
+            ),
           )
           .then((_) {
             if (context.mounted) context.read<DeckListCubit>().load();
@@ -313,7 +331,12 @@ class _DeckListViewState extends State<_DeckListView>
     Navigator.of(context)
         .push(
           MaterialPageRoute<void>(
-            builder: (_) => StudyScreen(config: StudyConfig.deck(deckId)),
+            builder: (_) => StudyScreen(
+              config: StudyConfig.deck(
+                spaceId: widget.space.id,
+                deckId: deckId,
+              ),
+            ),
           ),
         )
         .then((_) {
@@ -325,7 +348,9 @@ class _DeckListViewState extends State<_DeckListView>
     Navigator.of(context)
         .push(
           MaterialPageRoute<void>(
-            builder: (_) => StudyScreen(config: const StudyConfig.allDue()),
+            builder: (_) => StudyScreen(
+              config: StudyConfig.allDue(spaceId: widget.space.id),
+            ),
           ),
         )
         .then((_) {
@@ -337,7 +362,10 @@ class _DeckListViewState extends State<_DeckListView>
     Navigator.of(context)
         .push(
           MaterialPageRoute<void>(
-            builder: (_) => BoxCardsScreen(boxNumber: box),
+            builder: (_) => BoxCardsScreen(
+              boxNumber: box,
+              spaceId: widget.space.id,
+            ),
           ),
         )
         .then((_) {
@@ -349,7 +377,10 @@ class _DeckListViewState extends State<_DeckListView>
     Navigator.of(context)
         .push(
           MaterialPageRoute<void>(
-            builder: (_) => AddCardScreen(deckId: deckId),
+            builder: (_) => AddCardScreen(
+              deckId: deckId,
+              spaceId: widget.space.id,
+            ),
           ),
         )
         .then((_) {
@@ -361,7 +392,10 @@ class _DeckListViewState extends State<_DeckListView>
     Navigator.of(context)
         .push(
           MaterialPageRoute<void>(
-            builder: (_) => DeckDetailScreen(deckId: deckId),
+            builder: (_) => DeckDetailScreen(
+              deckId: deckId,
+              spaceId: widget.space.id,
+            ),
           ),
         )
         .then((_) {

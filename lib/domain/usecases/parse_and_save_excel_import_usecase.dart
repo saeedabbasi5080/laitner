@@ -10,6 +10,7 @@ class ParseAndSaveExcelImportUseCase {
   final IExcelImportRepository _repository;
 
   Future<ExcelImport?> call({
+    required String spaceId,
     required Uint8List bytes,
     required String fileName,
     required String Function() generateId,
@@ -20,6 +21,7 @@ class ParseAndSaveExcelImportUseCase {
     final now = DateTime.now();
     final import = ExcelImport(
       id: generateId(),
+      spaceId: spaceId,
       fileName: fileName,
       createdAt: now,
       rows: parsed

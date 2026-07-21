@@ -54,6 +54,7 @@ class StudyCubit extends Cubit<StudyState> {
         final boxCards = await _getCardsByBoxUseCase(
           _config.boxNumber!,
           deckId: _config.deckId,
+          spaceId: _config.deckId == null ? _config.spaceId : null,
         );
         cards = filterCardsByDueDay(
           boxCards,
@@ -61,7 +62,7 @@ class StudyCubit extends Cubit<StudyState> {
           overdueOnly: _config.overdueOnly,
         );
       } else if (_config.allDue) {
-        cards = await _getAllDueCardsUseCase();
+        cards = await _getAllDueCardsUseCase(_config.spaceId);
       } else {
         cards = await _getDueCardsUseCase(_config.deckId!);
       }
@@ -119,7 +120,11 @@ class StudyCubit extends Cubit<StudyState> {
       // Free review is a preview session: answers must not change the card's
       // box, last-reviewed date, normal schedule, or review statistics.
       if (!state.isFreeReview) {
-        await _reviewCardUseCase(card, rating);
+        await _reviewCardUseCase(
+          card,
+          rating,
+          spaceId: _config.spaceId,
+        );
       }
       emit(
         state.copyWith(currentIndex: state.currentIndex + 1, isFlipped: false),

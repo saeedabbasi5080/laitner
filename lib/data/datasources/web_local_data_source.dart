@@ -4,6 +4,7 @@ import 'package:recall/data/datasources/local_data_source.dart';
 import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/domain/entities/deck_color.dart';
 import 'package:recall/domain/entities/flashcard.dart';
+import 'package:recall/domain/entities/learning_space.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -14,8 +15,18 @@ class WebLocalDataSource implements LocalDataSource {
   final SharedPreferences _prefs;
   final _uuid = const Uuid();
 
+  static const _spacesKey = 'recall_web_spaces';
   static const _decksKey = 'recall_web_decks';
   static const _cardsKey = 'recall_web_cards';
+
+  List<LearningSpace> _loadSpaces() {
+    final raw = _prefs.getString(_spacesKey);
+    if (raw == null) return [];
+    final list = jsonDecode(raw) as List<dynamic>;
+    return list
+        .map((e) => _spaceFromJson(e as Map<String, dynamic>))
+        .toList();
+  }
 
   List<Deck> _loadDecks() {
     final raw = _prefs.getString(_decksKey);
@@ -33,6 +44,11 @@ class WebLocalDataSource implements LocalDataSource {
         .toList();
   }
 
+  Future<void> _saveSpaces(List<LearningSpace> spaces) async {
+    final json = jsonEncode(spaces.map(_spaceToJson).toList());
+    await _prefs.setString(_spacesKey, json);
+  }
+
   Future<void> _saveDecks(List<Deck> decks) async {
     final json = jsonEncode(decks.map(_deckToJson).toList());
     await _prefs.setString(_decksKey, json);
@@ -43,8 +59,25 @@ class WebLocalDataSource implements LocalDataSource {
     await _prefs.setString(_cardsKey, json);
   }
 
+  Map<String, dynamic> _spaceToJson(LearningSpace space) => {
+        'id': space.id,
+        'name': space.name,
+        'color': space.color.name,
+        'createdAt': space.createdAt.toIso8601String(),
+        'sortOrder': space.sortOrder,
+      };
+
+  LearningSpace _spaceFromJson(Map<String, dynamic> json) => LearningSpace(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        color: DeckColor.fromString(json['color'] as String),
+        createdAt: DateTime.parse(json['createdAt'] as String),
+        sortOrder: json['sortOrder'] as int? ?? 0,
+      );
+
   Map<String, dynamic> _deckToJson(Deck deck) => {
         'id': deck.id,
+        'spaceId': deck.spaceId,
         'name': deck.name,
         'color': deck.color.name,
         'createdAt': deck.createdAt.toIso8601String(),
@@ -52,6 +85,7 @@ class WebLocalDataSource implements LocalDataSource {
 
   Deck _deckFromJson(Map<String, dynamic> json) => Deck(
         id: json['id'] as String,
+        spaceId: json['spaceId'] as String? ?? '',
         name: json['name'] as String,
         color: DeckColor.fromString(json['color'] as String),
         createdAt: DateTime.parse(json['createdAt'] as String),
@@ -80,11 +114,62 @@ class WebLocalDataSource implements LocalDataSource {
       );
 
   @override
+  Future<List<LearningSpace>> getAllSpaces() async {
+    final spaces = _loadSpaces()
+      ..sort((a, b) {
+        final orderCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (orderCompare != 0) return orderCompare;
+        return a.createdAt.compareTo(b.createdAt);
+      });
+    return spaces;
+  }
+
+  @override
+  Future<LearningSpace?> getSpaceById(String id) async =>
+      _loadSpaces().where((s) => s.id == id).firstOrNull;
+
+  @override
+  Future<int> getSpaceCount() async => _loadSpaces().length;
+
+  @override
+  Future<LearningSpace> addSpace(LearningSpace space) async {
+    final spaces = _loadSpaces()..add(space);
+    await _saveSpaces(spaces);
+    return space;
+  }
+
+  @override
+  Future<LearningSpace> updateSpace(LearningSpace space) async {
+    final spaces = _loadSpaces();
+    final index = spaces.indexWhere((s) => s.id == space.id);
+    if (index >= 0) spaces[index] = space;
+    await _saveSpaces(spaces);
+    return space;
+  }
+
+  @override
+  Future<void> deleteSpace(String id) async {
+    final decks = _loadDecks().where((d) => d.spaceId == id).toList();
+    for (final deck in decks) {
+      await deleteDeck(deck.id);
+    }
+    final spaces = _loadSpaces()..removeWhere((s) => s.id == id);
+    await _saveSpaces(spaces);
+  }
+
+  @override
   Future<List<Deck>> getAllDecks() async {
     final decks = _loadDecks()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return decks;
   }
+
+  @override
+  Future<List<Deck>> getDecksBySpaceId(String spaceId) async =>
+      _loadDecks()
+          .where((d) => d.spaceId == spaceId)
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
   @override
   Future<Deck?> getDeckById(String id) async {

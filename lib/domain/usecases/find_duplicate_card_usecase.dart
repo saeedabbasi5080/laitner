@@ -11,13 +11,14 @@ class FindDuplicateCardUseCase {
 
   /// جست‌وجوی کارت تکراری بر اساس فیلد اول (روی کارت) در همهٔ دسته‌ها.
   Future<DuplicateCardMatch?> call(
+    String spaceId,
     String front, {
     String? excludeCardId,
   }) async {
     final needle = normalizeCardFront(front);
     if (needle.isEmpty) return null;
 
-    final cards = await _flashcardRepository.getAllCards();
+    final cards = await _flashcardRepository.getCardsBySpaceId(spaceId);
     Flashcard? existing;
     for (final card in cards) {
       if (excludeCardId != null && card.id == excludeCardId) continue;

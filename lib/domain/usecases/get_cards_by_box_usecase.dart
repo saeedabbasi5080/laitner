@@ -6,10 +6,12 @@ class GetCardsByBoxUseCase {
 
   final IFlashcardRepository _repository;
 
-  Future<List<Flashcard>> call(int box, {String? deckId}) async {
+  Future<List<Flashcard>> call(int box, {String? deckId, String? spaceId}) async {
     final cards = deckId != null
         ? await _repository.getCardsByDeckId(deckId)
-        : await _repository.getAllCards();
+        : spaceId != null
+            ? await _repository.getCardsBySpaceId(spaceId)
+            : await _repository.getAllCards();
     return cards.where((c) => c.box == box).toList();
   }
 }

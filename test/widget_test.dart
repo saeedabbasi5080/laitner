@@ -48,7 +48,7 @@ void main() {
       createdAt: now,
     );
 
-    await useCase(card, ReviewRating.know, now: now);
+    await useCase(card, ReviewRating.know, spaceId: 'space-1', now: now);
 
     expect(history.logs, hasLength(1));
     expect(history.logs.single.boxBefore, 2);
@@ -87,6 +87,9 @@ class _FakeFlashcardRepository implements IFlashcardRepository {
   Future<List<Flashcard>> getAllCards() async => [];
 
   @override
+  Future<List<Flashcard>> getCardsBySpaceId(String spaceId) async => [];
+
+  @override
   Future<Flashcard?> getCardById(String id) async => null;
 
   @override
@@ -107,4 +110,7 @@ class _FakeReviewHistoryRepository implements IReviewHistoryRepository {
 
   @override
   Future<List<ReviewLog>> getAll() async => logs;
+
+  @override
+  Future<List<ReviewLog>> getBySpaceId(String spaceId) async => logs;
 }

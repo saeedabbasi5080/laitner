@@ -20,6 +20,11 @@ class ExcelImportStore {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
+  Future<List<ExcelImport>> getBySpaceId(String spaceId) async {
+    final all = await getAll();
+    return all.where((item) => item.spaceId == spaceId).toList();
+  }
+
   Future<ExcelImport?> getById(String id) async {
     final all = await getAll();
     for (final item in all) {
@@ -39,8 +44,17 @@ class ExcelImportStore {
     await _persist(all);
   }
 
+  Future<void> replaceAll(List<ExcelImport> imports) async {
+    await _persist(imports);
+  }
+
   Future<void> delete(String id) async {
     final all = await getAll()..removeWhere((i) => i.id == id);
+    await _persist(all);
+  }
+
+  Future<void> deleteBySpaceId(String spaceId) async {
+    final all = await getAll()..removeWhere((i) => i.spaceId != spaceId);
     await _persist(all);
   }
 

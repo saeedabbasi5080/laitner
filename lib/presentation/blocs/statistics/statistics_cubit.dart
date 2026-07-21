@@ -11,19 +11,23 @@ import 'package:recall/domain/usecases/leitner_logic.dart';
 part 'statistics_state.dart';
 
 class StatisticsCubit extends Cubit<StatisticsState> {
-  StatisticsCubit(this._flashcardRepository, this._reviewHistoryRepository)
-    : super(const StatisticsState());
+  StatisticsCubit(
+    this._flashcardRepository,
+    this._reviewHistoryRepository,
+    this._spaceId,
+  ) : super(const StatisticsState());
 
   final IFlashcardRepository _flashcardRepository;
   final IReviewHistoryRepository _reviewHistoryRepository;
+  final String _spaceId;
 
   Future<void> load() async {
     emit(state.copyWith(status: StatisticsStatus.loading));
 
     try {
       final results = await Future.wait([
-        _flashcardRepository.getAllCards(),
-        _reviewHistoryRepository.getAll(),
+        _flashcardRepository.getCardsBySpaceId(_spaceId),
+        _reviewHistoryRepository.getBySpaceId(_spaceId),
       ]);
       final cards = (results[0] as List).cast<Flashcard>();
       final logs = (results[1] as List).cast<ReviewLog>();

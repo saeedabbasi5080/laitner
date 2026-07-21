@@ -46,6 +46,7 @@ void main() {
     final cubit = StatisticsCubit(
       _FakeFlashcardRepository(cards),
       _FakeReviewHistoryRepository(logs),
+      'space-1',
     );
 
     await cubit.load();
@@ -70,6 +71,7 @@ void main() {
 ReviewLog _log(String id, ReviewRating rating, DateTime reviewedAt) =>
     ReviewLog(
       id: id,
+      spaceId: 'space-1',
       cardId: 'card-$id',
       deckId: 'd1',
       rating: rating,
@@ -85,6 +87,9 @@ class _FakeFlashcardRepository implements IFlashcardRepository {
 
   @override
   Future<List<Flashcard>> getAllCards() async => cards;
+
+  @override
+  Future<List<Flashcard>> getCardsBySpaceId(String spaceId) async => cards;
 
   @override
   Future<Flashcard> addCard(Flashcard card) async => card;
@@ -112,4 +117,7 @@ class _FakeReviewHistoryRepository implements IReviewHistoryRepository {
 
   @override
   Future<List<ReviewLog>> getAll() async => logs;
+
+  @override
+  Future<List<ReviewLog>> getBySpaceId(String spaceId) async => logs;
 }

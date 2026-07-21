@@ -17,6 +17,7 @@ part 'deck_list_state.dart';
 
 class DeckListCubit extends Cubit<DeckListState> {
   DeckListCubit({
+    required String spaceId,
     required GetDecksUseCase getDecksUseCase,
     required GetDueCardsUseCase getDueCardsUseCase,
     required GetCardsByDeckUseCase getCardsByDeckUseCase,
@@ -25,7 +26,8 @@ class DeckListCubit extends Cubit<DeckListState> {
     required DeleteDeckUseCase deleteDeckUseCase,
     required IFlashcardRepository flashcardRepository,
     required LocalDataSource localDataSource,
-  })  : _getDecksUseCase = getDecksUseCase,
+  })  : _spaceId = spaceId,
+        _getDecksUseCase = getDecksUseCase,
         _getDueCardsUseCase = getDueCardsUseCase,
         _getCardsByDeckUseCase = getCardsByDeckUseCase,
         _addDeckUseCase = addDeckUseCase,
@@ -35,6 +37,7 @@ class DeckListCubit extends Cubit<DeckListState> {
         _localDataSource = localDataSource,
         super(const DeckListState());
 
+  final String _spaceId;
   final GetDecksUseCase _getDecksUseCase;
   final GetDueCardsUseCase _getDueCardsUseCase;
   final GetCardsByDeckUseCase _getCardsByDeckUseCase;
@@ -44,10 +47,12 @@ class DeckListCubit extends Cubit<DeckListState> {
   final IFlashcardRepository _flashcardRepository;
   final LocalDataSource _localDataSource;
 
+  String get spaceId => _spaceId;
+
   Future<void> load() async {
     emit(state.copyWith(status: DeckListStatus.loading));
     try {
-      final decks = await _getDecksUseCase();
+      final decks = await _getDecksUseCase(_spaceId);
       final dueCounts = <String, int>{};
       final totalCounts = <String, int>{};
 
@@ -58,7 +63,7 @@ class DeckListCubit extends Cubit<DeckListState> {
         totalCounts[deck.id] = all.length;
       }
 
-      final allCards = await _flashcardRepository.getAllCards();
+      final allCards = await _flashcardRepository.getCardsBySpaceId(_spaceId);
       final boxCounts = {for (var i = 1; i <= maxBox; i++) i: 0};
       for (final card in allCards) {
         if (card.box >= 1 && card.box <= maxBox) {
@@ -92,6 +97,7 @@ class DeckListCubit extends Cubit<DeckListState> {
   Future<void> addDeck(String name, DeckColor color) async {
     final deck = Deck(
       id: _localDataSource.generateId(),
+      spaceId: _spaceId,
       name: name.trim(),
       color: color,
       createdAt: DateTime.now(),

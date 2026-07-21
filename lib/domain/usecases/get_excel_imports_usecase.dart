@@ -6,7 +6,8 @@ class GetExcelImportsUseCase {
 
   final IExcelImportRepository _repository;
 
-  Future<List<ExcelImport>> call() => _repository.getAllImports();
+  Future<List<ExcelImport>> call(String spaceId) =>
+      _repository.getImportsBySpaceId(spaceId);
 }
 
 class GetExcelImportUseCase {

@@ -12,6 +12,8 @@ import 'package:recall/domain/usecases/add_selected_excel_rows_usecase.dart';
 import 'package:recall/domain/usecases/find_duplicate_card_usecase.dart';
 import 'package:recall/domain/usecases/remove_excel_rows_usecase.dart';
 
+const _spaceId = 'space-1';
+
 void main() {
   test('AddCardUseCase rejects duplicate front text across decks', () async {
     final cards = [
@@ -27,6 +29,7 @@ void main() {
     final decks = [
       Deck(
         id: 'd1',
+        spaceId: _spaceId,
         name: 'انگلیسی',
         color: DeckColor.sky,
         createdAt: DateTime(2026, 7, 1),
@@ -48,6 +51,7 @@ void main() {
           box: 1,
           createdAt: DateTime(2026, 7, 15),
         ),
+        spaceId: _spaceId,
       ),
       throwsA(
         isA<DuplicateCardException>().having(
@@ -76,6 +80,7 @@ void main() {
         box: 1,
         createdAt: DateTime(2026, 7, 15),
       ),
+      spaceId: _spaceId,
     );
 
     expect(card.front, 'World');
@@ -97,15 +102,23 @@ void main() {
     final decks = _FakeDeckRepository([
       Deck(
         id: 'english',
+        spaceId: _spaceId,
         name: 'انگلیسی',
         color: DeckColor.sky,
         createdAt: now,
       ),
-      Deck(id: 'target', name: 'جدید', color: DeckColor.mint, createdAt: now),
+      Deck(
+        id: 'target',
+        spaceId: _spaceId,
+        name: 'جدید',
+        color: DeckColor.mint,
+        createdAt: now,
+      ),
     ]);
     final excel = _FakeExcelImportRepository(
       ExcelImport(
         id: 'file',
+        spaceId: _spaceId,
         fileName: 'words.xlsx',
         createdAt: now,
         rows: const [
@@ -162,6 +175,9 @@ class _FakeFlashcardRepository implements IFlashcardRepository {
   Future<List<Flashcard>> getAllCards() async => cards;
 
   @override
+  Future<List<Flashcard>> getCardsBySpaceId(String spaceId) async => cards;
+
+  @override
   Future<Flashcard?> getCardById(String id) async =>
       cards.where((card) => card.id == id).firstOrNull;
 
@@ -188,6 +204,10 @@ class _FakeDeckRepository implements IDeckRepository {
   Future<List<Deck>> getAllDecks() async => decks;
 
   @override
+  Future<List<Deck>> getDecksBySpaceId(String spaceId) async =>
+      decks.where((deck) => deck.spaceId == spaceId).toList();
+
+  @override
   Future<Deck?> getDeckById(String id) async =>
       decks.where((deck) => deck.id == id).firstOrNull;
 
@@ -205,6 +225,10 @@ class _FakeExcelImportRepository implements IExcelImportRepository {
 
   @override
   Future<List<ExcelImport>> getAllImports() async => [value];
+
+  @override
+  Future<List<ExcelImport>> getImportsBySpaceId(String spaceId) async =>
+      value.spaceId == spaceId ? [value] : [];
 
   @override
   Future<ExcelImport?> getImportById(String id) async =>

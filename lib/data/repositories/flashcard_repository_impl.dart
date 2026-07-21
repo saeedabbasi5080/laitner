@@ -11,6 +11,16 @@ class FlashcardRepositoryImpl implements IFlashcardRepository {
   Future<List<Flashcard>> getAllCards() => _localDataSource.getAllCards();
 
   @override
+  Future<List<Flashcard>> getCardsBySpaceId(String spaceId) async {
+    final decks = await _localDataSource.getDecksBySpaceId(spaceId);
+    if (decks.isEmpty) return const [];
+
+    final deckIds = decks.map((deck) => deck.id).toSet();
+    final cards = await _localDataSource.getAllCards();
+    return cards.where((card) => deckIds.contains(card.deckId)).toList();
+  }
+
+  @override
   Future<List<Flashcard>> getCardsByDeckId(String deckId) =>
       _localDataSource.getCardsByDeckId(deckId);
 

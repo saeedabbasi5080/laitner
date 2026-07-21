@@ -11,6 +11,10 @@ class ExcelImportRepositoryImpl implements IExcelImportRepository {
   Future<List<ExcelImport>> getAllImports() => _store.getAll();
 
   @override
+  Future<List<ExcelImport>> getImportsBySpaceId(String spaceId) =>
+      _store.getBySpaceId(spaceId);
+
+  @override
   Future<ExcelImport?> getImportById(String id) => _store.getById(id);
 
   @override

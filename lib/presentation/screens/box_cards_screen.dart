@@ -12,9 +12,14 @@ import 'package:recall/presentation/screens/study_screen.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 
 class BoxCardsScreen extends StatefulWidget {
-  const BoxCardsScreen({super.key, required this.boxNumber});
+  const BoxCardsScreen({
+    super.key,
+    required this.boxNumber,
+    required this.spaceId,
+  });
 
   final int boxNumber;
+  final String spaceId;
 
   @override
   State<BoxCardsScreen> createState() => _BoxCardsScreenState();
@@ -50,8 +55,11 @@ class _BoxCardsScreenState extends State<BoxCardsScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final cards = await sl<GetCardsByBoxUseCase>()(widget.boxNumber);
-    final decks = await sl<GetDecksUseCase>()();
+    final cards = await sl<GetCardsByBoxUseCase>()(
+      widget.boxNumber,
+      spaceId: widget.spaceId,
+    );
+    final decks = await sl<GetDecksUseCase>()(widget.spaceId);
     if (mounted) {
       setState(() {
         _cards = cards;
@@ -212,6 +220,7 @@ class _BoxCardsScreenState extends State<BoxCardsScreen> {
                           builder: (_) => StudyScreen(
                             config: StudyConfig.byBox(
                               widget.boxNumber,
+                              spaceId: widget.spaceId,
                               reversed: _reversed,
                               dueDay: _selectedDueDay,
                               overdueOnly: _selectedOverdue,

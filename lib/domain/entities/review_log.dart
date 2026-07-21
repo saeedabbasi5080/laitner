@@ -4,6 +4,7 @@ import 'package:recall/domain/entities/review_rating.dart';
 class ReviewLog extends Equatable {
   const ReviewLog({
     required this.id,
+    required this.spaceId,
     required this.cardId,
     required this.deckId,
     required this.rating,
@@ -13,6 +14,7 @@ class ReviewLog extends Equatable {
   });
 
   final String id;
+  final String spaceId;
   final String cardId;
   final String deckId;
   final ReviewRating rating;
@@ -23,6 +25,7 @@ class ReviewLog extends Equatable {
   @override
   List<Object> get props => [
     id,
+    spaceId,
     cardId,
     deckId,
     rating,

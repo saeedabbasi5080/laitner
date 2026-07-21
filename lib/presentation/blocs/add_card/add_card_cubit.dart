@@ -11,14 +11,17 @@ part 'add_card_state.dart';
 class AddCardCubit extends Cubit<AddCardState> {
   AddCardCubit({
     required String deckId,
+    required String spaceId,
     required AddCardUseCase addCardUseCase,
     required LocalDataSource localDataSource,
   }) : _deckId = deckId,
+       _spaceId = spaceId,
        _addCardUseCase = addCardUseCase,
        _localDataSource = localDataSource,
        super(const AddCardState());
 
   final String _deckId;
+  final String _spaceId;
   final AddCardUseCase _addCardUseCase;
   final LocalDataSource _localDataSource;
 
@@ -55,7 +58,7 @@ class AddCardCubit extends Cubit<AddCardState> {
         box: 1,
         createdAt: DateTime.now(),
       );
-      await _addCardUseCase(card);
+      await _addCardUseCase(card, spaceId: _spaceId);
       emit(state.copyWith(status: AddCardStatus.saved));
       return true;
     } on DuplicateCardException catch (e) {

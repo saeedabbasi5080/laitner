@@ -14,7 +14,7 @@ class SyncExcelImportAddedStatusUseCase {
 
   /// Marks excel rows as added when the front field already exists in any deck.
   Future<ExcelImport> call(ExcelImport import) async {
-    final cards = await _flashcardRepository.getAllCards();
+    final cards = await _flashcardRepository.getCardsBySpaceId(import.spaceId);
     final cardKeys = cards.map((c) => normalizeCardFront(c.front)).toSet();
 
     var changed = false;

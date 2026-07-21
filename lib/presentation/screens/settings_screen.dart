@@ -6,13 +6,29 @@ import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/core/theme/card_font_size.dart';
 import 'package:recall/core/tts/tts_language.dart';
 import 'package:recall/core/utils/responsive.dart';
+import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/settings/settings_cubit.dart';
 import 'package:recall/presentation/screens/about_app_screen.dart';
 import 'package:recall/presentation/screens/developer_screen.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({super.key, this.spaceId});
+
+  final String? spaceId;
+
+  @override
+  Widget build(BuildContext context) {
+    if (spaceId != null) {
+      sl<SettingsCubit>().loadForSpace(spaceId!);
+    }
+
+    return const _SettingsView();
+  }
+}
+
+class _SettingsView extends StatelessWidget {
+  const _SettingsView();
 
   @override
   Widget build(BuildContext context) {
@@ -139,6 +155,16 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
                 const SectionLabel(AppStrings.reviewSettings),
+                if (state.currentSpaceId != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    AppStrings.reviewSettingsSpaceHint,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colors.mutedForeground,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Container(
                   decoration: BoxDecoration(

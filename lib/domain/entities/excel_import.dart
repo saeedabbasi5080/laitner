@@ -68,12 +68,14 @@ class ExcelImportRow extends Equatable {
 class ExcelImport extends Equatable {
   const ExcelImport({
     required this.id,
+    required this.spaceId,
     required this.fileName,
     required this.createdAt,
     required this.rows,
   });
 
   final String id;
+  final String spaceId;
   final String fileName;
   final DateTime createdAt;
   final List<ExcelImportRow> rows;
@@ -86,12 +88,14 @@ class ExcelImport extends Equatable {
 
   ExcelImport copyWith({
     String? id,
+    String? spaceId,
     String? fileName,
     DateTime? createdAt,
     List<ExcelImportRow>? rows,
   }) {
     return ExcelImport(
       id: id ?? this.id,
+      spaceId: spaceId ?? this.spaceId,
       fileName: fileName ?? this.fileName,
       createdAt: createdAt ?? this.createdAt,
       rows: rows ?? this.rows,
@@ -100,6 +104,7 @@ class ExcelImport extends Equatable {
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'spaceId': spaceId,
         'fileName': fileName,
         'createdAt': createdAt.toIso8601String(),
         'rows': rows.map((r) => r.toJson()).toList(),
@@ -108,6 +113,7 @@ class ExcelImport extends Equatable {
   factory ExcelImport.fromJson(Map<String, dynamic> json) {
     return ExcelImport(
       id: json['id'] as String,
+      spaceId: json['spaceId'] as String? ?? '',
       fileName: json['fileName'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
       rows: (json['rows'] as List<dynamic>)
@@ -117,5 +123,5 @@ class ExcelImport extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, fileName, createdAt, rows];
+  List<Object?> get props => [id, spaceId, fileName, createdAt, rows];
 }

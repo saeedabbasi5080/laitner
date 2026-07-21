@@ -2,6 +2,26 @@
 abstract final class AppStrings {
   static const appTitle = 'یادآوری — تکرار فاصله‌دار';
 
+  // فضاهای یادگیری
+  static const yourSpaces = 'فضاهای یادگیری';
+  static const spacesHint =
+      'هر فضا محیط مستقل است: دسته‌ها، کارت‌ها، آمار، اکسل و تنظیمات مرور جدا دارند.';
+  static const newSpace = 'فضای جدید';
+  static const createSpace = 'ساخت فضا';
+  static const editSpace = 'ویرایش فضا';
+  static const spaceName = 'نام فضا';
+  static const spaceNameHint = 'مثلاً زبان ترکی';
+  static const deleteSpace = 'حذف فضا';
+  static const deleteSpaceConfirm =
+      'آیا از حذف این فضا و تمام دسته‌ها، کارت‌ها، آمار و فایل‌های اکسل آن مطمئن هستید؟';
+  static const emptySpaces =
+      'هنوز فضایی نساخته‌اید. با دکمه + اولین فضای یادگیری را بسازید.';
+  static const cannotDeleteLastSpace = 'حداقل یک فضا باید باقی بماند.';
+  static String spaceLimitReached(int max) =>
+      'حداکثر $max فضا می‌توانید بسازید.';
+  static String spaceSummary(int decks, int cards, int due) =>
+      '$decks دسته · $cards کارت · $due ${AppStrings.due}';
+
   // صفحه اصلی
   static const today = 'امروز';
   static const yourDecks = 'دسته‌های شما';
@@ -81,7 +101,10 @@ abstract final class AppStrings {
   static const allDone = 'تمام شد!';
   static const noDueCards = 'الان کارتی برای مرور وجود ندارد.';
   static const reviewedCards = 'کارت امروز مرور شد';
+  static const backToSpaces = 'بازگشت به فضاها';
   static const backToDecks = 'بازگشت به دسته‌ها';
+  static const reviewSettingsSpaceHint =
+      'تنظیمات تلفظ و مرور برای همین فضا ذخیره می‌شوند.';
   static const allDecksReview = 'مرور تجمیعی';
   static const editCard = 'ویرایش کارت';
   static const deleteCard = 'حذف کارت';

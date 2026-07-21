@@ -13,23 +13,29 @@ import 'package:recall/presentation/widgets/common_widgets.dart';
 import 'package:recall/presentation/widgets/deck_card_sheets.dart';
 
 class DeckDetailScreen extends StatelessWidget {
-  const DeckDetailScreen({super.key, required this.deckId});
+  const DeckDetailScreen({
+    super.key,
+    required this.deckId,
+    required this.spaceId,
+  });
 
   final String deckId;
+  final String spaceId;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<DeckDetailCubit>(param1: deckId)..load(),
-      child: _DeckDetailView(deckId: deckId),
+      child: _DeckDetailView(deckId: deckId, spaceId: spaceId),
     );
   }
 }
 
 class _DeckDetailView extends StatelessWidget {
-  const _DeckDetailView({required this.deckId});
+  const _DeckDetailView({required this.deckId, required this.spaceId});
 
   final String deckId;
+  final String spaceId;
 
   @override
   Widget build(BuildContext context) {
@@ -156,6 +162,7 @@ class _DeckDetailView extends StatelessWidget {
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (_) => ExcelLibraryScreen(
+                            spaceId: spaceId,
                             initialDeckId: deckId,
                           ),
                         ),
@@ -258,7 +265,9 @@ class _DeckDetailView extends StatelessWidget {
   void _openStudy(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => StudyScreen(config: StudyConfig.deck(deckId)),
+        builder: (_) => StudyScreen(
+          config: StudyConfig.deck(spaceId: spaceId, deckId: deckId),
+        ),
       ),
     ).then((_) {
       if (context.mounted) context.read<DeckDetailCubit>().load();
@@ -268,7 +277,7 @@ class _DeckDetailView extends StatelessWidget {
   void _openAddCard(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => AddCardScreen(deckId: deckId),
+        builder: (_) => AddCardScreen(deckId: deckId, spaceId: spaceId),
       ),
     ).then((_) {
       if (context.mounted) context.read<DeckDetailCubit>().load();

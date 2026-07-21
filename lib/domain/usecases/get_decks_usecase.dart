@@ -6,5 +6,6 @@ class GetDecksUseCase {
 
   final IDeckRepository _repository;
 
-  Future<List<Deck>> call() => _repository.getAllDecks();
+  Future<List<Deck>> call(String spaceId) =>
+      _repository.getDecksBySpaceId(spaceId);
 }

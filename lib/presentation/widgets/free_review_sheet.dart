@@ -26,6 +26,7 @@ class _FreeReviewLaunch {
 
 Future<void> showFreeReviewSheet(
   BuildContext context, {
+  required String spaceId,
   required Map<int, int> boxCounts,
   int? initialBox,
 }) async {
@@ -44,7 +45,7 @@ Future<void> showFreeReviewSheet(
 
   final cardsByBox = <int, List<Flashcard>>{};
   for (final box in availableBoxes) {
-    cardsByBox[box] = await sl<GetCardsByBoxUseCase>()(box);
+    cardsByBox[box] = await sl<GetCardsByBoxUseCase>()(box, spaceId: spaceId);
   }
   if (!context.mounted) return;
 
@@ -236,6 +237,7 @@ Future<void> showFreeReviewSheet(
       builder: (_) => StudyScreen(
         config: StudyConfig.byBox(
           launch.box,
+          spaceId: spaceId,
           reversed: launch.reversed,
           dueDay: launch.dueDay,
           overdueOnly: launch.overdueOnly,

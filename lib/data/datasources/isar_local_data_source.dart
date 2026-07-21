@@ -2,8 +2,10 @@ import 'package:isar/isar.dart';
 import 'package:recall/data/datasources/local_data_source.dart';
 import 'package:recall/data/models/deck_model.dart';
 import 'package:recall/data/models/flashcard_model.dart';
+import 'package:recall/data/models/space_model.dart';
 import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/domain/entities/flashcard.dart';
+import 'package:recall/domain/entities/learning_space.dart';
 import 'package:uuid/uuid.dart';
 
 class IsarLocalDataSource implements LocalDataSource {
@@ -13,9 +15,79 @@ class IsarLocalDataSource implements LocalDataSource {
   final _uuid = const Uuid();
 
   @override
+  Future<List<LearningSpace>> getAllSpaces() async {
+    final models = await _isar.spaceModels.where().findAll();
+    models.sort((a, b) {
+      final orderCompare = a.sortOrder.compareTo(b.sortOrder);
+      if (orderCompare != 0) return orderCompare;
+      return a.createdAt.compareTo(b.createdAt);
+    });
+    return models.map((m) => m.toEntity()).toList();
+  }
+
+  @override
+  Future<LearningSpace?> getSpaceById(String id) async {
+    final model =
+        await _isar.spaceModels.filter().uuidEqualTo(id).findFirst();
+    return model?.toEntity();
+  }
+
+  @override
+  Future<int> getSpaceCount() async => _isar.spaceModels.count();
+
+  @override
+  Future<LearningSpace> addSpace(LearningSpace space) async {
+    final model = SpaceModelMapper.fromEntity(space);
+    await _isar.writeTxn(() async {
+      await _isar.spaceModels.put(model);
+    });
+    return model.toEntity();
+  }
+
+  @override
+  Future<LearningSpace> updateSpace(LearningSpace space) async {
+    final existing =
+        await _isar.spaceModels.filter().uuidEqualTo(space.id).findFirst();
+    final model = SpaceModelMapper.fromEntity(space);
+    if (existing != null) {
+      model.isarId = existing.isarId;
+    }
+    await _isar.writeTxn(() async {
+      await _isar.spaceModels.put(model);
+    });
+    return model.toEntity();
+  }
+
+  @override
+  Future<void> deleteSpace(String id) async {
+    final decks =
+        await _isar.deckModels.filter().spaceIdEqualTo(id).findAll();
+    for (final deck in decks) {
+      await deleteDeck(deck.uuid);
+    }
+    await _isar.writeTxn(() async {
+      final space =
+          await _isar.spaceModels.filter().uuidEqualTo(id).findFirst();
+      if (space != null) {
+        await _isar.spaceModels.delete(space.isarId);
+      }
+    });
+  }
+
+  @override
   Future<List<Deck>> getAllDecks() async {
     final models =
         await _isar.deckModels.where().sortByCreatedAtDesc().findAll();
+    return models.map((m) => m.toEntity()).toList();
+  }
+
+  @override
+  Future<List<Deck>> getDecksBySpaceId(String spaceId) async {
+    final models = await _isar.deckModels
+        .filter()
+        .spaceIdEqualTo(spaceId)
+        .sortByCreatedAtDesc()
+        .findAll();
     return models.map((m) => m.toEntity()).toList();
   }
 

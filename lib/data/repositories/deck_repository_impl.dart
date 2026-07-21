@@ -11,6 +11,10 @@ class DeckRepositoryImpl implements IDeckRepository {
   Future<List<Deck>> getAllDecks() => _localDataSource.getAllDecks();
 
   @override
+  Future<List<Deck>> getDecksBySpaceId(String spaceId) =>
+      _localDataSource.getDecksBySpaceId(spaceId);
+
+  @override
   Future<Deck?> getDeckById(String id) => _localDataSource.getDeckById(id);
 
   @override

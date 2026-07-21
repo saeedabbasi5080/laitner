@@ -32,8 +32,13 @@ const DeckModelSchema = CollectionSchema(
       name: r'name',
       type: IsarType.string,
     ),
-    r'uuid': PropertySchema(
+    r'spaceId': PropertySchema(
       id: 3,
+      name: r'spaceId',
+      type: IsarType.string,
+    ),
+    r'uuid': PropertySchema(
+      id: 4,
       name: r'uuid',
       type: IsarType.string,
     )
@@ -56,6 +61,19 @@ const DeckModelSchema = CollectionSchema(
           caseSensitive: true,
         )
       ],
+    ),
+    r'spaceId': IndexSchema(
+      id: -1779888219436521473,
+      name: r'spaceId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'spaceId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
     )
   },
   links: {},
@@ -74,6 +92,7 @@ int _deckModelEstimateSize(
   var bytesCount = offsets.last;
   bytesCount += 3 + object.color.length * 3;
   bytesCount += 3 + object.name.length * 3;
+  bytesCount += 3 + object.spaceId.length * 3;
   bytesCount += 3 + object.uuid.length * 3;
   return bytesCount;
 }
@@ -87,7 +106,8 @@ void _deckModelSerialize(
   writer.writeString(offsets[0], object.color);
   writer.writeDateTime(offsets[1], object.createdAt);
   writer.writeString(offsets[2], object.name);
-  writer.writeString(offsets[3], object.uuid);
+  writer.writeString(offsets[3], object.spaceId);
+  writer.writeString(offsets[4], object.uuid);
 }
 
 DeckModel _deckModelDeserialize(
@@ -101,7 +121,8 @@ DeckModel _deckModelDeserialize(
   object.createdAt = reader.readDateTime(offsets[1]);
   object.isarId = id;
   object.name = reader.readString(offsets[2]);
-  object.uuid = reader.readString(offsets[3]);
+  object.spaceId = reader.readString(offsets[3]);
+  object.uuid = reader.readString(offsets[4]);
   return object;
 }
 
@@ -119,6 +140,8 @@ P _deckModelDeserializeProp<P>(
     case 2:
       return (reader.readString(offset)) as P;
     case 3:
+      return (reader.readString(offset)) as P;
+    case 4:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -310,6 +333,51 @@ extension DeckModelQueryWhere
               indexName: r'uuid',
               lower: [],
               upper: [uuid],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<DeckModel, DeckModel, QAfterWhereClause> spaceIdEqualTo(
+      String spaceId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'spaceId',
+        value: [spaceId],
+      ));
+    });
+  }
+
+  QueryBuilder<DeckModel, DeckModel, QAfterWhereClause> spaceIdNotEqualTo(
+      String spaceId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'spaceId',
+              lower: [],
+              upper: [spaceId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'spaceId',
+              lower: [spaceId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'spaceId',
+              lower: [spaceId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'spaceId',
+              lower: [],
+              upper: [spaceId],
               includeUpper: false,
             ));
       }
@@ -686,6 +754,137 @@ extension DeckModelQueryFilter
     });
   }
 
+  QueryBuilder<DeckModel, DeckModel, QAfterFilterCondition> spaceIdEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'spaceId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DeckModel, DeckModel, QAfterFilterCondition> spaceIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'spaceId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DeckModel, DeckModel, QAfterFilterCondition> spaceIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'spaceId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DeckModel, DeckModel, QAfterFilterCondition> spaceIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'spaceId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DeckModel, DeckModel, QAfterFilterCondition> spaceIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'spaceId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DeckModel, DeckModel, QAfterFilterCondition> spaceIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'spaceId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DeckModel, DeckModel, QAfterFilterCondition> spaceIdContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'spaceId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DeckModel, DeckModel, QAfterFilterCondition> spaceIdMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'spaceId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DeckModel, DeckModel, QAfterFilterCondition> spaceIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'spaceId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<DeckModel, DeckModel, QAfterFilterCondition>
+      spaceIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'spaceId',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<DeckModel, DeckModel, QAfterFilterCondition> uuidEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -860,6 +1059,18 @@ extension DeckModelQuerySortBy on QueryBuilder<DeckModel, DeckModel, QSortBy> {
     });
   }
 
+  QueryBuilder<DeckModel, DeckModel, QAfterSortBy> sortBySpaceId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'spaceId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DeckModel, DeckModel, QAfterSortBy> sortBySpaceIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'spaceId', Sort.desc);
+    });
+  }
+
   QueryBuilder<DeckModel, DeckModel, QAfterSortBy> sortByUuid() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'uuid', Sort.asc);
@@ -923,6 +1134,18 @@ extension DeckModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<DeckModel, DeckModel, QAfterSortBy> thenBySpaceId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'spaceId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DeckModel, DeckModel, QAfterSortBy> thenBySpaceIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'spaceId', Sort.desc);
+    });
+  }
+
   QueryBuilder<DeckModel, DeckModel, QAfterSortBy> thenByUuid() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'uuid', Sort.asc);
@@ -958,6 +1181,13 @@ extension DeckModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<DeckModel, DeckModel, QDistinct> distinctBySpaceId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'spaceId', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<DeckModel, DeckModel, QDistinct> distinctByUuid(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -989,6 +1219,12 @@ extension DeckModelQueryProperty
   QueryBuilder<DeckModel, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
+    });
+  }
+
+  QueryBuilder<DeckModel, String, QQueryOperations> spaceIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'spaceId');
     });
   }
 

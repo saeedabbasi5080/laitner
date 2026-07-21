@@ -10,12 +10,14 @@ import 'package:recall/presentation/blocs/statistics/statistics_cubit.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 
 class StatisticsScreen extends StatelessWidget {
-  const StatisticsScreen({super.key});
+  const StatisticsScreen({super.key, required this.spaceId});
+
+  final String spaceId;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => sl<StatisticsCubit>()..load(),
+      create: (_) => sl<StatisticsCubit>(param1: spaceId)..load(),
       child: const _StatisticsView(),
     );
   }

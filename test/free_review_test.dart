@@ -16,6 +16,8 @@ import 'package:recall/domain/usecases/update_card_usecase.dart';
 import 'package:recall/presentation/blocs/study/study_config.dart';
 import 'package:recall/presentation/blocs/study/study_cubit.dart';
 
+const _spaceId = 'space-1';
+
 void main() {
   test('free review answer does not reschedule or log card', () async {
     final now = DateTime.now();
@@ -31,7 +33,7 @@ void main() {
     final repository = _FakeFlashcardRepository([card]);
     final history = _FakeReviewHistoryRepository();
     final cubit = StudyCubit(
-      config: const StudyConfig.byBox(3),
+      config: StudyConfig.byBox(3, spaceId: _spaceId),
       getDueCardsUseCase: GetDueCardsUseCase(repository),
       getAllDueCardsUseCase: GetAllDueCardsUseCase(repository),
       getCardsByBoxUseCase: GetCardsByBoxUseCase(repository),
@@ -90,7 +92,7 @@ void main() {
     final repository = _FakeFlashcardRepository(cards);
     final history = _FakeReviewHistoryRepository();
     final cubit = StudyCubit(
-      config: StudyConfig.byBox(3).withRandomOrder(true),
+      config: StudyConfig.byBox(3, spaceId: _spaceId).withRandomOrder(true),
       getDueCardsUseCase: GetDueCardsUseCase(repository),
       getAllDueCardsUseCase: GetAllDueCardsUseCase(repository),
       getCardsByBoxUseCase: GetCardsByBoxUseCase(repository),
@@ -133,6 +135,9 @@ class _FakeFlashcardRepository implements IFlashcardRepository {
   Future<List<Flashcard>> getAllCards() async => cards;
 
   @override
+  Future<List<Flashcard>> getCardsBySpaceId(String spaceId) async => cards;
+
+  @override
   Future<List<Flashcard>> getCardsByDeckId(String deckId) async =>
       cards.where((card) => card.deckId == deckId).toList();
 
@@ -164,4 +169,7 @@ class _FakeReviewHistoryRepository implements IReviewHistoryRepository {
 
   @override
   Future<List<ReviewLog>> getAll() async => logs;
+
+  @override
+  Future<List<ReviewLog>> getBySpaceId(String spaceId) async => logs;
 }

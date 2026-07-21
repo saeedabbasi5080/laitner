@@ -7,14 +7,19 @@ import 'package:recall/presentation/blocs/add_card/add_card_cubit.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 
 class AddCardScreen extends StatelessWidget {
-  const AddCardScreen({super.key, required this.deckId});
+  const AddCardScreen({
+    super.key,
+    required this.deckId,
+    required this.spaceId,
+  });
 
   final String deckId;
+  final String spaceId;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => sl<AddCardCubit>(param1: deckId),
+      create: (_) => sl<AddCardCubit>(param1: deckId, param2: spaceId),
       child: const _AddCardView(),
     );
   }

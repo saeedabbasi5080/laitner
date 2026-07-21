@@ -29,13 +29,30 @@ class ReviewHistoryStore {
     }
   }
 
+  List<ReviewLog> getBySpaceId(String spaceId) =>
+      getAll().where((log) => log.spaceId == spaceId).toList();
+
   Future<void> add(ReviewLog log) async {
     final logs = [...getAll(), log];
+    await _persist(logs);
+  }
+
+  Future<void> replaceAll(List<ReviewLog> logs) async {
+    await _persist(logs);
+  }
+
+  Future<void> deleteBySpaceId(String spaceId) async {
+    final logs = getAll().where((log) => log.spaceId != spaceId).toList();
+    await _persist(logs);
+  }
+
+  Future<void> _persist(List<ReviewLog> logs) async {
     await _prefs.setString(_storageKey, jsonEncode(logs.map(_toJson).toList()));
   }
 
   Map<String, dynamic> _toJson(ReviewLog log) => {
     'id': log.id,
+    'spaceId': log.spaceId,
     'cardId': log.cardId,
     'deckId': log.deckId,
     'rating': log.rating.name,
@@ -46,6 +63,7 @@ class ReviewHistoryStore {
 
   ReviewLog _fromJson(Map<String, dynamic> json) => ReviewLog(
     id: json['id'] as String,
+    spaceId: json['spaceId'] as String? ?? '',
     cardId: json['cardId'] as String,
     deckId: json['deckId'] as String,
     rating: ReviewRating.values.byName(json['rating'] as String),

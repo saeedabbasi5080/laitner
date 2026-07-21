@@ -7,9 +7,9 @@ class GetAllDueCardsUseCase {
 
   final IFlashcardRepository _repository;
 
-  Future<List<Flashcard>> call({DateTime? now}) async {
+  Future<List<Flashcard>> call(String spaceId, {DateTime? now}) async {
     final reference = now ?? DateTime.now();
-    final cards = await _repository.getAllCards();
+    final cards = await _repository.getCardsBySpaceId(spaceId);
     return cards.where((card) => isCardDue(card, reference)).toList();
   }
 }

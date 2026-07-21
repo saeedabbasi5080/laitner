@@ -12,22 +12,28 @@ import 'package:recall/presentation/widgets/common_widgets.dart';
 import 'package:recall/presentation/widgets/excel_format_guide_sheet.dart';
 
 class ExcelLibraryScreen extends StatelessWidget {
-  const ExcelLibraryScreen({super.key, this.initialDeckId});
+  const ExcelLibraryScreen({
+    super.key,
+    required this.spaceId,
+    this.initialDeckId,
+  });
 
+  final String spaceId;
   final String? initialDeckId;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => sl<ExcelLibraryCubit>()..load(),
-      child: _ExcelLibraryView(initialDeckId: initialDeckId),
+      create: (_) => sl<ExcelLibraryCubit>(param1: spaceId)..load(),
+      child: _ExcelLibraryView(spaceId: spaceId, initialDeckId: initialDeckId),
     );
   }
 }
 
 class _ExcelLibraryView extends StatelessWidget {
-  const _ExcelLibraryView({this.initialDeckId});
+  const _ExcelLibraryView({required this.spaceId, this.initialDeckId});
 
+  final String spaceId;
   final String? initialDeckId;
 
   @override
@@ -182,6 +188,7 @@ class _ExcelLibraryView extends StatelessWidget {
       MaterialPageRoute<void>(
         builder: (_) => ExcelImportDetailScreen(
           importId: savedImport.id,
+          spaceId: spaceId,
           initialDeckId: initialDeckId,
         ),
       ),
@@ -204,6 +211,7 @@ class _ExcelLibraryView extends StatelessWidget {
       MaterialPageRoute<void>(
         builder: (_) => ExcelImportDetailScreen(
           importId: importId,
+          spaceId: spaceId,
           initialDeckId: initialDeckId,
         ),
       ),

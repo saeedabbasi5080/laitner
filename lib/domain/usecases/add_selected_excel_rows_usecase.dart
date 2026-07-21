@@ -52,8 +52,9 @@ class AddSelectedExcelRowsUseCase {
       return const ExcelImportAddResult(addedCount: 0, duplicates: []);
     }
 
-    final existingCards = await _flashcardRepository.getAllCards();
-    final decks = await _deckRepository.getAllDecks();
+    final existingCards =
+        await _flashcardRepository.getCardsBySpaceId(import.spaceId);
+    final decks = await _deckRepository.getDecksBySpaceId(import.spaceId);
     final deckNames = {for (final deck in decks) deck.id: deck.name};
     final existingByFront = <String, Flashcard>{};
     for (final card in existingCards) {
