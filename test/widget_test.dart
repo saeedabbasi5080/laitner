@@ -30,7 +30,7 @@ void main() {
       useCase
           .applyReview(card.copyWith(box: 5), ReviewRating.know, now: now)
           .box,
-      5,
+      6,
     );
   });
 

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:recall/core/constants/leitner_constants.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/core/tts/tts_service.dart';
 import 'package:recall/core/utils/responsive.dart';
+import 'package:recall/core/utils/text_direction_utils.dart';
+import 'package:recall/data/datasources/space_settings_store.dart';
 import 'package:recall/domain/entities/review_rating.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/settings/settings_cubit.dart';
@@ -12,27 +15,54 @@ import 'package:recall/presentation/blocs/study/study_cubit.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 import 'package:recall/presentation/widgets/deck_card_sheets.dart';
 
-class StudyScreen extends StatelessWidget {
+class StudyScreen extends StatefulWidget {
   const StudyScreen({super.key, required this.config});
 
   final StudyConfig config;
 
   @override
-  Widget build(BuildContext context) {
-    final effectiveConfig = config.withRandomOrder(
-      context.read<SettingsCubit>().state.randomReviewOrder,
+  State<StudyScreen> createState() => _StudyScreenState();
+}
+
+class _StudyScreenState extends State<StudyScreen> {
+  StudyConfig? _effectiveConfig;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConfig();
+  }
+
+  Future<void> _loadConfig() async {
+    final spaceSettings = await sl<SpaceSettingsStore>().load(
+      widget.config.spaceId,
     );
+    if (!mounted) return;
+    setState(() {
+      _effectiveConfig = widget.config.applySpaceSettings(
+        randomOrder: spaceSettings.randomReviewOrder,
+        defaultReversed: spaceSettings.defaultReversed,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final config = _effectiveConfig;
+    if (config == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return BlocProvider(
-      create: (_) => sl<StudyCubit>(param1: effectiveConfig)..load(),
-      child: _StudyView(config: effectiveConfig),
+      create: (_) => sl<StudyCubit>(param1: config)..load(),
+      child: const _StudyView(),
     );
   }
 }
 
 class _StudyView extends StatefulWidget {
-  const _StudyView({required this.config});
-
-  final StudyConfig config;
+  const _StudyView();
 
   @override
   State<_StudyView> createState() => _StudyViewState();
@@ -54,31 +84,42 @@ class _StudyViewState extends State<_StudyView> {
       body: SafeArea(
         child: BlocConsumer<StudyCubit, StudyState>(
           listenWhen: (previous, current) {
-            if (!context.read<SettingsCubit>().state.autoSpeak) return false;
+            final settings = context.read<SettingsCubit>().state;
+            if (!settings.autoSpeak) return false;
             if (current.status != StudyStatus.ready || current.isFinished) {
               return false;
             }
             if (current.currentCard == null) return false;
-            // Only when a new card is shown — not when the user flips it.
-            return previous.status != current.status ||
-                previous.currentIndex != current.currentIndex;
+            return settings.autoSpeakSide.shouldSpeak(
+              isFlipped: current.isFlipped,
+              reversed: current.reversed,
+            );
           },
           listener: (context, state) {
             final card = state.currentCard;
             if (card == null) return;
-            // Speak the question side of the newly opened card once.
+            final settings = context.read<SettingsCubit>().state;
+            if (!settings.autoSpeakSide.shouldSpeak(
+              isFlipped: state.isFlipped,
+              reversed: state.reversed,
+            )) {
+              return;
+            }
             final text = _displayText(
               front: card.front,
               back: card.back,
-              isFlipped: false,
+              isFlipped: state.isFlipped,
               reversed: state.reversed,
             );
-            final key = card.id;
+            final showingFront =
+                state.reversed ? state.isFlipped : !state.isFlipped;
+            final key = '${card.id}-${showingFront ? 'front' : 'back'}';
             if (key == _lastAutoSpokenKey) return;
             _lastAutoSpokenKey = key;
             _speak(
               context,
               text,
+              interrupt: false,
               notifyUnavailable: !_ttsUnavailableNotified,
             ).then((spoken) {
               if (!spoken && mounted) {
@@ -136,6 +177,15 @@ class _StudyViewState extends State<_StudyView> {
                         ),
                         const SizedBox(width: 6),
                         CircleIconButton(
+                          icon: Icons.restart_alt,
+                          label: AppStrings.resetToBox1,
+                          color: card.box > 1 ? context.accentColor : null,
+                          onPressed: card.box > 1
+                              ? () => _resetToBox1(context)
+                              : null,
+                        ),
+                        const SizedBox(width: 6),
+                        CircleIconButton(
                           icon: Icons.edit_outlined,
                           label: AppStrings.editCard,
                           onPressed: () => _editCard(context, state),
@@ -149,36 +199,67 @@ class _StudyViewState extends State<_StudyView> {
                         ),
                       ],
                       const SizedBox(width: 8),
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: LinearProgressIndicator(
-                            value: state.progress,
-                            minHeight: 6,
-                            backgroundColor: context.recallColors.muted,
-                            valueColor: AlwaysStoppedAnimation(
-                              context.accentColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${state.currentIndex.clamp(0, state.queue.length)}/${state.queue.length}',
-                        maxLines: 1,
-                        overflow: TextOverflow.fade,
-                        softWrap: false,
-                        textAlign: TextAlign.left,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: context.recallColors.mutedForeground,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
                     ],
                   ),
                 ),
+                if (!state.isFinished && card != null)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      context.pageHorizontalPadding,
+                      0,
+                      context.pageHorizontalPadding,
+                      8,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: LinearProgressIndicator(
+                              value: state.progress,
+                              minHeight: 6,
+                              backgroundColor: context.recallColors.muted,
+                              valueColor: AlwaysStoppedAnimation(
+                                context.accentColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${state.currentIndex.clamp(0, state.queue.length)}/${state.queue.length}',
+                          maxLines: 1,
+                          overflow: TextOverflow.fade,
+                          softWrap: false,
+                          textAlign: TextAlign.left,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: context.recallColors.mutedForeground,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (!state.isFinished && state.reversed)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      context.pageHorizontalPadding,
+                      0,
+                      context.pageHorizontalPadding,
+                      8,
+                    ),
+                    child: Text(
+                      AppStrings.reversedReview,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: context.accentColor,
+                      ),
+                    ),
+                  ),
                 if (state.isFreeReview &&
                     !state.isFinished &&
                     state.boxNumber != null)
@@ -228,6 +309,7 @@ class _StudyViewState extends State<_StudyView> {
                           : card != null
                           ? _FlashcardView(
                               text: questionText,
+                              box: card.box,
                               fontSize: context
                                   .watch<SettingsCubit>()
                                   .state
@@ -250,29 +332,6 @@ class _StudyViewState extends State<_StudyView> {
                     ),
                     child: Column(
                       children: [
-                        if (state.isFreeReview &&
-                            card != null &&
-                            card.box > 1 &&
-                            state.isFlipped)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () => _resetToBox1(context),
-                                icon: const Icon(Icons.restart_alt, size: 18),
-                                label: const Text(AppStrings.resetToBox1),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
                         AnimatedOpacity(
                           duration: const Duration(milliseconds: 200),
                           opacity: state.isFlipped ? 1 : 0.3,
@@ -283,7 +342,7 @@ class _StudyViewState extends State<_StudyView> {
                                 Expanded(
                                   child: RateButton(
                                     label: AppStrings.know,
-                                    color: AppColors.mint,
+                                    color: AppColors.know,
                                     onPressed: () => context
                                         .read<StudyCubit>()
                                         .rateCard(ReviewRating.know),
@@ -293,7 +352,7 @@ class _StudyViewState extends State<_StudyView> {
                                 Expanded(
                                   child: RateButton(
                                     label: AppStrings.dontKnow,
-                                    color: AppColors.peach,
+                                    color: AppColors.dontKnow,
                                     onPressed: () => context
                                         .read<StudyCubit>()
                                         .rateCard(ReviewRating.dontKnow),
@@ -330,6 +389,7 @@ class _StudyViewState extends State<_StudyView> {
     BuildContext context,
     String text, {
     bool notifyUnavailable = true,
+    bool interrupt = true,
   }) async {
     if (text.trim().isEmpty) return true;
     final language = context.read<SettingsCubit>().state.ttsLanguage;
@@ -345,7 +405,11 @@ class _StudyViewState extends State<_StudyView> {
       }
       return false;
     }
-    await tts.speak(text, languageCode: language.code);
+    await tts.speak(
+      text,
+      languageCode: language.code,
+      interrupt: interrupt,
+    );
     return true;
   }
 
@@ -388,11 +452,13 @@ class _StudyViewState extends State<_StudyView> {
 class _FlashcardView extends StatelessWidget {
   const _FlashcardView({
     required this.text,
+    required this.box,
     required this.fontSize,
     required this.onTap,
   });
 
   final String text;
+  final int box;
   final double fontSize;
   final VoidCallback onTap;
 
@@ -413,7 +479,10 @@ class _FlashcardView extends StatelessWidget {
         return Align(
           alignment: Alignment.center,
           child: Material(
-            color: colors.card,
+            color: Color.alphaBlend(
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+              Theme.of(context).colorScheme.surfaceContainerLowest,
+            ),
             borderRadius: BorderRadius.circular(28),
             child: InkWell(
               onTap: onTap,
@@ -427,25 +496,45 @@ class _FlashcardView extends StatelessWidget {
                   border: Border.all(color: colors.border),
                   boxShadow: AppShadows.card(context),
                 ),
-                child: Center(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: size.width - (padH * 2),
-                        maxHeight: size.height - (padV * 2),
-                      ),
+                child: Stack(
+                  children: [
+                    PositionedDirectional(
+                      top: 0,
+                      start: 0,
                       child: Text(
-                        text,
-                        textAlign: TextAlign.center,
+                        box >= learnedBox
+                            ? AppStrings.learnedBadge
+                            : AppStrings.boxBadge(box),
                         style: TextStyle(
-                          fontSize: fontSize,
+                          fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          height: 1.4,
+                          color: colors.mutedForeground,
+                          height: 1,
                         ),
                       ),
                     ),
-                  ),
+                    Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: size.width - (padH * 2),
+                            maxHeight: size.height - (padV * 2),
+                          ),
+                          child: Text(
+                            text,
+                            textAlign: TextAlign.center,
+                            textDirection: textDirectionFor(text),
+                            style: TextStyle(
+                              fontSize: fontSize,
+                              fontWeight: FontWeight.w600,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

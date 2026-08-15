@@ -54,7 +54,7 @@ void main() {
     expect(cubit.state.status, StatisticsStatus.loaded);
     expect(cubit.state.boxCounts, {1: 1, 2: 0, 3: 0, 4: 1, 5: 1});
     expect(cubit.state.totalCards, 3);
-    expect(cubit.state.masteredCards, 2);
+    expect(cubit.state.masteredCards, 0);
     expect(cubit.state.totalReviews, 4);
     expect(cubit.state.knowCount, 3);
     expect(cubit.state.dontKnowCount, 1);

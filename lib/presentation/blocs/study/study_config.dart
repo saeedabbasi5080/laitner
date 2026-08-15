@@ -13,10 +13,13 @@ class StudyConfig {
   const StudyConfig.deck({
     required String spaceId,
     required String deckId,
-  }) : this._(spaceId: spaceId, deckId: deckId);
+    bool reversed = false,
+  }) : this._(spaceId: spaceId, deckId: deckId, reversed: reversed);
 
-  const StudyConfig.allDue({required String spaceId})
-      : this._(spaceId: spaceId, allDue: true);
+  const StudyConfig.allDue({
+    required String spaceId,
+    bool reversed = false,
+  }) : this._(spaceId: spaceId, allDue: true, reversed: reversed);
 
   /// Free review: all cards in a box regardless of due date.
   const StudyConfig.byBox(
@@ -46,14 +49,30 @@ class StudyConfig {
 
   bool get isBoxReview => boxNumber != null;
 
-  StudyConfig withRandomOrder(bool enabled) => StudyConfig._(
+  StudyConfig withSessionOptions({
+    required bool randomOrder,
+    bool? reversed,
+  }) => StudyConfig._(
     spaceId: spaceId,
     deckId: deckId,
     allDue: allDue,
     boxNumber: boxNumber,
-    reversed: reversed,
+    reversed: reversed ?? this.reversed,
     dueDay: dueDay,
     overdueOnly: overdueOnly,
-    randomOrder: enabled,
+    randomOrder: randomOrder,
   );
+
+  StudyConfig applySpaceSettings({
+    required bool randomOrder,
+    required bool defaultReversed,
+  }) {
+    if (isBoxReview) {
+      return withSessionOptions(randomOrder: randomOrder);
+    }
+    return withSessionOptions(
+      randomOrder: randomOrder,
+      reversed: defaultReversed,
+    );
+  }
 }

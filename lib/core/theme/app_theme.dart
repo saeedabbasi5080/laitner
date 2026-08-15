@@ -4,19 +4,21 @@ import 'package:recall/core/theme/app_accent.dart';
 import 'package:recall/domain/entities/deck_color.dart';
 
 class AppColors {
-  static const lavender = Color(0xFFC9B8E8);
-  static const mint = Color(0xFFA8E6CF);
-  static const peach = Color(0xFFFFD4B8);
-  static const sky = Color(0xFFB8D4F0);
-  static const rose = Color(0xFFF5B8C8);
-  static const danger = Color(0xFFD32F2F);
-  static const lemon = Color(0xFFF5E6A8);
-  static const coral = Color(0xFFFFB8A8);
-  static const teal = Color(0xFFA8E0D8);
-  static const lilac = Color(0xFFD4B8F0);
-  static const sand = Color(0xFFE8D4B8);
-  static const slate = Color(0xFFB8C4D4);
-  static const berry = Color(0xFFD4A8C8);
+  static const lavender = Color(0xFF7B5CB8);
+  static const mint = Color(0xFF2E9A72);
+  static const peach = Color(0xFFD97A45);
+  static const sky = Color(0xFF3D8BC4);
+  static const rose = Color(0xFFC45A78);
+  static const danger = Color(0xFFB71C1C);
+  static const lemon = Color(0xFFC4A832);
+  static const coral = Color(0xFFD45C48);
+  static const teal = Color(0xFF2A9A8C);
+  static const lilac = Color(0xFF8A5CB8);
+  static const sand = Color(0xFFB8894A);
+  static const slate = Color(0xFF5A6E86);
+  static const berry = Color(0xFFB04A7A);
+  static const know = Color(0xFF1B7A4A);
+  static const dontKnow = Color(0xFFC62828);
 
   static Color forDeck(DeckColor color) => switch (color) {
         DeckColor.lavender => lavender,
@@ -50,20 +52,14 @@ class RecallColors extends ThemeExtension<RecallColors> {
   final Color border;
   final Color accent;
 
-  static RecallColors dark(Color accent) => RecallColors(
-        card: const Color(0xFF2B2F38),
-        muted: const Color(0xFF3A3F4B),
-        mutedForeground: const Color(0xFF9BA3B4),
-        border: const Color(0x14FFFFFF),
-        accent: accent,
-      );
-
-  static RecallColors light(Color accent) => RecallColors(
-        card: const Color(0xFFFFFFFF),
-        muted: const Color(0xFFF0F0F3),
-        mutedForeground: const Color(0xFF6B7280),
-        border: const Color(0x1A000000),
-        accent: accent,
+  /// Maps Material 3 surface-container roles from [ColorScheme.fromSeed].
+  /// Scaffold uses [ColorScheme.surface]; cards use [ColorScheme.surfaceContainerLow].
+  static RecallColors fromScheme(ColorScheme scheme) => RecallColors(
+        card: scheme.surfaceContainerLow,
+        muted: scheme.surfaceContainerHighest,
+        mutedForeground: scheme.onSurfaceVariant,
+        border: scheme.outlineVariant,
+        accent: scheme.primary,
       );
 
   @override
@@ -100,11 +96,44 @@ class RecallColors extends ThemeExtension<RecallColors> {
 extension RecallTheme on BuildContext {
   RecallColors get recallColors =>
       Theme.of(this).extension<RecallColors>() ??
-      RecallColors.dark(AppAccent.lavender.seed);
+      RecallColors.fromScheme(
+        ColorScheme.fromSeed(seedColor: AppAccent.lavender.seed),
+      );
 
   Color get accentColor =>
       Theme.of(this).extension<RecallColors>()?.accent ??
       Theme.of(this).colorScheme.primary;
+
+  /// Tonal surface for colored list cards (Material 3 container tint).
+  Color tintedSurface(Color tint, {double amount = 0.14}) {
+    return Color.alphaBlend(
+      tint.withValues(alpha: amount),
+      Theme.of(this).colorScheme.surfaceContainerLow,
+    );
+  }
+
+  (Color fill, Color onFill) leitnerBoxColors(int box) {
+    final scheme = Theme.of(this).colorScheme;
+    return switch (box) {
+      1 => (scheme.primaryContainer, scheme.onPrimaryContainer),
+      2 => (scheme.secondaryContainer, scheme.onSecondaryContainer),
+      3 => (scheme.tertiaryContainer, scheme.onTertiaryContainer),
+      4 => (
+          Color.alphaBlend(
+            scheme.primary.withValues(alpha: 0.22),
+            scheme.surfaceContainerHigh,
+          ),
+          scheme.onSurface,
+        ),
+      _ => (
+          Color.alphaBlend(
+            scheme.primary.withValues(alpha: 0.34),
+            scheme.surfaceContainerHighest,
+          ),
+          scheme.onSurface,
+        ),
+    };
+  }
 }
 
 class AppTheme {
@@ -120,18 +149,22 @@ class AppTheme {
     required AppAccent accent,
   }) {
     final isDark = brightness == Brightness.dark;
-    final colorScheme = ColorScheme.fromSeed(
+    // Light uses vibrant so containers pick up seed chroma; dark keeps tonalSpot
+    // so surfaces stay readable. Do not override light surface — that flattened
+    // cards and buttons into the same beige as the scaffold.
+    var colorScheme = ColorScheme.fromSeed(
       seedColor: accent.seed,
       brightness: brightness,
-      dynamicSchemeVariant: DynamicSchemeVariant.vibrant,
-      contrastLevel: 0.1,
-    ).copyWith(
-      surface: isDark ? const Color(0xFF1A1D24) : const Color(0xFFFAFAFA),
-      onSurface: isDark ? const Color(0xFFF5F5F7) : const Color(0xFF1A1D24),
+      dynamicSchemeVariant:
+          isDark ? DynamicSchemeVariant.tonalSpot : DynamicSchemeVariant.vibrant,
     );
-    final recallColors = isDark
-        ? RecallColors.dark(colorScheme.primary)
-        : RecallColors.light(colorScheme.primary);
+    if (isDark) {
+      colorScheme = colorScheme.copyWith(
+        surface: const Color(0xFF1A1D24),
+        onSurface: const Color(0xFFF5F5F7),
+      );
+    }
+    final recallColors = RecallColors.fromScheme(colorScheme);
 
     final base = ThemeData(
       useMaterial3: true,
@@ -177,10 +210,24 @@ class AppTheme {
         selectedColor: colorScheme.primaryContainer,
         checkmarkColor: colorScheme.onPrimaryContainer,
       ),
+      cardTheme: CardThemeData(
+        color: colorScheme.surfaceContainerLow,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: colorScheme.outlineVariant),
+        ),
+      ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: colorScheme.primary,
+          side: BorderSide(color: colorScheme.outline),
         ),
       ),
     );

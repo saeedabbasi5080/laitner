@@ -71,6 +71,8 @@ class DeckListCubit extends Cubit<DeckListState> {
         }
       }
 
+      final learnedCount = allCards.where((card) => card.isLearned).length;
+
       final totalDue =
           dueCounts.values.fold<int>(0, (sum, count) => sum + count);
 
@@ -82,6 +84,7 @@ class DeckListCubit extends Cubit<DeckListState> {
           totalCounts: totalCounts,
           boxCounts: boxCounts,
           totalDue: totalDue,
+          learnedCount: learnedCount,
         ),
       );
     } catch (e) {

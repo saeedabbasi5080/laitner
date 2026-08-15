@@ -10,6 +10,7 @@ class DeckListState extends Equatable {
     this.totalCounts = const {},
     this.boxCounts = const {},
     this.totalDue = 0,
+    this.learnedCount = 0,
     this.errorMessage,
   });
 
@@ -19,6 +20,7 @@ class DeckListState extends Equatable {
   final Map<String, int> totalCounts;
   final Map<int, int> boxCounts;
   final int totalDue;
+  final int learnedCount;
   final String? errorMessage;
 
   DeckListState copyWith({
@@ -28,6 +30,7 @@ class DeckListState extends Equatable {
     Map<String, int>? totalCounts,
     Map<int, int>? boxCounts,
     int? totalDue,
+    int? learnedCount,
     String? errorMessage,
   }) {
     return DeckListState(
@@ -37,11 +40,12 @@ class DeckListState extends Equatable {
       totalCounts: totalCounts ?? this.totalCounts,
       boxCounts: boxCounts ?? this.boxCounts,
       totalDue: totalDue ?? this.totalDue,
+      learnedCount: learnedCount ?? this.learnedCount,
       errorMessage: errorMessage,
     );
   }
 
   @override
   List<Object?> get props =>
-      [status, decks, dueCounts, totalCounts, boxCounts, totalDue, errorMessage];
+      [status, decks, dueCounts, totalCounts, boxCounts, totalDue, learnedCount, errorMessage];
 }

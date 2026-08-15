@@ -8,6 +8,7 @@ import 'package:recall/domain/entities/flashcard.dart';
 /// A card created at 22:00 in Box 1 therefore becomes due at 00:00 on the next
 /// local day. New cards use [Flashcard.createdAt] as their schedule anchor.
 bool isCardDue(Flashcard card, DateTime now) {
+  if (card.isLearned) return false;
   return !now.isBefore(nextReviewDate(card));
 }
 

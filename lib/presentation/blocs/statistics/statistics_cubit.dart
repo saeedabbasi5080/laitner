@@ -43,7 +43,8 @@ class StatisticsCubit extends Cubit<StatisticsState> {
         if (box >= 1 && box <= maxBox) {
           boxCounts[box] = (boxCounts[box] ?? 0) + 1;
         }
-        if (box >= 4) masteredCards++;
+        if (card.isLearned) masteredCards++;
+        if (card.isLearned) continue;
 
         final dueDay = _day(nextReviewDate(card));
         final daysAway = dueDay.difference(today).inDays;

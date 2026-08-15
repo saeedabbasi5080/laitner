@@ -297,7 +297,7 @@ class _SpaceCard extends StatelessWidget {
     final fill = AppColors.forDeck(summary.space.color);
 
     return Material(
-      color: colors.card,
+      color: context.tintedSurface(fill),
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onOpen,

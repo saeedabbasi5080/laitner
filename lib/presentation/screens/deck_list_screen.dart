@@ -15,6 +15,7 @@ import 'package:recall/presentation/screens/add_card_screen.dart';
 import 'package:recall/presentation/screens/box_cards_screen.dart';
 import 'package:recall/presentation/screens/deck_detail_screen.dart';
 import 'package:recall/presentation/screens/excel_library_screen.dart';
+import 'package:recall/presentation/screens/learned_cards_screen.dart';
 import 'package:recall/presentation/screens/settings_screen.dart';
 import 'package:recall/presentation/screens/statistics_screen.dart';
 import 'package:recall/presentation/screens/study_screen.dart';
@@ -184,6 +185,69 @@ class _DeckListViewState extends State<_DeckListView>
                       _BoxOverviewRow(
                         boxCounts: state.boxCounts,
                         onBoxTap: (box) => _openBoxCards(context, box),
+                      ),
+                      const SizedBox(height: 12),
+                      Material(
+                        color: Theme.of(context).colorScheme.tertiaryContainer,
+                        borderRadius: BorderRadius.circular(16),
+                        child: InkWell(
+                          onTap: () => _openLearnedCards(context),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .tertiary
+                                    .withValues(alpha: 0.18),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.workspace_premium_outlined,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onTertiaryContainer,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    AppStrings.learnedCards,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onTertiaryContainer,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '${state.learnedCount}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onTertiaryContainer,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.chevron_left,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onTertiaryContainer,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                       if (state.boxCounts.values.any((c) => c > 0)) ...[
                         const SizedBox(height: 12),
@@ -373,6 +437,18 @@ class _DeckListViewState extends State<_DeckListView>
         });
   }
 
+  void _openLearnedCards(BuildContext context) {
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => LearnedCardsScreen(spaceId: widget.space.id),
+          ),
+        )
+        .then((_) {
+          if (context.mounted) context.read<DeckListCubit>().load();
+        });
+  }
+
   void _openAddCard(BuildContext context, String deckId) {
     Navigator.of(context)
         .push(
@@ -412,17 +488,16 @@ class _BoxOverviewRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.recallColors;
-
     return Row(
       children: List.generate(maxBox, (index) {
         final box = index + 1;
         final count = boxCounts[box] ?? 0;
+        final (fill, onFill) = context.leitnerBoxColors(box);
         return Expanded(
           child: Padding(
             padding: EdgeInsets.only(left: index < maxBox - 1 ? 8 : 0),
             child: Material(
-              color: colors.card,
+              color: fill,
               borderRadius: BorderRadius.circular(16),
               child: InkWell(
                 onTap: () => onBoxTap(box),
@@ -431,7 +506,9 @@ class _BoxOverviewRow extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: colors.border),
+                    border: Border.all(
+                      color: onFill.withValues(alpha: 0.12),
+                    ),
                   ),
                   child: Column(
                     children: [
@@ -442,7 +519,7 @@ class _BoxOverviewRow extends StatelessWidget {
                           maxLines: 1,
                           style: TextStyle(
                             fontSize: 11,
-                            color: colors.mutedForeground,
+                            color: onFill.withValues(alpha: 0.78),
                           ),
                         ),
                       ),
@@ -452,9 +529,10 @@ class _BoxOverviewRow extends StatelessWidget {
                         child: Text(
                           '$count',
                           maxLines: 1,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
+                            color: onFill,
                           ),
                         ),
                       ),
@@ -521,7 +599,7 @@ class _DeckCard extends StatelessWidget {
     final progress = total > 0 ? ((total - due) / total).clamp(0.0, 1.0) : 0.0;
 
     return Material(
-      color: colors.card,
+      color: context.tintedSurface(accent),
       borderRadius: BorderRadius.circular(24),
       child: InkWell(
         onTap: onStudy,
@@ -538,11 +616,11 @@ class _DeckCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 8,
-                height: 8,
+                width: 6,
+                height: 48,
                 decoration: BoxDecoration(
                   color: accent,
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(999),
                 ),
               ),
               const SizedBox(width: 12),
@@ -600,7 +678,7 @@ class _DeckCard extends StatelessWidget {
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: due > 0
-                        ? const Color(0xFF1A1D24)
+                        ? Colors.white
                         : colors.mutedForeground,
                   ),
                 ),

@@ -12,7 +12,9 @@ class SyncExcelImportAddedStatusUseCase {
   final IExcelImportRepository _excelRepository;
   final IFlashcardRepository _flashcardRepository;
 
-  /// Marks excel rows as added when the front field already exists in any deck.
+  /// Keeps Excel rows in sync with live cards: a row is added only while the
+  /// same front text still exists. Editing or deleting the card returns the
+  /// row to pending.
   Future<ExcelImport> call(ExcelImport import) async {
     final cards = await _flashcardRepository.getCardsBySpaceId(import.spaceId);
     final cardKeys = cards.map((c) => normalizeCardFront(c.front)).toSet();
@@ -20,10 +22,14 @@ class SyncExcelImportAddedStatusUseCase {
     var changed = false;
     final now = DateTime.now();
     final updatedRows = import.rows.map((row) {
-      if (row.isAdded) return row;
-      if (cardKeys.contains(normalizeCardFront(row.front))) {
+      final exists = cardKeys.contains(normalizeCardFront(row.front));
+      if (exists && !row.isAdded) {
         changed = true;
         return row.copyWith(isAdded: true, addedAt: now);
+      }
+      if (!exists && row.isAdded) {
+        changed = true;
+        return row.copyWith(isAdded: false, clearAddedAt: true);
       }
       return row;
     }).toList();

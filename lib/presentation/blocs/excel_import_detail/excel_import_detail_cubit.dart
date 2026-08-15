@@ -9,6 +9,7 @@ import 'package:recall/domain/usecases/get_decks_usecase.dart';
 import 'package:recall/domain/usecases/get_excel_imports_usecase.dart';
 import 'package:recall/domain/usecases/remove_excel_rows_usecase.dart';
 import 'package:recall/domain/usecases/sync_excel_import_added_status_usecase.dart';
+import 'package:recall/domain/usecases/update_excel_row_usecase.dart';
 
 part 'excel_import_detail_state.dart';
 
@@ -22,6 +23,7 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
     required AddSelectedExcelRowsUseCase addSelectedRowsUseCase,
     required SyncExcelImportAddedStatusUseCase syncAddedStatusUseCase,
     required RemoveExcelRowsUseCase removeExcelRowsUseCase,
+    required UpdateExcelRowUseCase updateExcelRowUseCase,
     required DeleteExcelImportUseCase deleteImportUseCase,
     required LocalDataSource localDataSource,
   }) : _importId = importId,
@@ -31,6 +33,7 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
        _addSelectedRowsUseCase = addSelectedRowsUseCase,
        _syncAddedStatusUseCase = syncAddedStatusUseCase,
        _removeExcelRowsUseCase = removeExcelRowsUseCase,
+       _updateExcelRowUseCase = updateExcelRowUseCase,
        _deleteImportUseCase = deleteImportUseCase,
        _localDataSource = localDataSource,
        super(ExcelImportDetailState(selectedDeckId: initialDeckId));
@@ -42,6 +45,7 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
   final AddSelectedExcelRowsUseCase _addSelectedRowsUseCase;
   final SyncExcelImportAddedStatusUseCase _syncAddedStatusUseCase;
   final RemoveExcelRowsUseCase _removeExcelRowsUseCase;
+  final UpdateExcelRowUseCase _updateExcelRowUseCase;
   final DeleteExcelImportUseCase _deleteImportUseCase;
   final LocalDataSource _localDataSource;
 
@@ -152,5 +156,21 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
       emit(state.copyWith(import: import, selectedRowIds: {}));
     }
     return removed;
+  }
+
+  Future<void> updateRow({
+    required String rowId,
+    required String front,
+    required String back,
+  }) async {
+    final updated = await _updateExcelRowUseCase(
+      importId: _importId,
+      rowId: rowId,
+      front: front,
+      back: back,
+    );
+    if (updated == null) return;
+    final synced = await _syncAddedStatusUseCase(updated);
+    emit(state.copyWith(import: synced));
   }
 }

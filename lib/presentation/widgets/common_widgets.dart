@@ -12,34 +12,39 @@ class CircleIconButton extends StatelessWidget {
   });
 
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final String? label;
   final bool back;
   final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.recallColors;
+    final scheme = Theme.of(context).colorScheme;
+    final enabled = onPressed != null;
+    final isDanger = color == AppColors.danger;
+    final background =
+        isDanger ? scheme.errorContainer : scheme.primaryContainer;
+    final foreground = color ??
+        (isDanger ? scheme.onErrorContainer : scheme.onPrimaryContainer);
     return Semantics(
       label: label,
       button: true,
-      child: Material(
-        color: colors.card,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
-          side: BorderSide(color: colors.border),
-        ),
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(999),
-          child: SizedBox(
-            width: 40,
-            height: 40,
-            // arrow_back is directional and Flutter mirrors it to → in RTL.
-            child: Icon(
-              back ? Icons.arrow_back : icon,
-              size: 18,
-              color: color ?? colors.mutedForeground,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.38,
+        child: Material(
+          color: background,
+          shape: const CircleBorder(),
+          child: InkWell(
+            onTap: onPressed,
+            customBorder: const CircleBorder(),
+            child: SizedBox(
+              width: 40,
+              height: 40,
+              child: Icon(
+                back ? Icons.arrow_back : icon,
+                size: 18,
+                color: foreground,
+              ),
             ),
           ),
         ),
@@ -84,10 +89,16 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.recallColors;
-    final fg = Theme.of(context).colorScheme.onSurface;
+    final scheme = Theme.of(context).colorScheme;
+    final background =
+        accent ? scheme.primaryContainer : scheme.surfaceContainerLow;
+    final valueColor = accent ? scheme.onPrimaryContainer : scheme.onSurface;
+    final labelColor = accent
+        ? scheme.onPrimaryContainer.withValues(alpha: 0.78)
+        : colors.mutedForeground;
 
     return Material(
-      color: colors.card,
+      color: background,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -96,7 +107,11 @@ class StatCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: colors.border),
+            border: Border.all(
+              color: accent
+                  ? scheme.primary.withValues(alpha: 0.18)
+                  : colors.border,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,7 +121,7 @@ class StatCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: colors.mutedForeground,
+                  color: labelColor,
                 ),
               ),
               const SizedBox(height: 4),
@@ -115,7 +130,7 @@ class StatCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: accent ? AppColors.mint : fg,
+                  color: valueColor,
                 ),
               ),
             ],
@@ -141,10 +156,10 @@ class RateButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: color.withValues(alpha: 0.15),
+      color: color.withValues(alpha: 0.22),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(999),
-        side: BorderSide(color: color.withValues(alpha: 0.25)),
+        side: BorderSide(color: color.withValues(alpha: 0.7), width: 1.5),
       ),
       child: InkWell(
         onTap: onPressed,

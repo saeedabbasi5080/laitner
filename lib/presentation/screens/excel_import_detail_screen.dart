@@ -3,10 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/domain/entities/excel_import.dart';
-import 'package:recall/domain/usecases/add_selected_excel_rows_usecase.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/excel_import_detail/excel_import_detail_cubit.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
+import 'package:recall/presentation/widgets/deck_card_sheets.dart';
 
 class ExcelImportDetailScreen extends StatelessWidget {
   const ExcelImportDetailScreen({
@@ -32,6 +32,7 @@ class ExcelImportDetailScreen extends StatelessWidget {
         addSelectedRowsUseCase: sl(),
         syncAddedStatusUseCase: sl(),
         removeExcelRowsUseCase: sl(),
+        updateExcelRowUseCase: sl(),
         deleteImportUseCase: sl(),
         localDataSource: sl(),
       )..load(),
@@ -216,6 +217,8 @@ class _ExcelImportDetailView extends StatelessWidget {
                                       : (v) => context
                                             .read<ExcelImportDetailCubit>()
                                             .toggleRow(row.id),
+                                  onEdit: () => _editRow(context, row),
+                                  onDelete: () => _deleteRow(context, row),
                                 ),
                               ],
                             );
@@ -257,113 +260,7 @@ class _ExcelImportDetailView extends StatelessWidget {
   }
 
   Future<void> _addSelected(BuildContext context) async {
-    final result = await context
-        .read<ExcelImportDetailCubit>()
-        .addSelectedToDeck();
-    if (!context.mounted) return;
-
-    if (result.totalProcessed > 0) {
-      await _showImportResult(context, result);
-    }
-  }
-
-  Future<void> _showImportResult(
-    BuildContext context,
-    ExcelImportAddResult result,
-  ) {
-    final colors = context.recallColors;
-    final cubit = context.read<ExcelImportDetailCubit>();
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text(AppStrings.excelImportResult),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AppStrings.excelImportResultSummary(
-                  result.totalProcessed,
-                  result.addedCount,
-                  result.skippedDuplicates,
-                ),
-                style: const TextStyle(height: 1.7),
-              ),
-              if (result.duplicates.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                const SectionLabel(AppStrings.duplicateWords),
-                const SizedBox(height: 8),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 280),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: result.duplicates.length,
-                    separatorBuilder: (_, _) =>
-                        Divider(height: 1, color: colors.border),
-                    itemBuilder: (context, index) {
-                      final duplicate = result.duplicates[index];
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(
-                          Icons.content_copy_outlined,
-                          color: AppColors.danger,
-                        ),
-                        title: Text(
-                          duplicate.front,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text(
-                          AppStrings.duplicateExistsInDeck(
-                            duplicate.existingDeckName,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          if (result.duplicates.isNotEmpty)
-            TextButton.icon(
-              onPressed: () async {
-                final confirmed = await showConfirmDialog(
-                  dialogContext,
-                  title: AppStrings.removeDuplicateWords,
-                  message: AppStrings.removeDuplicateWordsQuestion,
-                  confirmLabel: AppStrings.delete,
-                );
-                if (confirmed != true) return;
-
-                final removed = await cubit.removeRows(
-                  result.duplicates.map((item) => item.rowId),
-                );
-                if (dialogContext.mounted) {
-                  Navigator.of(dialogContext).pop();
-                }
-                if (removed > 0 && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(AppStrings.removeDuplicateWordsConfirm),
-                    ),
-                  );
-                }
-              },
-              icon: const Icon(Icons.delete_outline),
-              label: const Text(AppStrings.removeDuplicateWords),
-              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text(AppStrings.close),
-          ),
-        ],
-      ),
-    );
+    await context.read<ExcelImportDetailCubit>().addSelectedToDeck();
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
@@ -376,6 +273,62 @@ class _ExcelImportDetailView extends StatelessWidget {
       await context.read<ExcelImportDetailCubit>().deleteImport();
       if (context.mounted) Navigator.of(context).pop();
     }
+  }
+
+  Future<void> _editRow(BuildContext context, ExcelImportRow row) async {
+    final cubit = context.read<ExcelImportDetailCubit>();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => CardFormSheet(
+        title: AppStrings.editExcelRow,
+        front: row.front,
+        back: row.back,
+        onSubmit: (front, back) => cubit.updateRow(
+          rowId: row.id,
+          front: front,
+          back: back,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteRow(BuildContext context, ExcelImportRow row) async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: AppStrings.deleteExcelRow,
+      message: AppStrings.deleteExcelRowConfirm,
+    );
+    if (confirmed == true && context.mounted) {
+      await context.read<ExcelImportDetailCubit>().removeRows([row.id]);
+    }
+  }
+}
+
+class _RowActions extends StatelessWidget {
+  const _RowActions({required this.onEdit, required this.onDelete});
+
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          tooltip: AppStrings.editExcelRow,
+          onPressed: onEdit,
+          icon: const Icon(Icons.edit_outlined, size: 20),
+        ),
+        IconButton(
+          tooltip: AppStrings.deleteExcelRow,
+          onPressed: onDelete,
+          icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.danger),
+        ),
+      ],
+    );
   }
 }
 
@@ -457,11 +410,15 @@ class _WordListTile extends StatelessWidget {
     required this.row,
     required this.selected,
     required this.onChanged,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   final ExcelImportRow row;
   final bool selected;
   final ValueChanged<bool?>? onChanged;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -493,14 +450,28 @@ class _WordListTile extends StatelessWidget {
                     color: colors.mutedForeground,
                   ),
                 ),
-                subtitle: Text(
-                  AppStrings.excelAlreadyAdded,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.mint,
-                    fontWeight: FontWeight.w500,
-                  ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      row.back,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: colors.mutedForeground,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      AppStrings.excelAlreadyAdded,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.mint,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
+                trailing: _RowActions(onEdit: onEdit, onDelete: onDelete),
               )
             : CheckboxListTile(
                 value: selected,
@@ -514,6 +485,7 @@ class _WordListTile extends StatelessWidget {
                   row.back,
                   style: TextStyle(fontSize: 13, color: colors.mutedForeground),
                 ),
+                secondary: _RowActions(onEdit: onEdit, onDelete: onDelete),
               ),
       ),
     );

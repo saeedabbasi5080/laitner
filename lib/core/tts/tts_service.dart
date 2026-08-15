@@ -3,12 +3,19 @@ import 'package:flutter_tts/flutter_tts.dart';
 /// پوشش نازک روی [FlutterTts] که از موتور تبدیل متن به گفتار خود دستگاه استفاده
 /// می‌کند. نمونهٔ آن به‌صورت singleton در تزریق وابستگی ثبت می‌شود.
 class TtsService {
-  TtsService(this._tts);
+  TtsService(this._tts) {
+    _tts.setCompletionHandler(() => _speaking = false);
+    _tts.setCancelHandler(() => _speaking = false);
+    _tts.setErrorHandler((_) => _speaking = false);
+  }
 
   final FlutterTts _tts;
 
   bool _initialized = false;
+  bool _speaking = false;
   String? _currentLanguage;
+
+  bool get isSpeaking => _speaking;
 
   Future<void> _ensureInitialized() async {
     if (_initialized) return;
@@ -30,20 +37,35 @@ class TtsService {
   }
 
   /// تلفظ [text] با زبان مشخص‌شده. اگر متن خالی باشد کاری انجام نمی‌شود.
-  Future<void> speak(String text, {required String languageCode}) async {
+  ///
+  /// وقتی [interrupt] برابر false باشد و تلفظ قبلی هنوز تمام نشده، درخواست
+  /// جدید نادیده گرفته می‌شود تا تلفظ نیمه‌کاره قطع نشود.
+  Future<void> speak(
+    String text, {
+    required String languageCode,
+    bool interrupt = true,
+  }) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
+    if (!interrupt && _speaking) return;
 
     await _ensureInitialized();
-    await _tts.stop();
+    if (interrupt) {
+      await _tts.stop();
+      _speaking = false;
+    }
 
     if (_currentLanguage != languageCode) {
       await _tts.setLanguage(languageCode);
       _currentLanguage = languageCode;
     }
 
+    _speaking = true;
     await _tts.speak(trimmed);
   }
 
-  Future<void> stop() => _tts.stop();
+  Future<void> stop() async {
+    _speaking = false;
+    await _tts.stop();
+  }
 }

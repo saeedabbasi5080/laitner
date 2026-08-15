@@ -92,7 +92,9 @@ void main() {
     final repository = _FakeFlashcardRepository(cards);
     final history = _FakeReviewHistoryRepository();
     final cubit = StudyCubit(
-      config: StudyConfig.byBox(3, spaceId: _spaceId).withRandomOrder(true),
+      config: StudyConfig.byBox(3, spaceId: _spaceId).withSessionOptions(
+        randomOrder: true,
+      ),
       getDueCardsUseCase: GetDueCardsUseCase(repository),
       getAllDueCardsUseCase: GetAllDueCardsUseCase(repository),
       getCardsByBoxUseCase: GetCardsByBoxUseCase(repository),

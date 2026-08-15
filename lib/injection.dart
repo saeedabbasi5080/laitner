@@ -40,6 +40,7 @@ import 'package:recall/domain/usecases/review_card_usecase.dart';
 import 'package:recall/domain/usecases/sync_excel_import_added_status_usecase.dart';
 import 'package:recall/domain/usecases/update_card_usecase.dart';
 import 'package:recall/domain/usecases/update_deck_usecase.dart';
+import 'package:recall/domain/usecases/update_excel_row_usecase.dart';
 import 'package:recall/domain/usecases/update_space_usecase.dart';
 import 'package:recall/presentation/blocs/add_card/add_card_cubit.dart';
 import 'package:recall/presentation/blocs/deck_detail/deck_detail_cubit.dart';
@@ -111,6 +112,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => AddSelectedExcelRowsUseCase(sl(), sl(), sl()));
   sl.registerLazySingleton(() => SyncExcelImportAddedStatusUseCase(sl(), sl()));
   sl.registerLazySingleton(() => RemoveExcelRowsUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateExcelRowUseCase(sl()));
   sl.registerLazySingleton(() => DeleteExcelImportUseCase(sl()));
 
   sl.registerLazySingleton(() => SettingsCubit(sl(), sl()));

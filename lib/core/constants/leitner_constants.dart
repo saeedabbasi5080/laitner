@@ -4,6 +4,10 @@ const List<int> boxIntervalsDays = [0, 1, 2, 4, 7, 14];
 
 const int maxBox = 5;
 
+/// Archive box after a successful review in [maxBox], per the classic Leitner
+/// method: cards that survive the last box are considered learned and retired.
+const int learnedBox = 6;
+
 const List<String> pastelColors = [
   'lavender',
   'mint',

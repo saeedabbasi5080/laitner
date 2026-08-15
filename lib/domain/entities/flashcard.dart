@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:recall/core/constants/leitner_constants.dart';
 
 class Flashcard extends Equatable {
   const Flashcard({
@@ -18,6 +19,8 @@ class Flashcard extends Equatable {
   final int box;
   final DateTime? lastReviewed;
   final DateTime createdAt;
+
+  bool get isLearned => box >= learnedBox;
 
   Flashcard copyWith({
     String? id,

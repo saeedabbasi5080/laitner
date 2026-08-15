@@ -90,6 +90,19 @@ abstract final class AppStrings {
   static const addSelectedToDeck = 'افزودن به دسته';
   static const excelAllAdded = 'همه لغات این فایل قبلاً اضافه شده‌اند.';
   static const excelAlreadyAdded = 'قبلاً اضافه شده';
+  static const editExcelRow = 'ویرایش لغت';
+  static const deleteExcelRow = 'حذف لغت';
+  static const deleteExcelRowConfirm = 'آیا از حذف این لغت از فایل اکسل مطمئن هستید؟';
+  static const learnedCards = 'کارت‌های یادگرفته‌شده';
+  static const learnedCardsHint =
+      'کارت‌هایی که خانه ۵ را با موفقیت پشت سر گذاشته‌اند اینجا بایگانی می‌شوند';
+  static const learnedCardsEmpty = 'هنوز کارتی یادگرفته نشده است.';
+  static const returnToBox1 = 'بازگشت به خانه ۱';
+  static const returnToBox1Confirm =
+      'کارت‌های انتخاب‌شده به خانه ۱ برمی‌گردند و دوباره وارد چرخه مرور می‌شوند.';
+  static const returnToBox1Done = 'کارت‌ها به خانه ۱ برگشتند';
+  static String boxBadge(int box) => 'خانه $box';
+  static const learnedBadge = 'یادگرفته';
 
   // مرور
   static const question = 'سؤال';
@@ -104,7 +117,7 @@ abstract final class AppStrings {
   static const backToSpaces = 'بازگشت به فضاها';
   static const backToDecks = 'بازگشت به دسته‌ها';
   static const reviewSettingsSpaceHint =
-      'تنظیمات تلفظ و مرور برای همین فضا ذخیره می‌شوند.';
+      'تنظیمات تلفظ، جهت کارت و مرور فقط برای همین فضا ذخیره می‌شوند و با مرور آزاد قاطی نمی‌شوند.';
   static const allDecksReview = 'مرور تجمیعی';
   static const editCard = 'ویرایش کارت';
   static const deleteCard = 'حذف کارت';
@@ -164,7 +177,7 @@ abstract final class AppStrings {
   static const statistics = 'آمار یادگیری';
   static const learningOverview = 'نمای کلی روند یادگیری شما';
   static const mastery = 'درصد تسلط';
-  static const masteryHint = 'کارت‌های رسیده به خانه ۴ و ۵';
+  static const masteryHint = 'کارت‌هایی که پس از خانه ۵ یادگرفته شده‌اند';
   static const masteredCards = 'کارت مسلط';
   static const boxDistribution = 'توزیع خانه‌ها';
   static const boxDistributionHint = 'جایگاه فعلی همه کارت‌ها';
@@ -198,9 +211,9 @@ abstract final class AppStrings {
   static const darkMode = 'حالت شب';
   static const lightMode = 'حالت روز';
   static const themeMode = 'تم برنامه';
-  static const themeAccent = 'رنگ تم';
+  static const themeAccent = 'رنگ تم این فضا';
   static const themeAccentHint =
-      'یکی از رنگ‌ها را برای ظاهر برنامه انتخاب کنید';
+      'رنگ ظاهر فقط برای همین فضا ذخیره می‌شود و فضاهای دیگر را تغییر نمی‌دهد';
   static const pronunciation = 'تلفظ';
   static const ttsLanguage = 'زبان تلفظ';
   static const ttsLanguageHint =
@@ -221,7 +234,13 @@ abstract final class AppStrings {
   static String cardFontSizeValue(int size) => 'اندازه فونت $size';
   static const autoSpeak = 'تلفظ خودکار کارت';
   static const autoSpeakHint =
-      'با باز شدن هر کارت جدید، فقط یک‌بار متن روی کارت خوانده می‌شود؛ پشت‌ورو کردن تلفظ نمی‌کند';
+      'هر سمتی که برای تلفظ خودکار روشن باشد، فقط وقتی همان سمت روی صفحه دیده شود خوانده می‌شود';
+  static const autoSpeakSide = 'سمت تلفظ خودکار';
+  static const autoSpeakFront = 'روی کارت تلفظ شود';
+  static const autoSpeakBack = 'پشت کارت تلفظ شود';
+  static const defaultCardDirection = 'جهت پیش‌فرض مرور';
+  static const defaultCardDirectionHint =
+      'فقط مرور عادی این فضا؛ مرور آزاد جهت جداگانه دارد';
   static const about = 'درباره';
   static const aboutApp = 'درباره برنامه';
   static const aboutDeveloper = 'درباره توسعه‌دهنده';

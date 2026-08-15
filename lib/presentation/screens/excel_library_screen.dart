@@ -195,13 +195,6 @@ class _ExcelLibraryView extends StatelessWidget {
     );
 
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${AppStrings.excelFileSaved}: ${savedImport.rows.length} ${AppStrings.cards}',
-          ),
-        ),
-      );
       await cubit.load();
     }
   }

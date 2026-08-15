@@ -9,6 +9,8 @@ class SettingsState extends Equatable {
     this.randomReviewOrder = false,
     this.cardFontSize = CardFontSize.size16,
     this.autoSpeak = false,
+    this.autoSpeakSide = AutoSpeakSide.front,
+    this.defaultReversed = false,
   });
 
   final ThemeMode themeMode;
@@ -18,6 +20,8 @@ class SettingsState extends Equatable {
   final bool randomReviewOrder;
   final CardFontSize cardFontSize;
   final bool autoSpeak;
+  final AutoSpeakSide autoSpeakSide;
+  final bool defaultReversed;
 
   SettingsState copyWith({
     ThemeMode? themeMode,
@@ -27,6 +31,8 @@ class SettingsState extends Equatable {
     bool? randomReviewOrder,
     CardFontSize? cardFontSize,
     bool? autoSpeak,
+    AutoSpeakSide? autoSpeakSide,
+    bool? defaultReversed,
   }) {
     return SettingsState(
       themeMode: themeMode ?? this.themeMode,
@@ -36,6 +42,8 @@ class SettingsState extends Equatable {
       randomReviewOrder: randomReviewOrder ?? this.randomReviewOrder,
       cardFontSize: cardFontSize ?? this.cardFontSize,
       autoSpeak: autoSpeak ?? this.autoSpeak,
+      autoSpeakSide: autoSpeakSide ?? this.autoSpeakSide,
+      defaultReversed: defaultReversed ?? this.defaultReversed,
     );
   }
 
@@ -48,5 +56,7 @@ class SettingsState extends Equatable {
     randomReviewOrder,
     cardFontSize,
     autoSpeak,
+    autoSpeakSide,
+    defaultReversed,
   ];
 }

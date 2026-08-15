@@ -25,12 +25,15 @@ class RecallApp extends StatelessWidget {
       child: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, settings) {
           final isDark = settings.themeMode == ThemeMode.dark;
-          _updateSystemUI(isDark);
+          final theme = isDark
+              ? AppTheme.dark(settings.accent)
+              : AppTheme.light(settings.accent);
+          _updateSystemUI(isDark, theme.colorScheme.surface);
 
           return MaterialApp(
             title: AppStrings.appTitle,
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.light(settings.accent),
+            theme: theme,
             darkTheme: AppTheme.dark(settings.accent),
             themeMode: settings.themeMode,
             locale: const Locale('fa', 'IR'),
@@ -54,17 +57,14 @@ class RecallApp extends StatelessWidget {
     );
   }
 
-  void _updateSystemUI(bool isDark) {
+  void _updateSystemUI(bool isDark, Color navigationBarColor) {
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-        systemNavigationBarColor: isDark
-            ? const Color(0xFF1A1D24)
-            : const Color(0xFFFAFAFA),
-        systemNavigationBarIconBrightness: isDark
-            ? Brightness.light
-            : Brightness.dark,
+        systemNavigationBarColor: navigationBarColor,
+        systemNavigationBarIconBrightness:
+            isDark ? Brightness.light : Brightness.dark,
       ),
     );
   }

@@ -10,7 +10,8 @@ import 'package:recall/domain/usecases/leitner_logic.dart';
 
 /// Pure Leitner review logic.
 ///
-/// - **know**: advance one box (max 5).
+/// - **know**: advance one box; a success in box 5 retires the card
+///   to the learned archive.
 /// - **dontKnow**: reset to box 1.
 class ReviewCardUseCase {
   ReviewCardUseCase(this._repository, this._reviewHistoryRepository);
@@ -23,7 +24,8 @@ class ReviewCardUseCase {
 
     final int newBox = switch (rating) {
       ReviewRating.dontKnow => 1,
-      ReviewRating.know => min(maxBox, card.box + 1),
+      ReviewRating.know =>
+        card.box >= maxBox ? learnedBox : min(maxBox, card.box + 1),
     };
 
     return card.copyWith(box: newBox, lastReviewed: reviewedAt);

@@ -4,6 +4,7 @@ import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_accent.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/core/theme/card_font_size.dart';
+import 'package:recall/core/tts/auto_speak_side.dart';
 import 'package:recall/core/tts/tts_language.dart';
 import 'package:recall/core/utils/responsive.dart';
 import 'package:recall/injection.dart';
@@ -12,23 +13,46 @@ import 'package:recall/presentation/screens/about_app_screen.dart';
 import 'package:recall/presentation/screens/developer_screen.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key, this.spaceId});
 
   final String? spaceId;
 
   @override
-  Widget build(BuildContext context) {
-    if (spaceId != null) {
-      sl<SettingsCubit>().loadForSpace(spaceId!);
-    }
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
 
-    return const _SettingsView();
+class _SettingsScreenState extends State<SettingsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _loadSpace(widget.spaceId);
+  }
+
+  @override
+  void didUpdateWidget(SettingsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.spaceId != oldWidget.spaceId) {
+      _loadSpace(widget.spaceId);
+    }
+  }
+
+  void _loadSpace(String? spaceId) {
+    if (spaceId != null) {
+      sl<SettingsCubit>().loadForSpace(spaceId);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsView(hasSpace: widget.spaceId != null);
   }
 }
 
 class _SettingsView extends StatelessWidget {
-  const _SettingsView();
+  const _SettingsView({required this.hasSpace});
+
+  final bool hasSpace;
 
   @override
   Widget build(BuildContext context) {
@@ -88,6 +112,7 @@ class _SettingsView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
+                if (hasSpace) ...[
                 const SectionLabel(AppStrings.themeAccent),
                 const SizedBox(height: 8),
                 Text(
@@ -150,21 +175,39 @@ class _SettingsView extends StatelessWidget {
                         onChanged: (enabled) =>
                             context.read<SettingsCubit>().setAutoSpeak(enabled),
                       ),
+                      Divider(height: 1, color: colors.border),
+                      SwitchListTile(
+                        secondary: Icon(Icons.swap_vert, color: accent),
+                        title: const Text(AppStrings.autoSpeakSide),
+                        subtitle: Text(
+                          state.autoSpeakSide == AutoSpeakSide.back
+                              ? AppStrings.autoSpeakBack
+                              : AppStrings.autoSpeakFront,
+                        ),
+                        value: state.autoSpeakSide == AutoSpeakSide.back,
+                        onChanged: state.autoSpeak
+                            ? (back) => context
+                                  .read<SettingsCubit>()
+                                  .setAutoSpeakSide(
+                                    back
+                                        ? AutoSpeakSide.back
+                                        : AutoSpeakSide.front,
+                                  )
+                            : null,
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 32),
                 const SectionLabel(AppStrings.reviewSettings),
-                if (state.currentSpaceId != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    AppStrings.reviewSettingsSpaceHint,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colors.mutedForeground,
-                    ),
+                const SizedBox(height: 8),
+                Text(
+                  AppStrings.reviewSettingsSpaceHint,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colors.mutedForeground,
                   ),
-                ],
+                ),
                 const SizedBox(height: 12),
                 Container(
                   decoration: BoxDecoration(
@@ -174,6 +217,20 @@ class _SettingsView extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
+                      SwitchListTile(
+                        secondary: Icon(Icons.flip, color: accent),
+                        title: const Text(AppStrings.defaultCardDirection),
+                        subtitle: Text(
+                          state.defaultReversed
+                              ? AppStrings.reversedReview
+                              : AppStrings.normalReview,
+                        ),
+                        value: state.defaultReversed,
+                        onChanged: (enabled) => context
+                            .read<SettingsCubit>()
+                            .setDefaultReversed(enabled),
+                      ),
+                      Divider(height: 1, color: colors.border),
                       SwitchListTile(
                         secondary: Icon(Icons.shuffle, color: accent),
                         title: const Text(AppStrings.randomReviewOrder),
@@ -193,6 +250,7 @@ class _SettingsView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 32),
+                ],
                 const SectionLabel(AppStrings.about),
                 const SizedBox(height: 12),
                 Container(

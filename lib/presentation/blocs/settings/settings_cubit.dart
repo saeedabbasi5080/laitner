@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/theme/app_accent.dart';
 import 'package:recall/core/theme/card_font_size.dart';
+import 'package:recall/core/tts/auto_speak_side.dart';
 import 'package:recall/core/tts/tts_language.dart';
 import 'package:recall/data/datasources/space_settings_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,13 +35,23 @@ class SettingsCubit extends Cubit<SettingsState> {
   Future<void> loadForSpace(String spaceId) async {
     await load();
     final spaceSettings = await _spaceSettingsStore.load(spaceId);
+    final accent = spaceSettings.accent ?? state.accent;
+    if (spaceSettings.accent == null) {
+      await _spaceSettingsStore.save(
+        spaceId,
+        spaceSettings.copyWith(accent: accent),
+      );
+    }
     emit(
       state.copyWith(
         currentSpaceId: spaceId,
+        accent: accent,
         ttsLanguage: spaceSettings.ttsLanguage,
         randomReviewOrder: spaceSettings.randomReviewOrder,
         cardFontSize: spaceSettings.cardFontSize,
         autoSpeak: spaceSettings.autoSpeak,
+        autoSpeakSide: spaceSettings.autoSpeakSide,
+        defaultReversed: spaceSettings.defaultReversed,
       ),
     );
   }
@@ -52,6 +63,9 @@ class SettingsCubit extends Cubit<SettingsState> {
 
   Future<void> setAccent(AppAccent accent) async {
     await _prefs.setString(_accentKey, accent.name);
+    await _updateSpaceSettings(
+      (settings) => settings.copyWith(accent: accent),
+    );
     emit(state.copyWith(accent: accent));
   }
 
@@ -81,6 +95,20 @@ class SettingsCubit extends Cubit<SettingsState> {
       (settings) => settings.copyWith(autoSpeak: enabled),
     );
     emit(state.copyWith(autoSpeak: enabled));
+  }
+
+  Future<void> setAutoSpeakSide(AutoSpeakSide side) async {
+    await _updateSpaceSettings(
+      (settings) => settings.copyWith(autoSpeakSide: side),
+    );
+    emit(state.copyWith(autoSpeakSide: side));
+  }
+
+  Future<void> setDefaultReversed(bool reversed) async {
+    await _updateSpaceSettings(
+      (settings) => settings.copyWith(defaultReversed: reversed),
+    );
+    emit(state.copyWith(defaultReversed: reversed));
   }
 
   Future<void> _updateSpaceSettings(

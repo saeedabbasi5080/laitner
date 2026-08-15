@@ -101,11 +101,12 @@ class StudyCubit extends Cubit<StudyState> {
   }
 
   Future<void> resetCurrentCardToBox1() async {
-    if (!state.isFreeReview) return;
     final card = state.currentCard;
     if (card == null || card.box == 1) return;
 
-    final updated = await _updateCardUseCase(card.copyWith(box: 1));
+    final updated = await _updateCardUseCase(
+      card.copyWith(box: 1, clearLastReviewed: true),
+    );
     final queue = List<Flashcard>.from(state.queue);
     queue[state.currentIndex] = updated;
     emit(state.copyWith(queue: queue));
