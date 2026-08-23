@@ -260,7 +260,30 @@ class _ExcelImportDetailView extends StatelessWidget {
   }
 
   Future<void> _addSelected(BuildContext context) async {
-    await context.read<ExcelImportDetailCubit>().addSelectedToDeck();
+    final cubit = context.read<ExcelImportDetailCubit>();
+    final result = await cubit.addSelectedToDeck();
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text(AppStrings.importSuccess),
+        content: Text(
+          AppStrings.excelImportResultSummary(
+            result.totalProcessed,
+            result.addedCount,
+            result.skippedDuplicates,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+
+    await Future.delayed(const Duration(seconds: 3));
+    if (!context.mounted) return;
+
+    Navigator.of(context).pop(); // dismiss dialog
   }
 
   Future<void> _confirmDelete(BuildContext context) async {

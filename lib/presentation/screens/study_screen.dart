@@ -414,12 +414,23 @@ class _StudyViewState extends State<_StudyView> {
   }
 
   Future<void> _resetToBox1(BuildContext context) async {
-    await context.read<StudyCubit>().resetCurrentCardToBox1();
-    if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text(AppStrings.resetToBox1Done)));
-    }
+    final cubit = context.read<StudyCubit>();
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showConfirmDialog(
+      context,
+      title: AppStrings.resetToBox1,
+      message: AppStrings.resetToBox1Confirm,
+      confirmLabel: AppStrings.yes,
+      confirmColor: context.accentColor,
+    );
+    if (confirmed != true || !mounted) return;
+
+    await cubit.resetCurrentCardToBox1();
+    if (!mounted) return;
+
+    messenger.showSnackBar(
+      const SnackBar(content: Text(AppStrings.resetToBox1Done)),
+    );
   }
 
   void _editCard(BuildContext context, StudyState state) {

@@ -162,7 +162,9 @@ abstract final class AppStrings {
       'مرور تمرینی؛ پاسخ‌ها خانه را تغییر نمی‌دهند';
   static const normalReview = 'نرمال (رو به پشت)';
   static const reversedReview = 'برعکس (پشت به رو)';
-  static const resetToBox1 = 'برگرد به خانه ۱';
+  static const resetToBox1 = 'برگرد به خانه اول';
+  static const resetToBox1Confirm =
+      'کارت به خانه اول برمی‌گرددآیا اطمینان دارید؟';
   static const resetToBox1Done = 'کارت به خانه ۱ برگشت';
   static const freeReviewEmpty = 'در هیچ خانه‌ای کارتی نیست.';
   static const startReview = 'شروع مرور';

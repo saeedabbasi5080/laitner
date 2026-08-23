@@ -191,6 +191,7 @@ Future<bool?> showConfirmDialog(
   required String title,
   required String message,
   String confirmLabel = 'حذف',
+  Color? confirmColor,
 }) {
   return showDialog<bool>(
     context: context,
@@ -205,7 +206,7 @@ Future<bool?> showConfirmDialog(
         FilledButton(
           onPressed: () => Navigator.pop(ctx, true),
           style: FilledButton.styleFrom(
-            backgroundColor: AppColors.danger,
+            backgroundColor: confirmColor ?? AppColors.danger,
             foregroundColor: Colors.white,
           ),
           child: Text(confirmLabel),
