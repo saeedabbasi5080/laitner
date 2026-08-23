@@ -68,25 +68,16 @@ class _AppHero extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: context.accentColor,
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: Icon(
-              Icons.style_outlined,
-              size: 36,
-              color: Theme.of(context).colorScheme.onPrimary,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: Image.asset(
+              'assets/branding/atilearn_logo.png',
+              width: 120,
+              height: 120,
+              fit: BoxFit.cover,
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            AppStrings.appName,
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
           Text(
             AppStrings.appVersion,
             style: TextStyle(fontSize: 12, color: colors.mutedForeground),

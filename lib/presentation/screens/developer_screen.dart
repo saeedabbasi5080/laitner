@@ -8,7 +8,7 @@ class DeveloperScreen extends StatelessWidget {
   const DeveloperScreen({super.key});
 
   static const _githubUrl = 'https://github.com/saeedabbasi5080';
-  static const _telegramUrl = '';
+  static const _telegramUrl = 'https://t.me/saeid_abbasi_dev';
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +127,7 @@ class DeveloperScreen extends StatelessWidget {
     final uri = Uri(
       scheme: 'mailto',
       path: AppStrings.developerEmail,
-      query: _encodeQueryParameters({'subject': 'ارتباط درباره Recall'}),
+      query: _encodeQueryParameters({'subject': 'ارتباط درباره Atilearn'}),
     );
     await _openUrl(context, uri);
   }

@@ -1,6 +1,6 @@
 /// تمام متن‌های فارسی برنامه
 abstract final class AppStrings {
-  static const appTitle = 'یادآوری — تکرار فاصله‌دار';
+  static const appTitle = 'Atilearn';
 
   // فضاهای یادگیری
   static const yourSpaces = 'فضاهای یادگیری';
@@ -244,12 +244,12 @@ abstract final class AppStrings {
   static const about = 'درباره';
   static const aboutApp = 'درباره برنامه';
   static const aboutDeveloper = 'درباره توسعه‌دهنده';
-  static const appName = 'Recall';
+  static const appName = 'Atilearn';
   static const appVersion = 'نسخه ۱.۰.۱';
   static const appBusinessTitle = 'یادگیری ماندگار، با مرور در زمان مناسب';
   static const appDescription =
-      'Recall یک ابزار فارسی برای مدیریت یادگیری با روش لایتنر و تکرار فاصله‌دار است. هدف برنامه این است که به‌جای مرور پراکنده و فراموش‌شدنی، هر کارت را درست زمانی که نیاز دارد دوباره به شما نشان دهد.';
-  static const appValueTitle = 'Recall چه کمکی می‌کند؟';
+      'Atilearn یک ابزار فارسی برای مدیریت یادگیری با روش لایتنر و تکرار فاصله‌دار است. هدف برنامه این است که به‌جای مرور پراکنده و فراموش‌شدنی، هر کارت را درست زمانی که نیاز دارد دوباره به شما نشان دهد.';
+  static const appValueTitle = 'Atilearn چه کمکی می‌کند؟';
   static const appValueDescription =
       'ساخت و دسته‌بندی فلش‌کارت، ورود گروهی از اکسل، مرور روزانه و آزاد، تلفظ کلمات با موتور گوشی و مشاهده آمار پیشرفت؛ همه در یک تجربه ساده و فارسی.';
   static const appAudienceTitle = 'برای چه کسانی ساخته شده؟';
@@ -257,11 +257,11 @@ abstract final class AppStrings {
       'زبان‌آموزان، دانش‌آموزان، دانشجویان و هر کسی که می‌خواهد واژگان، مفاهیم یا نکات مهم را با یک برنامه مرور منظم به حافظه بلندمدت بسپارد.';
   static const appPrivacyTitle = 'حریم خصوصی و مالکیت داده';
   static const appPrivacyDescription =
-      'کارت‌ها، فایل‌های واردشده و تاریخچه مرور روی دستگاه شما نگهداری می‌شوند. Recall برای نمایش تبلیغات یا فروش اطلاعات شخصی طراحی نشده است.';
+      'کارت‌ها، فایل‌های واردشده و تاریخچه مرور روی دستگاه شما نگهداری می‌شوند. Atilearn برای نمایش تبلیغات یا فروش اطلاعات شخصی طراحی نشده است.';
   static const developerName = 'سعید عباسی';
-  static const developerTitle = 'طراح و توسعه‌دهنده Recall';
+  static const developerTitle = 'طراح و توسعه‌دهنده Atilearn';
   static const developerDescription =
-      'Recall با تمرکز بر تجربه فارسی، سادگی، حفظ حریم خصوصی و یادگیری مؤثر به‌صورت مستقل طراحی و توسعه داده شده است.';
+      'Atilearn با تمرکز بر تجربه فارسی، سادگی، حفظ حریم خصوصی و یادگیری مؤثر به‌صورت مستقل طراحی و توسعه داده شده است.';
   static const contactDeveloper = 'راه‌های ارتباطی';
   static const sendEmail = 'ارسال ایمیل';
   static const telegram = 'ارسال پیام در تلگرام';

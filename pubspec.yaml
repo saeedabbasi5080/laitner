@@ -1,5 +1,5 @@
 name: recall
-description: "Recall — A minimal, distraction-free spaced repetition flashcard app."
+description: "Atilearn — A minimal, distraction-free spaced repetition flashcard app."
 publish_to: 'none'
 version: 1.0.1+2
 
@@ -35,6 +35,22 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   build_runner: ^2.4.13
   isar_generator: ^3.1.0+1
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/branding/atilearn_logo.png
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/atilearn_logo.png
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: assets/branding/atilearn_logo.png
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: assets/branding/atilearn_logo.png
+    background_color: "#FFFFFF"
+    theme_color: "#0A6B6B"
