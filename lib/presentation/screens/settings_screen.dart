@@ -12,6 +12,7 @@ import 'package:recall/presentation/blocs/settings/settings_cubit.dart';
 import 'package:recall/presentation/screens/about_app_screen.dart';
 import 'package:recall/presentation/screens/developer_screen.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
+import 'package:recall/presentation/widgets/soft_ui.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key, this.spaceId});
@@ -68,24 +69,8 @@ class _SettingsView extends StatelessWidget {
             return ListView(
               padding: const EdgeInsets.all(24),
               children: [
-                Row(
-                  children: [
-                    CircleIconButton(
-                      back: true,
-                      icon: Icons.arrow_back,
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    const SizedBox(width: 16),
-                    const Text(
-                      AppStrings.settings,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
+                AppPageHeader(title: AppStrings.settings),
+                const SizedBox(height: 24),
                 const SectionLabel(AppStrings.appearance),
                 const SizedBox(height: 12),
                 Container(

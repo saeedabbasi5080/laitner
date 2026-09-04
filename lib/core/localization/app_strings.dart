@@ -146,6 +146,14 @@ abstract final class AppStrings {
       'کلمات تکراری حذف شدند و دیگر در این فایل نمایش داده نمی‌شوند.';
   static const box = 'خانه';
   static const boxOverview = 'کارت‌ها در هر خانه';
+  static const leitnerHousesTitle = 'کارت‌ها در خانه‌های لایتنر';
+  static const leitnerHousesHint =
+      'مرور کلی کارت‌های شما در ۵ خانه لایتنر';
+  static const newestCards = 'جدیدترین';
+  static const currentlyLearning = 'در حال یادگیری';
+  static const stableMastered = 'پایدار و مسلط';
+  static const viewAll = 'مشاهده همه';
+  static const learnedCardsShortHint = 'کارت‌هایی که به خوبی یاد گرفته‌اید';
   static const boxNCards = 'کارت در خانه';
   static const freeReviewBox1 = 'مرور آزاد (خانه ۱)';
   static const freeReview = 'مرور آزاد';

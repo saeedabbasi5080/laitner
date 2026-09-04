@@ -10,6 +10,7 @@ import 'package:recall/presentation/blocs/excel_library/excel_library_cubit.dart
 import 'package:recall/presentation/screens/excel_import_detail_screen.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 import 'package:recall/presentation/widgets/excel_format_guide_sheet.dart';
+import 'package:recall/presentation/widgets/soft_ui.dart';
 
 class ExcelLibraryScreen extends StatelessWidget {
   const ExcelLibraryScreen({
@@ -38,8 +39,6 @@ class _ExcelLibraryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.recallColors;
-
     return Scaffold(
       body: SafeArea(
         child: BlocBuilder<ExcelLibraryCubit, ExcelLibraryState>(
@@ -48,38 +47,10 @@ class _ExcelLibraryView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Row(
-                    children: [
-                      CircleIconButton(
-                        back: true,
-                        icon: Icons.arrow_back,
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              AppStrings.excelLibrary,
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              AppStrings.excelLibrarySubtitle,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: colors.mutedForeground,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                  child: AppPageHeader(
+                    title: AppStrings.excelLibrary,
+                    subtitle: AppStrings.excelLibrarySubtitle,
                   ),
                 ),
                 Expanded(

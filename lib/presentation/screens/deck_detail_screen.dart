@@ -11,6 +11,7 @@ import 'package:recall/presentation/screens/excel_library_screen.dart';
 import 'package:recall/presentation/screens/study_screen.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 import 'package:recall/presentation/widgets/deck_card_sheets.dart';
+import 'package:recall/presentation/widgets/soft_ui.dart';
 
 class DeckDetailScreen extends StatelessWidget {
   const DeckDetailScreen({
@@ -71,32 +72,13 @@ class _DeckDetailView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
+                  AppPageHeader(
+                    title: deck.name,
+                    subtitle: AppStrings.deck,
+                    actions: [
                       CircleIconButton(
-                        back: true,
-                        icon: Icons.arrow_back,
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SectionLabel(AppStrings.deck),
-                            Text(
-                              deck.name,
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
+                        icon: Icons.edit_outlined,
                         onPressed: () => _editDeck(context, deck),
-                        icon: const Icon(Icons.edit_outlined),
                       ),
                     ],
                   ),

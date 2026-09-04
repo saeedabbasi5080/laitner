@@ -69,7 +69,7 @@ class _DeckFormSheetState extends State<DeckFormSheet> {
                 decoration: BoxDecoration(
                   color: colors.card,
                    borderRadius:
-                       const BorderRadius.vertical(top: Radius.circular(24)),
+                       const BorderRadius.vertical(top: Radius.circular(28)),
                    border: Border(top: BorderSide(color: colors.border)),
                    boxShadow: AppShadows.card(context),
                 ),
@@ -317,7 +317,7 @@ class _CardFormSheetState extends State<CardFormSheet> {
                 decoration: BoxDecoration(
                   color: colors.card,
                    borderRadius:
-                       const BorderRadius.vertical(top: Radius.circular(24)),
+                       const BorderRadius.vertical(top: Radius.circular(28)),
                    border: Border(top: BorderSide(color: colors.border)),
                    boxShadow: AppShadows.card(context),
                 ),

@@ -4,7 +4,7 @@ import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/add_card/add_card_cubit.dart';
-import 'package:recall/presentation/widgets/common_widgets.dart';
+import 'package:recall/presentation/widgets/soft_ui.dart';
 
 class AddCardScreen extends StatelessWidget {
   const AddCardScreen({
@@ -66,39 +66,14 @@ class _AddCardViewState extends State<_AddCardView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            CircleIconButton(
-                              back: true,
-                              icon: Icons.arrow_back,
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
-                            const SizedBox(width: 16),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SectionLabel(AppStrings.newCard),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    AppStrings.deck,
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 40),
-                        const SectionLabel(AppStrings.front),
-                        const SizedBox(height: 12),
-                        _AutoTextField(
+                        const AppPageHeader(title: AppStrings.newCard),
+                        const SizedBox(height: 24),
+                        SoftTextField(
                           controller: _frontController,
                           hint: AppStrings.frontHint,
+                          label: AppStrings.front,
                           autofocus: true,
+                          maxLines: null,
                           hasError: state.status == AddCardStatus.duplicate,
                           onChanged: context.read<AddCardCubit>().updateFront,
                         ),
@@ -115,14 +90,12 @@ class _AddCardViewState extends State<_AddCardView> {
                             ),
                           ),
                         ],
-                        const SizedBox(height: 48),
-                        Divider(color: colors.border, height: 1),
-                        const SizedBox(height: 48),
-                        const SectionLabel(AppStrings.back),
-                        const SizedBox(height: 12),
-                        _AutoTextField(
+                        const SizedBox(height: 24),
+                        SoftTextField(
                           controller: _backController,
                           hint: AppStrings.backHint,
+                          label: AppStrings.back,
+                          maxLines: null,
                           onChanged: context.read<AddCardCubit>().updateBack,
                         ),
                       ],
@@ -191,48 +164,6 @@ class _AddCardViewState extends State<_AddCardView> {
             );
           },
         ),
-      ),
-    );
-  }
-}
-
-class _AutoTextField extends StatelessWidget {
-  const _AutoTextField({
-    required this.controller,
-    required this.hint,
-    required this.onChanged,
-    this.autofocus = false,
-    this.hasError = false,
-  });
-
-  final TextEditingController controller;
-  final String hint;
-  final ValueChanged<String> onChanged;
-  final bool autofocus;
-  final bool hasError;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      autofocus: autofocus,
-      onChanged: onChanged,
-      maxLines: null,
-      style: TextStyle(
-        fontSize: 24,
-        fontWeight: FontWeight.w500,
-        height: 1.4,
-        color: hasError ? AppColors.danger : null,
-      ),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(
-          color: context.recallColors.mutedForeground.withValues(alpha: 0.5),
-          fontSize: 24,
-          fontWeight: FontWeight.w500,
-        ),
-        border: InputBorder.none,
-        contentPadding: EdgeInsets.zero,
       ),
     );
   }

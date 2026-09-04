@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:recall/core/constants/leitner_constants.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/core/utils/responsive.dart';
@@ -22,6 +21,8 @@ import 'package:recall/presentation/screens/study_screen.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 import 'package:recall/presentation/widgets/deck_card_sheets.dart';
 import 'package:recall/presentation/widgets/free_review_sheet.dart';
+import 'package:recall/presentation/widgets/leitner_houses_panel.dart';
+import 'package:recall/presentation/widgets/soft_ui.dart';
 
 class DeckListScreen extends StatelessWidget {
   const DeckListScreen({super.key, required this.space});
@@ -88,8 +89,6 @@ class _DeckListViewState extends State<_DeckListView>
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.recallColors;
-
     return Scaffold(
       body: SafeArea(
         child: BlocBuilder<DeckListCubit, DeckListState>(
@@ -110,145 +109,46 @@ class _DeckListViewState extends State<_DeckListView>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
+                      AppPageHeader(
+                        title: widget.space.name,
+                        actions: [
                           CircleIconButton(
-                            back: true,
-                            icon: Icons.arrow_back,
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  AppStrings.today,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: colors.mutedForeground,
-                                  ),
+                            icon: Icons.insights_outlined,
+                            label: AppStrings.statistics,
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => StatisticsScreen(
+                                  spaceId: widget.space.id,
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  widget.space.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: context.isCompactWidth ? 24 : 28,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
-                          Row(
-                            children: [
-                              CircleIconButton(
-                                icon: Icons.insights_outlined,
-                                label: AppStrings.statistics,
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => StatisticsScreen(
-                                      spaceId: widget.space.id,
-                                    ),
-                                  ),
+                          const SizedBox(width: 8),
+                          CircleIconButton(
+                            icon: Icons.settings_outlined,
+                            label: AppStrings.settings,
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => SettingsScreen(
+                                  spaceId: widget.space.id,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              CircleIconButton(
-                                icon: Icons.settings_outlined,
-                                label: AppStrings.settings,
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => SettingsScreen(
-                                      spaceId: widget.space.id,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 32),
-                      StatCard(
+                      const SizedBox(height: 8),
+                      BlobHeroCard(
                         label: AppStrings.dueToday,
                         value: state.totalDue,
-                        accent: true,
                         onTap: () => _openAllDueStudy(context),
                       ),
                       const SizedBox(height: 24),
-                      const SectionLabel(AppStrings.boxOverview),
-                      const SizedBox(height: 12),
-                      _BoxOverviewRow(
+                      LeitnerHousesPanel(
                         boxCounts: state.boxCounts,
+                        learnedCount: state.learnedCount,
                         onBoxTap: (box) => _openBoxCards(context, box),
-                      ),
-                      const SizedBox(height: 12),
-                      Material(
-                        color: Theme.of(context).colorScheme.tertiaryContainer,
-                        borderRadius: BorderRadius.circular(20),
-                        child: InkWell(
-                          onTap: () => _openLearnedCards(context),
-                          borderRadius: BorderRadius.circular(20),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .tertiary
-                                    .withValues(alpha: 0.15),
-                              ),
-                              boxShadow: AppShadows.card(context),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.workspace_premium_outlined,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onTertiaryContainer,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    AppStrings.learnedCards,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onTertiaryContainer,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  '${state.learnedCount}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onTertiaryContainer,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Icon(
-                                  Icons.chevron_left,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onTertiaryContainer,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        onLearnedTap: () => _openLearnedCards(context),
                       ),
                       if (state.boxCounts.values.any((c) => c > 0)) ...[
                         const SizedBox(height: 12),
@@ -478,75 +378,6 @@ class _DeckListViewState extends State<_DeckListView>
         .then((_) {
           if (context.mounted) context.read<DeckListCubit>().load();
         });
-  }
-}
-
-class _BoxOverviewRow extends StatelessWidget {
-  const _BoxOverviewRow({required this.boxCounts, required this.onBoxTap});
-
-  final Map<int, int> boxCounts;
-  final ValueChanged<int> onBoxTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: List.generate(maxBox, (index) {
-        final box = index + 1;
-        final count = boxCounts[box] ?? 0;
-        final (fill, onFill) = context.leitnerBoxColors(box);
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(left: index < maxBox - 1 ? 8 : 0),
-            child: Material(
-              color: fill,
-              borderRadius: BorderRadius.circular(20),
-              child: InkWell(
-                onTap: () => onBoxTap(box),
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: onFill.withValues(alpha: 0.10),
-                    ),
-                    boxShadow: AppShadows.card(context),
-                  ),
-                  child: Column(
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          '${AppStrings.box} $box',
-                          maxLines: 1,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: onFill.withValues(alpha: 0.72),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          '$count',
-                          maxLines: 1,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: onFill,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      }),
-    );
   }
 }
 

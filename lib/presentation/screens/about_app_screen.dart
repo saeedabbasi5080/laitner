@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
-import 'package:recall/presentation/widgets/common_widgets.dart';
+import 'package:recall/presentation/widgets/soft_ui.dart';
 
 class AboutAppScreen extends StatelessWidget {
   const AboutAppScreen({super.key});
@@ -13,21 +13,8 @@ class AboutAppScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
           children: [
-            Row(
-              children: [
-                CircleIconButton(
-                  back: true,
-                  icon: Icons.arrow_back,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-                const SizedBox(width: 16),
-                const Text(
-                  AppStrings.aboutApp,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
+            const AppPageHeader(title: AppStrings.aboutApp),
+            const SizedBox(height: 24),
             _AppHero(),
             const SizedBox(height: 16),
             const _InfoCard(

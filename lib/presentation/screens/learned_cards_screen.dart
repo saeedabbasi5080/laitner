@@ -7,6 +7,7 @@ import 'package:recall/domain/repositories/flashcard_repository.dart';
 import 'package:recall/domain/usecases/update_card_usecase.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
+import 'package:recall/presentation/widgets/soft_ui.dart';
 
 class LearnedCardsScreen extends StatefulWidget {
   const LearnedCardsScreen({super.key, required this.spaceId});
@@ -75,26 +76,8 @@ class _LearnedCardsScreenState extends State<LearnedCardsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-              child: Row(
-                children: [
-                  CircleIconButton(
-                    back: true,
-                    icon: Icons.arrow_back,
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      AppStrings.learnedCards,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: const AppPageHeader(title: AppStrings.learnedCards),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),

@@ -11,8 +11,8 @@ import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/space_list/space_list_cubit.dart';
 import 'package:recall/presentation/blocs/space_list/space_list_state.dart';
 import 'package:recall/presentation/screens/deck_list_screen.dart';
-import 'package:recall/presentation/screens/settings_screen.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
+import 'package:recall/presentation/widgets/soft_ui.dart';
 import 'package:recall/presentation/widgets/space_form_sheet.dart';
 
 class SpaceListScreen extends StatelessWidget {
@@ -20,10 +20,7 @@ class SpaceListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<SpaceListCubit>()..load(),
-      child: const _SpaceListView(),
-    );
+    return const _SpaceListView();
   }
 }
 
@@ -43,128 +40,69 @@ class _SpaceListView extends StatelessWidget {
               return const Center(child: CircularProgressIndicator());
             }
 
-            return Stack(
-              children: [
-                SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    context.pageHorizontalPadding,
-                    24,
-                    context.pageHorizontalPadding,
-                    120,
+            return SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                context.pageHorizontalPadding,
+                12,
+                context.pageHorizontalPadding,
+                24,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppPageHeader(
+                    title: AppStrings.yourSpaces,
+                    showBack: false,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  AppStrings.appTitle,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: colors.mutedForeground,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  AppStrings.yourSpaces,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: context.isCompactWidth ? 24 : 28,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          CircleIconButton(
-                            icon: Icons.settings_outlined,
-                            label: AppStrings.settings,
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => const SettingsScreen(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        AppStrings.spacesHint,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: colors.mutedForeground,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      if (state.summaries.isEmpty)
-                        _EmptySpaces(onCreate: () => _showNewSpace(context))
-                      else
-                        ...state.summaries.map(
-                          (summary) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _SpaceCard(
-                              summary: summary,
-                              onOpen: () => _openSpace(context, summary.space),
-                              onEdit: () => _editSpace(context, summary.space),
-                            ),
-                          ),
-                        ),
-                      if (!state.canAddSpace) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          AppStrings.spaceLimitReached(maxLearningSpaces),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: colors.mutedForeground,
-                          ),
-                        ),
-                      ],
-                    ],
+                  const SizedBox(height: 8),
+                  Text(
+                    AppStrings.spacesHint,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: colors.mutedForeground,
+                      height: 1.5,
+                    ),
                   ),
-                ),
-                if (state.canAddSpace)
-                  Positioned(
-                    bottom: 32,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Material(
-                        elevation: 0,
-                        color: context.accentColor,
-                        shape: CircleBorder(
-                          side: BorderSide(
-                            color: Theme.of(context).scaffoldBackgroundColor,
-                            width: 4,
+                  const SizedBox(height: 20),
+                  if (state.summaries.isEmpty)
+                    _EmptySpaces(onCreate: () => _showNewSpace(context))
+                  else
+                    ...state.summaries.map(
+                      (summary) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: SoftListTile(
+                          title: summary.space.name,
+                          subtitle: AppStrings.spaceSummary(
+                            summary.deckCount,
+                            summary.totalCards,
+                            summary.dueCards,
                           ),
-                        ),
-                        child: InkWell(
-                          onTap: () => _showNewSpace(context),
-                          customBorder: const CircleBorder(),
-                          child: Container(
-                            width: 64,
-                            height: 64,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: AppShadows.floating(context),
-                            ),
-                            child: Icon(
-                              Icons.add,
-                              size: 28,
-                              color: Theme.of(context).colorScheme.onPrimary,
+                          icon: Icons.layers_outlined,
+                          accent: AppColors.forDeck(summary.space.color),
+                          onTap: () => _openSpace(context, summary.space),
+                          trailing: IconButton(
+                            onPressed: () =>
+                                _editSpace(context, summary.space),
+                            icon: Icon(
+                              Icons.more_horiz,
+                              color: colors.mutedForeground,
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                  if (!state.canAddSpace) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      AppStrings.spaceLimitReached(maxLearningSpaces),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colors.mutedForeground,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             );
           },
         ),
@@ -294,119 +232,6 @@ class _EmptySpaces extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SpaceCard extends StatelessWidget {
-  const _SpaceCard({
-    required this.summary,
-    required this.onOpen,
-    required this.onEdit,
-  });
-
-  final SpaceSummary summary;
-  final VoidCallback onOpen;
-  final VoidCallback onEdit;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.recallColors;
-    final fill = AppColors.forDeck(summary.space.color);
-
-    return Material(
-      color: context.tintedSurface(fill, amount: 0.08),
-      borderRadius: BorderRadius.circular(24),
-      child: InkWell(
-        onTap: onOpen,
-        onLongPress: onEdit,
-        borderRadius: BorderRadius.circular(24),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: colors.border),
-            boxShadow: AppShadows.card(context),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: fill,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.layers_outlined,
-                  size: 22,
-                  color: Colors.white.withValues(alpha: 0.9),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      summary.space.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      AppStrings.spaceSummary(
-                        summary.deckCount,
-                        summary.totalCards,
-                        summary.dueCards,
-                      ),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: colors.mutedForeground,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (summary.dueCards > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.accentColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    '${summary.dueCards} ${AppStrings.due}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: context.accentColor,
-                    ),
-                  ),
-                ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: onEdit,
-                icon: Icon(
-                  Icons.more_horiz,
-                  size: 20,
-                  color: colors.mutedForeground,
-                ),
-                style: IconButton.styleFrom(
-                  minimumSize: const Size(36, 36),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

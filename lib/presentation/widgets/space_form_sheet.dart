@@ -70,8 +70,8 @@ class _SpaceFormSheetState extends State<SpaceFormSheet> {
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
                 decoration: BoxDecoration(
                   color: colors.card,
-                   borderRadius:
-                       const BorderRadius.vertical(top: Radius.circular(24)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(28)),
                    border: Border(top: BorderSide(color: colors.border)),
                    boxShadow: AppShadows.card(context),
                 ),

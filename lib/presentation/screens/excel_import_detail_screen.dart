@@ -7,6 +7,7 @@ import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/excel_import_detail/excel_import_detail_cubit.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 import 'package:recall/presentation/widgets/deck_card_sheets.dart';
+import 'package:recall/presentation/widgets/soft_ui.dart';
 
 class ExcelImportDetailScreen extends StatelessWidget {
   const ExcelImportDetailScreen({
@@ -75,44 +76,16 @@ class _ExcelImportDetailView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-                  child: Row(
-                    children: [
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                  child: AppPageHeader(
+                    title: import.fileName,
+                    subtitle:
+                        '${import.pendingCount} ${AppStrings.excelPending} · ${import.addedCount} ${AppStrings.excelAdded}',
+                    actions: [
                       CircleIconButton(
-                        back: true,
-                        icon: Icons.arrow_back,
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              import.fileName,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              '${import.pendingCount} ${AppStrings.excelPending} · ${import.addedCount} ${AppStrings.excelAdded}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: colors.mutedForeground,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
+                        icon: Icons.delete_outline,
+                        color: AppColors.danger,
                         onPressed: () => _confirmDelete(context),
-                        icon: Icon(
-                          Icons.delete_outline,
-                          color: AppColors.danger,
-                        ),
                       ),
                     ],
                   ),

@@ -23,7 +23,7 @@ class CircleIconButton extends StatelessWidget {
     final enabled = onPressed != null;
     final isDanger = color == AppColors.danger;
     final background =
-        isDanger ? scheme.errorContainer : scheme.surfaceContainerHighest;
+        isDanger ? scheme.errorContainer : scheme.surfaceContainerLow;
     final foreground = color ??
         (isDanger ? scheme.onErrorContainer : scheme.onSurfaceVariant);
     return Semantics(
@@ -33,7 +33,9 @@ class CircleIconButton extends StatelessWidget {
         opacity: enabled ? 1 : 0.38,
         child: Material(
           color: background,
-          shape: const CircleBorder(),
+          shape: CircleBorder(
+            side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.6)),
+          ),
           child: InkWell(
             onTap: onPressed,
             customBorder: const CircleBorder(),
@@ -213,16 +215,17 @@ class DashboardCard extends StatelessWidget {
     final colors = context.recallColors;
     return Material(
       color: colors.card,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(22),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         child: Container(
           width: double.infinity,
           padding: padding,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: colors.border),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: colors.border.withValues(alpha: 0.7)),
+            boxShadow: AppShadows.card(context),
           ),
           child: child,
         ),

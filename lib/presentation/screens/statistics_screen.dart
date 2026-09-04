@@ -7,7 +7,7 @@ import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/statistics/statistics_cubit.dart';
-import 'package:recall/presentation/widgets/common_widgets.dart';
+import 'package:recall/presentation/widgets/soft_ui.dart';
 
 class StatisticsScreen extends StatelessWidget {
   const StatisticsScreen({super.key, required this.spaceId});
@@ -141,29 +141,9 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        CircleIconButton(
-          back: true,
-          icon: Icons.arrow_back,
-          label: AppStrings.backToDecks,
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        const SizedBox(width: 16),
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AppStrings.statistics,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 4),
-              Text(AppStrings.learningOverview, style: TextStyle(fontSize: 12)),
-            ],
-          ),
-        ),
-      ],
+    return const AppPageHeader(
+      title: AppStrings.statistics,
+      subtitle: AppStrings.learningOverview,
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
+import 'package:recall/presentation/widgets/soft_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DeveloperScreen extends StatelessWidget {
@@ -19,21 +20,8 @@ class DeveloperScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
           children: [
-            Row(
-              children: [
-                CircleIconButton(
-                  back: true,
-                  icon: Icons.arrow_back,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-                const SizedBox(width: 16),
-                const Text(
-                  AppStrings.aboutDeveloper,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
+            const AppPageHeader(title: AppStrings.aboutDeveloper),
+            const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
