@@ -101,7 +101,7 @@ class ExcelFormatGuideCard extends StatelessWidget {
       padding: EdgeInsets.all(compact ? 14 : 16),
       decoration: BoxDecoration(
         color: colors.muted.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: colors.border),
       ),
       child: Column(

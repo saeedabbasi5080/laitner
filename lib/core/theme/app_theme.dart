@@ -4,21 +4,22 @@ import 'package:recall/core/theme/app_accent.dart';
 import 'package:recall/domain/entities/deck_color.dart';
 
 class AppColors {
-  static const lavender = Color(0xFF7B5CB8);
-  static const mint = Color(0xFF2E9A72);
-  static const peach = Color(0xFFD97A45);
-  static const sky = Color(0xFF3D8BC4);
-  static const rose = Color(0xFFC45A78);
-  static const danger = Color(0xFFB71C1C);
-  static const lemon = Color(0xFFC4A832);
-  static const coral = Color(0xFFD45C48);
-  static const teal = Color(0xFF2A9A8C);
-  static const lilac = Color(0xFF8A5CB8);
-  static const sand = Color(0xFFB8894A);
-  static const slate = Color(0xFF5A6E86);
-  static const berry = Color(0xFFB04A7A);
-  static const know = Color(0xFF1B7A4A);
-  static const dontKnow = Color(0xFFC62828);
+  static const lavender = Color(0xFF7C3AED);
+  static const mint = Color(0xFF10B981);
+  static const peach = Color(0xFFEA580C);
+  static const sky = Color(0xFF2563EB);
+  static const rose = Color(0xFFDB27B3);
+  static const danger = Color(0xFFEF4444);
+  static const lemon = Color(0xFFEAB308);
+  static const coral = Color(0xFFF97316);
+  static const teal = Color(0xFF0D9488);
+  static const lilac = Color(0xFF8B5CF6);
+  static const sand = Color(0xFFD97706);
+  static const slate = Color(0xFF64748B);
+  static const berry = Color(0xFFDB27B3);
+
+  static const know = Color(0xFF10B981);
+  static const dontKnow = Color(0xFFEF4444);
 
   static Color forDeck(DeckColor color) => switch (color) {
         DeckColor.lavender => lavender,
@@ -56,7 +57,7 @@ class RecallColors extends ThemeExtension<RecallColors> {
   /// Scaffold uses [ColorScheme.surface]; cards use [ColorScheme.surfaceContainerLow].
   static RecallColors fromScheme(ColorScheme scheme) => RecallColors(
         card: scheme.surfaceContainerLow,
-        muted: scheme.surfaceContainerHighest,
+        muted: scheme.surfaceContainerLowest,
         mutedForeground: scheme.onSurfaceVariant,
         border: scheme.outlineVariant,
         accent: scheme.primary,
@@ -97,7 +98,7 @@ extension RecallTheme on BuildContext {
   RecallColors get recallColors =>
       Theme.of(this).extension<RecallColors>() ??
       RecallColors.fromScheme(
-        ColorScheme.fromSeed(seedColor: AppAccent.lavender.seed),
+        ColorScheme.fromSeed(seedColor: AppAccent.sky.seed),
       );
 
   Color get accentColor =>
@@ -105,7 +106,7 @@ extension RecallTheme on BuildContext {
       Theme.of(this).colorScheme.primary;
 
   /// Tonal surface for colored list cards (Material 3 container tint).
-  Color tintedSurface(Color tint, {double amount = 0.14}) {
+  Color tintedSurface(Color tint, {double amount = 0.10}) {
     return Color.alphaBlend(
       tint.withValues(alpha: amount),
       Theme.of(this).colorScheme.surfaceContainerLow,
@@ -120,14 +121,14 @@ extension RecallTheme on BuildContext {
       3 => (scheme.tertiaryContainer, scheme.onTertiaryContainer),
       4 => (
           Color.alphaBlend(
-            scheme.primary.withValues(alpha: 0.22),
+            scheme.primary.withValues(alpha: 0.18),
             scheme.surfaceContainerHigh,
           ),
           scheme.onSurface,
         ),
       _ => (
           Color.alphaBlend(
-            scheme.primary.withValues(alpha: 0.34),
+            scheme.primary.withValues(alpha: 0.30),
             scheme.surfaceContainerHighest,
           ),
           scheme.onSurface,
@@ -137,7 +138,7 @@ extension RecallTheme on BuildContext {
 }
 
 class AppTheme {
-  /// تم روشن/تاریک با [ColorScheme.fromSeed] طبق مستند رسمی Material 3.
+  /// تم روشن/تاریک با [ColorScheme.fromSeed] طبق استاندارد Material 3.
   static ThemeData light(AppAccent accent) =>
       _build(brightness: Brightness.light, accent: accent);
 
@@ -149,9 +150,6 @@ class AppTheme {
     required AppAccent accent,
   }) {
     final isDark = brightness == Brightness.dark;
-    // Light uses vibrant so containers pick up seed chroma; dark keeps tonalSpot
-    // so surfaces stay readable. Do not override light surface — that flattened
-    // cards and buttons into the same beige as the scaffold.
     var colorScheme = ColorScheme.fromSeed(
       seedColor: accent.seed,
       brightness: brightness,
@@ -160,10 +158,16 @@ class AppTheme {
     );
     if (isDark) {
       colorScheme = colorScheme.copyWith(
-        surface: const Color(0xFF1A1D24),
-        onSurface: const Color(0xFFF5F5F7),
+        surface: const Color(0xFF121214),
+        onSurface: const Color(0xFFE4E4E7),
+      );
+    } else {
+      colorScheme = colorScheme.copyWith(
+        surface: const Color(0xFFF8FAFD),
+        surfaceContainerLow: Colors.white,
       );
     }
+
     final recallColors = RecallColors.fromScheme(colorScheme);
 
     final base = ThemeData(
@@ -183,14 +187,17 @@ class AppTheme {
       ),
       dividerColor: recallColors.border,
       cardColor: recallColors.card,
-      splashColor: foreground.withValues(alpha: 0.08),
-      highlightColor: foreground.withValues(alpha: 0.08),
+      splashColor: foreground.withValues(alpha: 0.06),
+      highlightColor: foreground.withValues(alpha: 0.06),
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: colorScheme.primary,
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
+        elevation: 0,
+        focusElevation: 0,
+        highlightElevation: 0,
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
@@ -214,7 +221,7 @@ class AppTheme {
         color: colorScheme.surfaceContainerLow,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           side: BorderSide(color: colorScheme.outlineVariant),
         ),
       ),
@@ -222,13 +229,48 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: colorScheme.primary,
           side: BorderSide(color: colorScheme.outline),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+          ),
         ),
+      ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: colorScheme.surfaceContainerLow,
+        selectedItemColor: colorScheme.primary,
+        unselectedItemColor: colorScheme.onSurfaceVariant.withValues(
+          alpha: 0.60,
+        ),
+        selectedLabelStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+        elevation: 0,
+        type: BottomNavigationBarType.fixed,
+        showUnselectedLabels: true,
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: colorScheme.surfaceContainerLow,
+        indicatorColor: colorScheme.primary.withValues(alpha: 0.12),
+        elevation: 0,
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.transparent,
+        foregroundColor: foreground,
+        centerTitle: false,
+        elevation: 0,
       ),
     );
   }
@@ -239,10 +281,12 @@ class AppShadows {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return [
       BoxShadow(
-        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
-        blurRadius: 30,
-        offset: const Offset(0, 8),
-        spreadRadius: -8,
+        color: Colors.black.withValues(
+          alpha: isDark ? 0.15 : 0.04,
+        ),
+        blurRadius: 12,
+        offset: const Offset(0, 2),
+        spreadRadius: 0,
       ),
     ];
   }
@@ -252,10 +296,10 @@ class AppShadows {
     final accent = context.accentColor;
     return [
       BoxShadow(
-        color: accent.withValues(alpha: isDark ? 0.35 : 0.25),
-        blurRadius: 50,
-        offset: const Offset(0, 20),
-        spreadRadius: -15,
+        color: accent.withValues(alpha: isDark ? 0.25 : 0.18),
+        blurRadius: 24,
+        offset: const Offset(0, 8),
+        spreadRadius: -4,
       ),
     ];
   }

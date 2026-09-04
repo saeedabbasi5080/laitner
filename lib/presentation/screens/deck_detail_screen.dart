@@ -126,7 +126,7 @@ class _DeckDetailView extends StatelessWidget {
                       onPressed: () => _openStudy(context),
                       style: FilledButton.styleFrom(
                         backgroundColor: accent,
-                        foregroundColor: const Color(0xFF1A1D24),
+                        foregroundColor: null,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(999),
@@ -311,8 +311,9 @@ class _CardListItem extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colors.card,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: colors.border),
+        boxShadow: AppShadows.card(context),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

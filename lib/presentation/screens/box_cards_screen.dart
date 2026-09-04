@@ -134,8 +134,9 @@ class _BoxCardsScreenState extends State<BoxCardsScreen> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: colors.card,
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: colors.border),
+                    boxShadow: AppShadows.card(context),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,11 +260,12 @@ class _BoxCardsScreenState extends State<BoxCardsScreen> {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: colors.card,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: colors.border),
-                      ),
+                  decoration: BoxDecoration(
+                    color: colors.card,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: colors.border),
+                    boxShadow: AppShadows.card(context),
+                  ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [

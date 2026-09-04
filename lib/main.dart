@@ -6,7 +6,7 @@ import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/settings/settings_cubit.dart';
-import 'package:recall/presentation/screens/space_list_screen.dart';
+import 'package:recall/presentation/screens/app_shell_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,7 +50,7 @@ class RecallApp extends StatelessWidget {
                 child: child ?? const SizedBox.shrink(),
               );
             },
-            home: const SpaceListScreen(),
+            home: const AppShellScreen(),
           );
         },
       ),

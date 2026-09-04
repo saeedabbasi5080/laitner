@@ -91,8 +91,9 @@ class _SettingsView extends StatelessWidget {
                 Container(
                   decoration: BoxDecoration(
                     color: colors.card,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: colors.border),
+                    boxShadow: AppShadows.card(context)
                   ),
                   child: SwitchListTile(
                     title: const Text(AppStrings.themeMode),
@@ -124,8 +125,9 @@ class _SettingsView extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: colors.card,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: colors.border),
+                    boxShadow: AppShadows.card(context)
                   ),
                   child: Wrap(
                     spacing: 12,
@@ -153,8 +155,9 @@ class _SettingsView extends StatelessWidget {
                 Container(
                   decoration: BoxDecoration(
                     color: colors.card,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: colors.border),
+                    boxShadow: AppShadows.card(context)
                   ),
                   child: Column(
                     children: [
@@ -212,8 +215,9 @@ class _SettingsView extends StatelessWidget {
                 Container(
                   decoration: BoxDecoration(
                     color: colors.card,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: colors.border),
+                    boxShadow: AppShadows.card(context)
                   ),
                   child: Column(
                     children: [
@@ -256,8 +260,9 @@ class _SettingsView extends StatelessWidget {
                 Container(
                   decoration: BoxDecoration(
                     color: colors.card,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: colors.border),
+                    boxShadow: AppShadows.card(context)
                   ),
                   child: Column(
                     children: [
@@ -444,7 +449,7 @@ class _CardFontSizePicker extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             decoration: BoxDecoration(
               color: colors.muted.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(color: colors.border),
             ),
             child: Column(
@@ -528,10 +533,10 @@ class _AccentSwatch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final checkColor =
-        ThemeData.estimateBrightnessForColor(accent.seed) == Brightness.dark
-        ? Colors.white
-        : const Color(0xFF1A1D24);
+      final checkColor =
+          ThemeData.estimateBrightnessForColor(accent.seed) == Brightness.dark
+              ? Colors.white
+              : Theme.of(context).colorScheme.onSurface;
 
     return Semantics(
       label: accent.label,

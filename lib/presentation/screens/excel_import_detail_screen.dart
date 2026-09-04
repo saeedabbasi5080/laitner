@@ -370,7 +370,7 @@ class _DeckDropdown extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: colors.muted,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           AppStrings.noDecksForCard,
@@ -386,7 +386,7 @@ class _DeckDropdown extends StatelessWidget {
         filled: true,
         fillColor: colors.muted,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           borderSide: BorderSide.none,
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -450,17 +450,18 @@ class _WordListTile extends StatelessWidget {
 
     return Material(
       color: isAdded ? colors.muted.withValues(alpha: 0.45) : colors.card,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isAdded
                 ? AppColors.mint.withValues(alpha: 0.5)
                 : (selected ? context.accentColor : colors.border),
             width: selected && !isAdded ? 1.5 : 1,
           ),
+          boxShadow: AppShadows.card(context),
         ),
         child: isAdded
             ? ListTile(

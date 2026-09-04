@@ -189,10 +189,10 @@ class _DeckListViewState extends State<_DeckListView>
                       const SizedBox(height: 12),
                       Material(
                         color: Theme.of(context).colorScheme.tertiaryContainer,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(20),
                         child: InkWell(
                           onTap: () => _openLearnedCards(context),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(20),
                           child: Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
@@ -200,13 +200,14 @@ class _DeckListViewState extends State<_DeckListView>
                               vertical: 14,
                             ),
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(20),
                               border: Border.all(
                                 color: Theme.of(context)
                                     .colorScheme
                                     .tertiary
-                                    .withValues(alpha: 0.18),
+                                    .withValues(alpha: 0.15),
                               ),
+                              boxShadow: AppShadows.card(context),
                             ),
                             child: Row(
                               children: [
@@ -498,17 +499,18 @@ class _BoxOverviewRow extends StatelessWidget {
             padding: EdgeInsets.only(left: index < maxBox - 1 ? 8 : 0),
             child: Material(
               color: fill,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20),
               child: InkWell(
                 onTap: () => onBoxTap(box),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: onFill.withValues(alpha: 0.12),
+                      color: onFill.withValues(alpha: 0.10),
                     ),
+                    boxShadow: AppShadows.card(context),
                   ),
                   child: Column(
                     children: [
@@ -519,7 +521,7 @@ class _BoxOverviewRow extends StatelessWidget {
                           maxLines: 1,
                           style: TextStyle(
                             fontSize: 11,
-                            color: onFill.withValues(alpha: 0.78),
+                            color: onFill.withValues(alpha: 0.72),
                           ),
                         ),
                       ),
@@ -559,15 +561,20 @@ class _EmptyDecks extends StatelessWidget {
         color: colors.card,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: colors.border),
+        boxShadow: AppShadows.card(context),
       ),
       child: Column(
         children: [
-          Icon(Icons.layers_outlined, size: 32, color: colors.mutedForeground),
-          const SizedBox(height: 12),
+          Icon(Icons.layers_outlined, size: 40, color: colors.mutedForeground),
+          const SizedBox(height: 16),
           Text(
             AppStrings.emptyDecks,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: colors.mutedForeground),
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.6,
+              color: colors.mutedForeground,
+            ),
           ),
         ],
       ),

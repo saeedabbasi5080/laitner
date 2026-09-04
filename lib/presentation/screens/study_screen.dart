@@ -571,10 +571,14 @@ class _FinishedView extends StatelessWidget {
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            color: AppColors.mint.withValues(alpha: 0.2),
+            color: context.accentColor.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.check, size: 36, color: AppColors.mint),
+          child: Icon(
+            Icons.check,
+            size: 36,
+            color: context.accentColor,
+          ),
         ),
         const SizedBox(height: 24),
         const Text(

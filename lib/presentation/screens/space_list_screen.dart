@@ -259,21 +259,40 @@ class _EmptySpaces extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: colors.card,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: colors.border),
+        boxShadow: AppShadows.card(context),
       ),
       child: Column(
         children: [
+          Icon(Icons.layers_outlined, size: 40, color: colors.mutedForeground),
+          const SizedBox(height: 16),
           Text(
             AppStrings.emptySpaces,
             textAlign: TextAlign.center,
-            style: TextStyle(color: colors.mutedForeground, height: 1.6),
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.6,
+              color: colors.mutedForeground,
+            ),
           ),
-          const SizedBox(height: 16),
-          FilledButton(onPressed: onCreate, child: const Text(AppStrings.newSpace)),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: onCreate,
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text(
+                AppStrings.newSpace,
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -297,28 +316,33 @@ class _SpaceCard extends StatelessWidget {
     final fill = AppColors.forDeck(summary.space.color);
 
     return Material(
-      color: context.tintedSurface(fill),
-      borderRadius: BorderRadius.circular(20),
+      color: context.tintedSurface(fill, amount: 0.08),
+      borderRadius: BorderRadius.circular(24),
       child: InkWell(
         onTap: onOpen,
         onLongPress: onEdit,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(color: colors.border),
+            boxShadow: AppShadows.card(context),
           ),
           child: Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: fill,
-                  borderRadius: BorderRadius.circular(14),
+                  shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.layers_outlined, size: 22),
+                child: Icon(
+                  Icons.layers_outlined,
+                  size: 22,
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -342,7 +366,7 @@ class _SpaceCard extends StatelessWidget {
                         summary.dueCards,
                       ),
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         color: colors.mutedForeground,
                       ),
                     ),
@@ -351,8 +375,10 @@ class _SpaceCard extends StatelessWidget {
               ),
               if (summary.dueCards > 0)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: context.accentColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(999),
@@ -366,9 +392,17 @@ class _SpaceCard extends StatelessWidget {
                     ),
                   ),
                 ),
+              const SizedBox(width: 8),
               IconButton(
                 onPressed: onEdit,
-                icon: Icon(Icons.more_horiz, color: colors.mutedForeground),
+                icon: Icon(
+                  Icons.more_horiz,
+                  size: 20,
+                  color: colors.mutedForeground,
+                ),
+                style: IconButton.styleFrom(
+                  minimumSize: const Size(36, 36),
+                ),
               ),
             ],
           ),

@@ -273,6 +273,13 @@ abstract final class AppStrings {
   static const telegramNotConfigured = 'آیدی تلگرام هنوز ثبت نشده است';
   static const linkOpenFailed = 'امکان بازکردن این لینک وجود ندارد.';
 
+  // نوار پایین
+  static const navHome = 'خانه';
+  static const navSpaces = 'فضاها';
+  static const navStats = 'آمار';
+  static const navMore = 'بیشتر';
+  static const navAddCard = 'کارت‌ها';
+
   // عمومی
   static const error = 'خطایی رخ داد';
   static const yes = 'بله';

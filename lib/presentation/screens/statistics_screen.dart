@@ -179,7 +179,7 @@ class _MasteryCard extends StatelessWidget {
     final percent = (state.masteryProgress * 100).round();
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: colors.card,
         borderRadius: BorderRadius.circular(24),
@@ -265,6 +265,7 @@ class _ChartCard extends StatelessWidget {
         color: colors.card,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: colors.border),
+        boxShadow: AppShadows.card(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -485,6 +486,7 @@ class _StreakCard extends StatelessWidget {
         color: colors.card,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: colors.border),
+        boxShadow: AppShadows.card(context),
       ),
       child: Row(
         children: [
@@ -492,12 +494,12 @@ class _StreakCard extends StatelessWidget {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: AppColors.peach.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(16),
+              color: context.accentColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(18),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.local_fire_department_outlined,
-              color: Color(0xFFE66A2C),
+              color: context.accentColor,
               size: 28,
             ),
           ),

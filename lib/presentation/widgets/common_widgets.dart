@@ -23,9 +23,9 @@ class CircleIconButton extends StatelessWidget {
     final enabled = onPressed != null;
     final isDanger = color == AppColors.danger;
     final background =
-        isDanger ? scheme.errorContainer : scheme.primaryContainer;
+        isDanger ? scheme.errorContainer : scheme.surfaceContainerHighest;
     final foreground = color ??
-        (isDanger ? scheme.onErrorContainer : scheme.onPrimaryContainer);
+        (isDanger ? scheme.onErrorContainer : scheme.onSurfaceVariant);
     return Semantics(
       label: label,
       button: true,
@@ -38,11 +38,11 @@ class CircleIconButton extends StatelessWidget {
             onTap: onPressed,
             customBorder: const CircleBorder(),
             child: SizedBox(
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               child: Icon(
                 back ? Icons.arrow_back : icon,
-                size: 18,
+                size: 20,
                 color: foreground,
               ),
             ),
@@ -63,7 +63,7 @@ class SectionLabel extends StatelessWidget {
     return Text(
       text,
       style: TextStyle(
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.5,
         color: context.recallColors.mutedForeground,
@@ -90,28 +90,33 @@ class StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.recallColors;
     final scheme = Theme.of(context).colorScheme;
-    final background =
-        accent ? scheme.primaryContainer : scheme.surfaceContainerLow;
-    final valueColor = accent ? scheme.onPrimaryContainer : scheme.onSurface;
+    final background = accent
+        ? scheme.primary
+        : colors.card;
+    final valueColor = accent
+        ? scheme.onPrimary
+        : scheme.onSurface;
     final labelColor = accent
-        ? scheme.onPrimaryContainer.withValues(alpha: 0.78)
+        ? scheme.onPrimary.withValues(alpha: 0.75)
         : colors.mutedForeground;
 
     return Material(
       color: background,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(24),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: accent
-                  ? scheme.primary.withValues(alpha: 0.18)
-                  : colors.border,
-            ),
+            borderRadius: BorderRadius.circular(24),
+            border: accent
+                ? null
+                : Border.all(color: colors.border),
+            boxShadow: accent
+                ? AppShadows.floating(context)
+                : AppShadows.card(context),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,18 +124,20 @@ class StatCard extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: FontWeight.w500,
                   color: labelColor,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Text(
                 '$value',
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 42,
                   fontWeight: FontWeight.bold,
                   color: valueColor,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                  height: 1.0,
                 ),
               ),
             ],
@@ -156,16 +163,19 @@ class RateButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: color.withValues(alpha: 0.22),
+      color: color.withValues(alpha: 0.14),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(999),
-        side: BorderSide(color: color.withValues(alpha: 0.7), width: 1.5),
+        side: BorderSide(
+          color: color.withValues(alpha: 0.60),
+          width: 1.5,
+        ),
       ),
       child: InkWell(
         onTap: onPressed,
         borderRadius: BorderRadius.circular(999),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
           child: Center(
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -186,6 +196,68 @@ class RateButton extends StatelessWidget {
   }
 }
 
+class DashboardCard extends StatelessWidget {
+  const DashboardCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+    this.onTap,
+  });
+
+  final Widget child;
+  final EdgeInsets padding;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.recallColors;
+    return Material(
+      color: colors.card,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: double.infinity,
+          padding: padding,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: colors.border),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class SectionHeader extends StatelessWidget {
+  const SectionHeader(this.text, {super.key, this.trailing});
+
+  final String text;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          if (trailing != null) ...[const Spacer(), trailing!],
+        ],
+      ),
+    );
+  }
+}
+
 Future<bool?> showConfirmDialog(
   BuildContext context, {
   required String title,
@@ -196,6 +268,9 @@ Future<bool?> showConfirmDialog(
   return showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+      ),
       title: Text(title),
       content: SingleChildScrollView(child: Text(message)),
       actions: [

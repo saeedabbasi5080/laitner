@@ -52,7 +52,7 @@ class _SpaceFormSheetState extends State<SpaceFormSheet> {
     return GestureDetector(
       onTap: () => Navigator.pop(context),
       child: ColoredBox(
-        color: Colors.black.withValues(alpha: 0.6),
+         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
         child: GestureDetector(
           onTap: () {},
           child: Align(
@@ -70,9 +70,10 @@ class _SpaceFormSheetState extends State<SpaceFormSheet> {
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
                 decoration: BoxDecoration(
                   color: colors.card,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(24)),
-                  border: Border(top: BorderSide(color: colors.border)),
+                   borderRadius:
+                       const BorderRadius.vertical(top: Radius.circular(24)),
+                   border: Border(top: BorderSide(color: colors.border)),
+                   boxShadow: AppShadows.card(context),
                 ),
                 child: SafeArea(
                   top: false,

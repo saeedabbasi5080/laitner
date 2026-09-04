@@ -122,16 +122,17 @@ class _LearnedCardsScreenState extends State<LearnedCardsScreen> {
                             final selected = _selectedIds.contains(card.id);
                             return Material(
                               color: colors.card,
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(20),
                               child: Container(
                                 margin: const EdgeInsets.only(bottom: 8),
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
                                     color: selected
                                         ? context.accentColor
                                         : colors.border,
                                   ),
+                                  boxShadow: AppShadows.card(context),
                                 ),
                                 child: CheckboxListTile(
                                   value: selected,

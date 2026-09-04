@@ -50,7 +50,7 @@ class _DeckFormSheetState extends State<DeckFormSheet> {
     return GestureDetector(
       onTap: () => Navigator.pop(context),
       child: ColoredBox(
-        color: Colors.black.withValues(alpha: 0.6),
+         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
         child: GestureDetector(
           onTap: () {},
           child: Align(
@@ -68,9 +68,10 @@ class _DeckFormSheetState extends State<DeckFormSheet> {
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
                 decoration: BoxDecoration(
                   color: colors.card,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(24)),
-                  border: Border(top: BorderSide(color: colors.border)),
+                   borderRadius:
+                       const BorderRadius.vertical(top: Radius.circular(24)),
+                   border: Border(top: BorderSide(color: colors.border)),
+                   boxShadow: AppShadows.card(context),
                 ),
                 child: SafeArea(
                   top: false,
@@ -114,7 +115,7 @@ class _DeckFormSheetState extends State<DeckFormSheet> {
                             filled: true,
                             fillColor: colors.muted,
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
@@ -165,11 +166,11 @@ class _DeckFormSheetState extends State<DeckFormSheet> {
                                           ]
                                         : null,
                                   ),
-                                  child: selected
-                                      ? const Icon(
+                                   child: selected
+                                      ? Icon(
                                           Icons.check,
                                           size: 20,
-                                          color: Color(0xFF1A1D24),
+                                          color: Theme.of(context).colorScheme.onSurface,
                                         )
                                       : null,
                                 ),
@@ -297,7 +298,7 @@ class _CardFormSheetState extends State<CardFormSheet> {
     return GestureDetector(
       onTap: () => Navigator.pop(context),
       child: ColoredBox(
-        color: Colors.black.withValues(alpha: 0.6),
+         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
         child: GestureDetector(
           onTap: () {},
           child: Align(
@@ -315,9 +316,10 @@ class _CardFormSheetState extends State<CardFormSheet> {
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
                 decoration: BoxDecoration(
                   color: colors.card,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(24)),
-                  border: Border(top: BorderSide(color: colors.border)),
+                   borderRadius:
+                       const BorderRadius.vertical(top: Radius.circular(24)),
+                   border: Border(top: BorderSide(color: colors.border)),
+                   boxShadow: AppShadows.card(context),
                 ),
                 child: SafeArea(
                   top: false,
@@ -344,7 +346,7 @@ class _CardFormSheetState extends State<CardFormSheet> {
                             filled: true,
                             fillColor: colors.muted,
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
                             ),
                           ),
@@ -360,7 +362,7 @@ class _CardFormSheetState extends State<CardFormSheet> {
                             filled: true,
                             fillColor: colors.muted,
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
                             ),
                           ),

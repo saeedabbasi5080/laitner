@@ -124,6 +124,7 @@ class _InfoCard extends StatelessWidget {
         color: colors.card,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: colors.border),
+        boxShadow: AppShadows.card(context),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,7 +134,7 @@ class _InfoCard extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               color: context.accentColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(icon, color: context.accentColor),
           ),
