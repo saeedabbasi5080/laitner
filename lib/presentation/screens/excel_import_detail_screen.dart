@@ -239,24 +239,35 @@ class _ExcelImportDetailView extends StatelessWidget {
 
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text(AppStrings.importSuccess),
-        content: Text(
-          AppStrings.excelImportResultSummary(
-            result.totalProcessed,
-            result.addedCount,
-            result.skippedDuplicates,
+      barrierDismissible: true,
+      builder: (ctx) {
+        Future.delayed(const Duration(seconds: 3), () {
+          if (ctx.mounted) {
+            Navigator.of(ctx).pop();
+          }
+        });
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
           ),
-          textAlign: TextAlign.center,
-        ),
-      ),
+          title: const Text(AppStrings.importSuccess),
+          content: Text(
+            AppStrings.excelImportResultSummary(
+              result.totalProcessed,
+              result.addedCount,
+              result.skippedDuplicates,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text(AppStrings.close),
+            ),
+          ],
+        );
+      },
     );
-
-    await Future.delayed(const Duration(seconds: 3));
-    if (!context.mounted) return;
-
-    Navigator.of(context).pop(); // dismiss dialog
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
