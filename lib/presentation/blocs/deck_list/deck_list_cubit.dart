@@ -4,6 +4,7 @@ import 'package:recall/data/datasources/local_data_source.dart';
 import 'package:recall/data/datasources/space_settings_store.dart';
 import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/domain/entities/deck_color.dart';
+import 'package:recall/domain/entities/leitner_box_config.dart';
 import 'package:recall/domain/repositories/flashcard_repository.dart';
 import 'package:recall/domain/usecases/add_deck_usecase.dart';
 import 'package:recall/domain/usecases/delete_deck_usecase.dart';
@@ -91,6 +92,7 @@ class DeckListCubit extends Cubit<DeckListState> {
           totalCounts: totalCounts,
           boxCounts: boxCounts,
           maxBox: boxes.maxBox,
+          boxes: boxes,
           totalDue: totalDue,
           learnedCount: learnedCount,
         ),

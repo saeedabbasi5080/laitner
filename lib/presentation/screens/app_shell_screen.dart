@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/constants/space_constants.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
+import 'package:recall/core/utils/due_day_utils.dart';
 import 'package:recall/domain/entities/learning_space.dart';
 import 'package:recall/domain/usecases/add_space_usecase.dart';
 import 'package:recall/injection.dart';
@@ -20,37 +23,83 @@ import 'package:recall/presentation/widgets/common_widgets.dart';
 import 'package:recall/presentation/widgets/soft_ui.dart';
 import 'package:recall/presentation/widgets/space_form_sheet.dart';
 
-class AppShellScreen extends StatefulWidget {
+class AppShellScreen extends StatelessWidget {
   const AppShellScreen({super.key});
-
-  @override
-  State<AppShellScreen> createState() => _AppShellScreenState();
-}
-
-class _AppShellScreenState extends State<AppShellScreen> {
-  int _currentIndex = 0;
-  String? _statsSpaceId;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<SpaceListCubit>()..load(),
-      child: BlocBuilder<SpaceListCubit, SpaceListState>(
-        builder: (context, spaceState) {
-          return Scaffold(
-            body: IndexedStack(
-              index: _currentIndex,
-              children: [
-                _HomeTab(spaceState: spaceState),
-                const SpaceListScreen(),
-                _StatsTab(spaceId: _statsSpaceId),
-                const _MoreTab(),
-              ],
-            ),
-            bottomNavigationBar: _buildBottomNav(context, spaceState),
-          );
-        },
-      ),
+      child: const _AppShellView(),
+    );
+  }
+}
+
+class _AppShellView extends StatefulWidget {
+  const _AppShellView();
+
+  @override
+  State<_AppShellView> createState() => _AppShellViewState();
+}
+
+class _AppShellViewState extends State<_AppShellView>
+    with WidgetsBindingObserver {
+  int _currentIndex = 0;
+  String? _statsSpaceId;
+  Timer? _dayBoundaryTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _scheduleDayBoundaryRefresh();
+  }
+
+  @override
+  void dispose() {
+    _dayBoundaryTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _reloadSpaces();
+      _scheduleDayBoundaryRefresh();
+    }
+  }
+
+  void _reloadSpaces() {
+    if (!mounted) return;
+    context.read<SpaceListCubit>().load();
+  }
+
+  void _scheduleDayBoundaryRefresh() {
+    _dayBoundaryTimer?.cancel();
+    _dayBoundaryTimer = Timer(untilNextLocalDay(), () {
+      _reloadSpaces();
+      _scheduleDayBoundaryRefresh();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<SpaceListCubit, SpaceListState>(
+      builder: (context, spaceState) {
+        return Scaffold(
+          body: IndexedStack(
+            index: _currentIndex,
+            children: [
+              _HomeTab(spaceState: spaceState),
+              const SpaceListScreen(),
+              _StatsTab(spaceId: _statsSpaceId),
+              const _MoreTab(),
+            ],
+          ),
+          bottomNavigationBar: _buildBottomNav(context, spaceState),
+        );
+      },
     );
   }
 
@@ -179,6 +228,17 @@ class _HomeTab extends StatelessWidget {
               value: totalDue,
               onTap: () => _startTodayReview(context),
             ),
+            if (totalDue == 0 && totalCards > 0) ...[
+              const SizedBox(height: 10),
+              Text(
+                AppStrings.noDueTodayHint,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.5,
+                  color: context.recallColors.mutedForeground,
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
             _SummaryChips(spaceState: spaceState, totalCards: totalCards),
             const SizedBox(height: 16),

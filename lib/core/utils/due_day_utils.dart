@@ -15,6 +15,13 @@ class DueDayBucket {
 DateTime calendarDay(DateTime value) =>
     DateTime(value.year, value.month, value.day);
 
+/// Time until just after the next local midnight, for day-boundary UI refresh.
+Duration untilNextLocalDay([DateTime? now]) {
+  final current = now ?? DateTime.now();
+  final nextDay = DateTime(current.year, current.month, current.day + 1);
+  return nextDay.difference(current) + const Duration(seconds: 1);
+}
+
 DateTime cardDueDay(
   Flashcard card, {
   DateTime? now,

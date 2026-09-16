@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
+import 'package:recall/core/utils/due_day_utils.dart';
 import 'package:recall/core/utils/responsive.dart';
 import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/domain/entities/learning_space.dart';
@@ -75,16 +76,11 @@ class _DeckListViewState extends State<_DeckListView>
 
   void _scheduleDayBoundaryRefresh() {
     _dayBoundaryTimer?.cancel();
-    final now = DateTime.now();
-    final nextDay = DateTime(now.year, now.month, now.day + 1);
-    _dayBoundaryTimer = Timer(
-      nextDay.difference(now) + const Duration(seconds: 1),
-      () {
-        if (!mounted) return;
-        context.read<DeckListCubit>().load();
-        _scheduleDayBoundaryRefresh();
-      },
-    );
+    _dayBoundaryTimer = Timer(untilNextLocalDay(), () {
+      if (!mounted) return;
+      context.read<DeckListCubit>().load();
+      _scheduleDayBoundaryRefresh();
+    });
   }
 
   @override
@@ -143,10 +139,23 @@ class _DeckListViewState extends State<_DeckListView>
                         value: state.totalDue,
                         onTap: () => _openAllDueStudy(context),
                       ),
+                      if (state.totalDue == 0 &&
+                          state.totalCounts.values.any((count) => count > 0)) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          AppStrings.noDueTodayHint,
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.5,
+                            color: context.recallColors.mutedForeground,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       LeitnerHousesPanel(
                         boxCounts: state.boxCounts,
                         maxBox: state.maxBox,
+                        boxes: state.boxes,
                         learnedCount: state.learnedCount,
                         onBoxTap: (box) => _openBoxCards(context, box),
                         onLearnedTap: () => _openLearnedCards(context),

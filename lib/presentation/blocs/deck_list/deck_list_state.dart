@@ -10,6 +10,7 @@ class DeckListState extends Equatable {
     this.totalCounts = const {},
     this.boxCounts = const {},
     this.maxBox = 5,
+    this.boxes = LeitnerBoxConfig.classic,
     this.totalDue = 0,
     this.learnedCount = 0,
     this.errorMessage,
@@ -21,6 +22,7 @@ class DeckListState extends Equatable {
   final Map<String, int> totalCounts;
   final Map<int, int> boxCounts;
   final int maxBox;
+  final LeitnerBoxConfig boxes;
   final int totalDue;
   final int learnedCount;
   final String? errorMessage;
@@ -32,6 +34,7 @@ class DeckListState extends Equatable {
     Map<String, int>? totalCounts,
     Map<int, int>? boxCounts,
     int? maxBox,
+    LeitnerBoxConfig? boxes,
     int? totalDue,
     int? learnedCount,
     String? errorMessage,
@@ -43,6 +46,7 @@ class DeckListState extends Equatable {
       totalCounts: totalCounts ?? this.totalCounts,
       boxCounts: boxCounts ?? this.boxCounts,
       maxBox: maxBox ?? this.maxBox,
+      boxes: boxes ?? this.boxes,
       totalDue: totalDue ?? this.totalDue,
       learnedCount: learnedCount ?? this.learnedCount,
       errorMessage: errorMessage,
@@ -50,6 +54,16 @@ class DeckListState extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [status, decks, dueCounts, totalCounts, boxCounts, maxBox, totalDue, learnedCount, errorMessage];
+  List<Object?> get props => [
+        status,
+        decks,
+        dueCounts,
+        totalCounts,
+        boxCounts,
+        maxBox,
+        boxes,
+        totalDue,
+        learnedCount,
+        errorMessage,
+      ];
 }

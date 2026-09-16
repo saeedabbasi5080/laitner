@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:recall/core/constants/leitner_constants.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
+import 'package:recall/domain/entities/leitner_box_config.dart';
 
 /// Visual-only Leitner houses + learned-cards panel.
 /// Counts and tap handlers come from existing deck-list state.
@@ -13,6 +14,7 @@ class LeitnerHousesPanel extends StatelessWidget {
     required this.onBoxTap,
     required this.onLearnedTap,
     this.maxBox = classicMaxBox,
+    this.boxes = LeitnerBoxConfig.classic,
   });
 
   final Map<int, int> boxCounts;
@@ -20,6 +22,7 @@ class LeitnerHousesPanel extends StatelessWidget {
   final ValueChanged<int> onBoxTap;
   final VoidCallback onLearnedTap;
   final int maxBox;
+  final LeitnerBoxConfig boxes;
 
   @override
   Widget build(BuildContext context) {
@@ -86,6 +89,7 @@ class LeitnerHousesPanel extends StatelessWidget {
                     child: _HouseColumn(
                       box: box,
                       count: boxCounts[box] ?? 0,
+                      intervalDays: boxes.intervalDays(box),
                       houseCount: maxBox,
                       onTap: () => onBoxTap(box),
                     ),
@@ -110,12 +114,14 @@ class _HouseColumn extends StatelessWidget {
   const _HouseColumn({
     required this.box,
     required this.count,
+    required this.intervalDays,
     required this.houseCount,
     required this.onTap,
   });
 
   final int box;
   final int count;
+  final int intervalDays;
   final int houseCount;
   final VoidCallback onTap;
 
@@ -210,12 +216,13 @@ class _HouseColumn extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
-                AppStrings.cards,
+                AppStrings.extraHouseDays(intervalDays),
                 style: TextStyle(
-                  fontSize: 10,
-                  color: onFill.withValues(alpha: 0.7),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  color: onFill.withValues(alpha: 0.62),
                 ),
               ),
             ],

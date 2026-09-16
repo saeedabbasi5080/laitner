@@ -528,7 +528,7 @@ class _FinishedView extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             total == 0
-                ? AppStrings.noDueCards
+                ? AppStrings.noDueTodayHint
                 : '$total ${AppStrings.reviewedCards}',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14, color: colors.mutedForeground),

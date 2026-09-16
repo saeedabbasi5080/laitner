@@ -136,6 +136,8 @@ abstract final class AppStrings {
   static const dontKnow = 'بلد نیستم';
   static const allDone = 'تمام شد!';
   static const noDueCards = 'الان کارتی برای مرور وجود ندارد.';
+  static const noDueTodayHint =
+      'کارت‌ها سرجایشان هستند. امروز نوبت مرور هیچ خانه‌ای نرسیده و طبق فاصله لایتنر فردا یا روزهای بعد برمی‌گردند.';
   static const reviewedCards = 'کارت امروز مرور شد';
   static String sessionResultSummary(int correct, int wrong) =>
       '$correct تا درست گفتی و $wrong تا اشتباه بود.';
@@ -176,10 +178,10 @@ abstract final class AppStrings {
   static const boxOverview = 'کارت‌ها در هر خانه';
   static const leitnerHousesTitle = 'کارت‌ها در خانه‌های لایتنر';
   static const leitnerHousesHint =
-      'مرور کلی کارت‌های شما در خانه‌های لایتنر';
+      'خانه‌های ۱ تا ۵ با فاصله ۱، ۲، ۴، ۸ و ۱۶ روز مرور می‌شوند';
   static const extraLeitnerHouses = 'خانه‌های اضافی لایتنر';
   static const extraLeitnerHousesHint =
-      'خانه‌های ۱ تا ۵ همیشه فعال‌اند. خانه‌های ۶ تا ۸ را برای همین فضا می‌توانید روشن کنید و فاصله مرورشان را بین ۱۶ تا ۶۰ روز بگذارید.';
+      'خانه‌های ۱ تا ۵ همیشه فعال‌اند (۱، ۲، ۴، ۸ و ۱۶ روز). خانه‌های ۶ تا ۸ را برای همین فضا می‌توانید روشن کنید و فاصله مرورشان را بین ۱۷ تا ۶۰ روز بگذارید.';
   static String extraHouseLabel(int box) => 'خانه $box';
   static String extraHouseDays(int days) => '$days روز';
   static const extraHouseRequiresPrevious =
