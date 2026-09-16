@@ -368,7 +368,7 @@ class SoftListTile extends StatelessWidget {
             ),
           ),
           trailing ??
-              Icon(Icons.chevron_left, color: colors.mutedForeground),
+              Icon(Icons.chevron_right, color: colors.mutedForeground),
         ],
       ),
     );

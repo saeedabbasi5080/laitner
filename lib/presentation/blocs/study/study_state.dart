@@ -11,6 +11,8 @@ class StudyState extends Equatable {
     this.isAllDue = false,
     this.boxNumber,
     this.reversed = false,
+    this.knowCount = 0,
+    this.dontKnowCount = 0,
     this.errorMessage,
   });
 
@@ -21,7 +23,11 @@ class StudyState extends Equatable {
   final bool isAllDue;
   final int? boxNumber;
   final bool reversed;
+  final int knowCount;
+  final int dontKnowCount;
   final String? errorMessage;
+
+  int get ratedCount => knowCount + dontKnowCount;
 
   bool get isFreeReview => boxNumber != null;
 
@@ -43,6 +49,8 @@ class StudyState extends Equatable {
     bool? isAllDue,
     int? boxNumber,
     bool? reversed,
+    int? knowCount,
+    int? dontKnowCount,
     String? errorMessage,
   }) {
     return StudyState(
@@ -53,6 +61,8 @@ class StudyState extends Equatable {
       isAllDue: isAllDue ?? this.isAllDue,
       boxNumber: boxNumber ?? this.boxNumber,
       reversed: reversed ?? this.reversed,
+      knowCount: knowCount ?? this.knowCount,
+      dontKnowCount: dontKnowCount ?? this.dontKnowCount,
       errorMessage: errorMessage,
     );
   }
@@ -66,6 +76,8 @@ class StudyState extends Equatable {
         isAllDue,
         boxNumber,
         reversed,
+        knowCount,
+        dontKnowCount,
         errorMessage,
       ];
 }

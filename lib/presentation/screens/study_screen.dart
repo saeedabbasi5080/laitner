@@ -1,6 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:recall/core/constants/leitner_constants.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/core/tts/tts_service.dart';
@@ -42,6 +43,7 @@ class _StudyScreenState extends State<StudyScreen> {
       _effectiveConfig = widget.config.applySpaceSettings(
         randomOrder: spaceSettings.randomReviewOrder,
         defaultReversed: spaceSettings.defaultReversed,
+        boxConfig: spaceSettings.leitnerBoxes,
       );
     });
   }
@@ -242,62 +244,6 @@ class _StudyViewState extends State<_StudyView> {
                       ],
                     ),
                   ),
-                if (!state.isFinished && state.reversed)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      context.pageHorizontalPadding,
-                      0,
-                      context.pageHorizontalPadding,
-                      8,
-                    ),
-                    child: Text(
-                      AppStrings.reversedReview,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: context.accentColor,
-                      ),
-                    ),
-                  ),
-                if (state.isFreeReview &&
-                    !state.isFinished &&
-                    state.boxNumber != null)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      context.pageHorizontalPadding,
-                      0,
-                      context.pageHorizontalPadding,
-                      8,
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          '${AppStrings.freeReview} — '
-                          '${AppStrings.box} ${state.boxNumber}',
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: context.accentColor,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          AppStrings.freeReviewStudyBadge,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: context.recallColors.mutedForeground,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.symmetric(
@@ -305,11 +251,14 @@ class _StudyViewState extends State<_StudyView> {
                     ),
                     child: Center(
                       child: state.isFinished
-                          ? _FinishedView(total: state.queue.length)
+                          ? _FinishedView(
+                              total: state.queue.length,
+                              knowCount: state.knowCount,
+                              dontKnowCount: state.dontKnowCount,
+                            )
                           : card != null
                           ? _FlashcardView(
                               text: questionText,
-                              box: card.box,
                               fontSize: context
                                   .watch<SettingsCubit>()
                                   .state
@@ -330,14 +279,12 @@ class _StudyViewState extends State<_StudyView> {
                       context.pageHorizontalPadding,
                       context.isShortHeight ? 16 : 28,
                     ),
-                    child: Column(
-                      children: [
-                        AnimatedOpacity(
-                          duration: const Duration(milliseconds: 200),
-                          opacity: state.isFlipped ? 1 : 0.3,
-                          child: IgnorePointer(
-                            ignoring: !state.isFlipped,
-                            child: Row(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: !state.isFlipped
+                          ? const SizedBox(height: 56)
+                          : Row(
+                              key: const ValueKey('rate-buttons'),
                               children: [
                                 Expanded(
                                   child: RateButton(
@@ -360,9 +307,6 @@ class _StudyViewState extends State<_StudyView> {
                                 ),
                               ],
                             ),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
               ],
@@ -409,6 +353,7 @@ class _StudyViewState extends State<_StudyView> {
       text,
       languageCode: language.code,
       interrupt: interrupt,
+      speechRate: context.read<SettingsCubit>().state.ttsSpeechRate,
     );
     return true;
   }
@@ -463,13 +408,11 @@ class _StudyViewState extends State<_StudyView> {
 class _FlashcardView extends StatelessWidget {
   const _FlashcardView({
     required this.text,
-    required this.box,
     required this.fontSize,
     required this.onTap,
   });
 
   final String text;
-  final int box;
   final double fontSize;
   final VoidCallback onTap;
 
@@ -509,21 +452,6 @@ class _FlashcardView extends StatelessWidget {
                 ),
                 child: Stack(
                   children: [
-                    PositionedDirectional(
-                      top: 0,
-                      start: 0,
-                      child: Text(
-                        box >= learnedBox
-                            ? AppStrings.learnedBadge
-                            : AppStrings.boxBadge(box),
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: colors.mutedForeground,
-                          height: 1,
-                        ),
-                      ),
-                    ),
                     Center(
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
@@ -557,57 +485,279 @@ class _FlashcardView extends StatelessWidget {
 }
 
 class _FinishedView extends StatelessWidget {
-  const _FinishedView({required this.total});
+  const _FinishedView({
+    required this.total,
+    required this.knowCount,
+    required this.dontKnowCount,
+  });
 
   final int total;
+  final int knowCount;
+  final int dontKnowCount;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.recallColors;
-    return Column(
+    final rated = knowCount + dontKnowCount;
+    final showResult = rated > 0;
+
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!showResult) ...[
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: context.accentColor.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.check,
+                size: 36,
+                color: context.accentColor,
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+          const Text(
+            AppStrings.allDone,
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            total == 0
+                ? AppStrings.noDueCards
+                : '$total ${AppStrings.reviewedCards}',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: colors.mutedForeground),
+          ),
+          if (showResult) ...[
+            const SizedBox(height: 28),
+            _SessionResultChart(
+              knowCount: knowCount,
+              dontKnowCount: dontKnowCount,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              AppStrings.sessionResultSummary(knowCount, dontKnowCount),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                height: 1.5,
+              ),
+            ),
+          ],
+          const SizedBox(height: 32),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            child: const Text(
+              AppStrings.backToDecks,
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SessionResultChart extends StatelessWidget {
+  const _SessionResultChart({
+    required this.knowCount,
+    required this.dontKnowCount,
+  });
+
+  final int knowCount;
+  final int dontKnowCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final rated = knowCount + dontKnowCount;
+    final accuracy = rated == 0 ? 0 : ((knowCount / rated) * 100).round();
+    final size = context.isShortHeight ? 148.0 : 176.0;
+
+    return Semantics(
+      label: AppStrings.sessionResultSummary(knowCount, dontKnowCount),
+      child: Column(
+        children: [
+          SizedBox(
+            width: size,
+            height: size,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.easeOutCubic,
+              builder: (context, progress, _) {
+                return CustomPaint(
+                  painter: _SessionDonutPainter(
+                    knowFraction: rated == 0 ? 0 : knowCount / rated,
+                    progress: progress,
+                    knowColor: AppColors.know,
+                    dontKnowColor: AppColors.dontKnow,
+                    trackColor: context.recallColors.muted,
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '$accuracy٪',
+                          style: TextStyle(
+                            fontSize: context.isShortHeight ? 26 : 30,
+                            fontWeight: FontWeight.bold,
+                            height: 1,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          AppStrings.sessionAccuracy,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: context.recallColors.mutedForeground,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _SessionLegendItem(
+                color: AppColors.know,
+                label: AppStrings.sessionCorrect,
+                count: knowCount,
+              ),
+              const SizedBox(width: 20),
+              _SessionLegendItem(
+                color: AppColors.dontKnow,
+                label: AppStrings.sessionWrong,
+                count: dontKnowCount,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SessionLegendItem extends StatelessWidget {
+  const _SessionLegendItem({
+    required this.color,
+    required this.label,
+    required this.count,
+  });
+
+  final Color color;
+  final String label;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: context.accentColor.withValues(alpha: 0.15),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.check,
-            size: 36,
-            color: context.accentColor,
-          ),
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        const SizedBox(height: 24),
-        const Text(
-          AppStrings.allDone,
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
+        const SizedBox(width: 8),
         Text(
-          total == 0
-              ? AppStrings.noDueCards
-              : '$total ${AppStrings.reviewedCards}',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: colors.mutedForeground),
-        ),
-        const SizedBox(height: 32),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(),
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-          child: const Text(
-            AppStrings.backToDecks,
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
+          '$count $label',
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         ),
       ],
     );
+  }
+}
+
+class _SessionDonutPainter extends CustomPainter {
+  const _SessionDonutPainter({
+    required this.knowFraction,
+    required this.progress,
+    required this.knowColor,
+    required this.dontKnowColor,
+    required this.trackColor,
+  });
+
+  final double knowFraction;
+  final double progress;
+  final Color knowColor;
+  final Color dontKnowColor;
+  final Color trackColor;
+
+  static const _strokeWidth = 18.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (math.min(size.width, size.height) - _strokeWidth) / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    const startAngle = -math.pi / 2;
+
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = _strokeWidth
+      ..strokeCap = StrokeCap.butt;
+
+    canvas.drawArc(rect, 0, math.pi * 2, false, trackPaint);
+
+    final totalSweep = math.pi * 2 * progress;
+    if (totalSweep <= 0) return;
+
+    final knowSweep = totalSweep * knowFraction;
+    final dontKnowSweep = totalSweep - knowSweep;
+
+    if (knowSweep > 0) {
+      canvas.drawArc(
+        rect,
+        startAngle,
+        knowSweep,
+        false,
+        Paint()
+          ..color = knowColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = _strokeWidth
+          ..strokeCap = StrokeCap.butt,
+      );
+    }
+    if (dontKnowSweep > 0) {
+      canvas.drawArc(
+        rect,
+        startAngle + knowSweep,
+        dontKnowSweep,
+        false,
+        Paint()
+          ..color = dontKnowColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = _strokeWidth
+          ..strokeCap = StrokeCap.butt,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SessionDonutPainter oldDelegate) {
+    return oldDelegate.knowFraction != knowFraction ||
+        oldDelegate.progress != progress ||
+        oldDelegate.knowColor != knowColor ||
+        oldDelegate.dontKnowColor != dontKnowColor ||
+        oldDelegate.trackColor != trackColor;
   }
 }

@@ -1,4 +1,5 @@
 import 'package:recall/domain/entities/flashcard.dart';
+import 'package:recall/domain/entities/leitner_box_config.dart';
 import 'package:recall/domain/repositories/flashcard_repository.dart';
 import 'package:recall/domain/usecases/leitner_logic.dart';
 
@@ -7,9 +8,15 @@ class GetDueCardsUseCase {
 
   final IFlashcardRepository _repository;
 
-  Future<List<Flashcard>> call(String deckId, {DateTime? now}) async {
+  Future<List<Flashcard>> call(
+    String deckId, {
+    DateTime? now,
+    LeitnerBoxConfig boxes = LeitnerBoxConfig.classic,
+  }) async {
     final reference = now ?? DateTime.now();
     final cards = await _repository.getCardsByDeckId(deckId);
-    return cards.where((card) => isCardDue(card, reference)).toList();
+    return cards
+        .where((card) => isCardDue(card, reference, boxes: boxes))
+        .toList();
   }
 }

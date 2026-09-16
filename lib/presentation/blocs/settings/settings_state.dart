@@ -11,6 +11,8 @@ class SettingsState extends Equatable {
     this.autoSpeak = false,
     this.autoSpeakSide = AutoSpeakSide.front,
     this.defaultReversed = false,
+    this.ttsSpeechRate = 0.45,
+    this.leitnerBoxes = LeitnerBoxConfig.classic,
   });
 
   final ThemeMode themeMode;
@@ -22,6 +24,8 @@ class SettingsState extends Equatable {
   final bool autoSpeak;
   final AutoSpeakSide autoSpeakSide;
   final bool defaultReversed;
+  final double ttsSpeechRate;
+  final LeitnerBoxConfig leitnerBoxes;
 
   SettingsState copyWith({
     ThemeMode? themeMode,
@@ -33,6 +37,8 @@ class SettingsState extends Equatable {
     bool? autoSpeak,
     AutoSpeakSide? autoSpeakSide,
     bool? defaultReversed,
+    double? ttsSpeechRate,
+    LeitnerBoxConfig? leitnerBoxes,
   }) {
     return SettingsState(
       themeMode: themeMode ?? this.themeMode,
@@ -44,6 +50,8 @@ class SettingsState extends Equatable {
       autoSpeak: autoSpeak ?? this.autoSpeak,
       autoSpeakSide: autoSpeakSide ?? this.autoSpeakSide,
       defaultReversed: defaultReversed ?? this.defaultReversed,
+      ttsSpeechRate: ttsSpeechRate ?? this.ttsSpeechRate,
+      leitnerBoxes: leitnerBoxes ?? this.leitnerBoxes,
     );
   }
 
@@ -58,5 +66,7 @@ class SettingsState extends Equatable {
     autoSpeak,
     autoSpeakSide,
     defaultReversed,
+    ttsSpeechRate,
+    leitnerBoxes,
   ];
 }

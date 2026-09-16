@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:recall/core/constants/leitner_constants.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/injection.dart';
@@ -55,17 +54,25 @@ class _StatisticsView extends StatelessWidget {
                     subtitle: AppStrings.boxDistributionHint,
                     child: _VerticalBarChart(
                       values: [
-                        for (var box = 1; box <= maxBox; box++)
+                        for (final box in (state.boxCounts.keys.toList()..sort()))
                           state.boxCounts[box] ?? 0,
                       ],
-                      labels: [for (var box = 1; box <= maxBox; box++) '$box'],
-                      colors: const [
+                      labels: [
+                        for (final box in (state.boxCounts.keys.toList()..sort()))
+                          '$box',
+                      ],
+                      colors: [
                         AppColors.rose,
                         AppColors.peach,
                         AppColors.lemon,
                         AppColors.mint,
                         AppColors.sky,
-                      ],
+                        AppColors.teal,
+                        AppColors.lilac,
+                        AppColors.sand,
+                      ]
+                          .take(state.boxCounts.length)
+                          .toList(),
                       semanticPrefix: AppStrings.box,
                     ),
                   ),

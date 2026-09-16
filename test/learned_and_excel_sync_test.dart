@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:recall/core/constants/leitner_constants.dart';
 import 'package:recall/domain/entities/excel_import.dart';
 import 'package:recall/domain/entities/flashcard.dart';
+import 'package:recall/domain/entities/leitner_box_config.dart';
 import 'package:recall/domain/entities/review_rating.dart';
 import 'package:recall/domain/repositories/excel_import_repository.dart';
 import 'package:recall/domain/repositories/flashcard_repository.dart';
@@ -29,6 +30,62 @@ void main() {
     final updated = useCase.applyReview(card, ReviewRating.know, now: now);
     expect(updated.box, learnedBox);
     expect(updated.isLearned, isTrue);
+  });
+
+  test('know in box 5 goes to extra house 6 when enabled', () {
+    const boxes = LeitnerBoxConfig(box6Enabled: true, box6Days: 21);
+    final useCase = ReviewCardUseCase(
+      _FakeFlashcardRepository(),
+      _FakeReviewHistoryRepository(),
+    );
+    final now = DateTime(2026, 8, 15);
+    final card = Flashcard(
+      id: '1',
+      deckId: 'd1',
+      front: 'hello',
+      back: 'سلام',
+      box: 5,
+      createdAt: now,
+    );
+
+    final updated = useCase.applyReview(
+      card,
+      ReviewRating.know,
+      now: now,
+      boxes: boxes,
+    );
+    expect(updated.box, 6);
+    expect(updated.isLearnedIn(boxes.maxBox), isFalse);
+  });
+
+  test('know in last extra house archives the card', () {
+    const boxes = LeitnerBoxConfig(
+      box6Enabled: true,
+      box7Enabled: true,
+      box8Enabled: true,
+    );
+    final useCase = ReviewCardUseCase(
+      _FakeFlashcardRepository(),
+      _FakeReviewHistoryRepository(),
+    );
+    final now = DateTime(2026, 8, 15);
+    final card = Flashcard(
+      id: '1',
+      deckId: 'd1',
+      front: 'hello',
+      back: 'سلام',
+      box: 8,
+      createdAt: now,
+    );
+
+    final updated = useCase.applyReview(
+      card,
+      ReviewRating.know,
+      now: now,
+      boxes: boxes,
+    );
+    expect(updated.box, 9);
+    expect(updated.isLearnedIn(boxes.maxBox), isTrue);
   });
 
   test('excel sync returns edited fronts to pending', () async {

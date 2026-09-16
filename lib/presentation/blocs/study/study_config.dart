@@ -1,3 +1,5 @@
+import 'package:recall/domain/entities/leitner_box_config.dart';
+
 class StudyConfig {
   const StudyConfig._({
     required this.spaceId,
@@ -8,6 +10,7 @@ class StudyConfig {
     this.dueDay,
     this.overdueOnly = false,
     this.randomOrder = false,
+    this.boxConfig = LeitnerBoxConfig.classic,
   });
 
   const StudyConfig.deck({
@@ -46,12 +49,14 @@ class StudyConfig {
   final DateTime? dueDay;
   final bool overdueOnly;
   final bool randomOrder;
+  final LeitnerBoxConfig boxConfig;
 
   bool get isBoxReview => boxNumber != null;
 
   StudyConfig withSessionOptions({
     required bool randomOrder,
     bool? reversed,
+    LeitnerBoxConfig? boxConfig,
   }) => StudyConfig._(
     spaceId: spaceId,
     deckId: deckId,
@@ -61,18 +66,24 @@ class StudyConfig {
     dueDay: dueDay,
     overdueOnly: overdueOnly,
     randomOrder: randomOrder,
+    boxConfig: boxConfig ?? this.boxConfig,
   );
 
   StudyConfig applySpaceSettings({
     required bool randomOrder,
     required bool defaultReversed,
+    LeitnerBoxConfig boxConfig = LeitnerBoxConfig.classic,
   }) {
     if (isBoxReview) {
-      return withSessionOptions(randomOrder: randomOrder);
+      return withSessionOptions(
+        randomOrder: randomOrder,
+        boxConfig: boxConfig,
+      );
     }
     return withSessionOptions(
       randomOrder: randomOrder,
       reversed: defaultReversed,
+      boxConfig: boxConfig,
     );
   }
 }

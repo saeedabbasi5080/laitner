@@ -34,6 +34,7 @@ import 'package:recall/domain/usecases/get_cards_by_box_usecase.dart';
 import 'package:recall/domain/usecases/get_due_cards_usecase.dart';
 import 'package:recall/domain/usecases/get_excel_imports_usecase.dart';
 import 'package:recall/domain/usecases/get_spaces_usecase.dart';
+import 'package:recall/domain/usecases/move_cards_to_deck_usecase.dart';
 import 'package:recall/domain/usecases/parse_and_save_excel_import_usecase.dart';
 import 'package:recall/domain/usecases/remove_excel_rows_usecase.dart';
 import 'package:recall/domain/usecases/review_card_usecase.dart';
@@ -96,7 +97,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => GetDeckUseCase(sl()));
   sl.registerLazySingleton(() => AddDeckUseCase(sl()));
   sl.registerLazySingleton(() => UpdateDeckUseCase(sl()));
-  sl.registerLazySingleton(() => DeleteDeckUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteDeckUseCase(sl(), sl()));
   sl.registerLazySingleton(() => GetCardsByDeckUseCase(sl()));
   sl.registerLazySingleton(() => GetDueCardsUseCase(sl()));
   sl.registerLazySingleton(() => GetAllDueCardsUseCase(sl()));
@@ -106,6 +107,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => AddCardUseCase(sl(), sl()));
   sl.registerLazySingleton(() => UpdateCardUseCase(sl()));
   sl.registerLazySingleton(() => DeleteCardUseCase(sl()));
+  sl.registerLazySingleton(() => MoveCardsToDeckUseCase(sl()));
   sl.registerLazySingleton(() => ParseAndSaveExcelImportUseCase(sl()));
   sl.registerLazySingleton(() => GetExcelImportsUseCase(sl()));
   sl.registerLazySingleton(() => GetExcelImportUseCase(sl()));
@@ -115,7 +117,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => UpdateExcelRowUseCase(sl()));
   sl.registerLazySingleton(() => DeleteExcelImportUseCase(sl()));
 
-  sl.registerLazySingleton(() => SettingsCubit(sl(), sl()));
+  sl.registerLazySingleton(() => SettingsCubit(sl(), sl(), sl()));
 
   sl.registerLazySingleton<TtsService>(() => TtsService(FlutterTts()));
 
@@ -129,6 +131,7 @@ Future<void> configureDependencies() async {
       updateSpaceUseCase: sl(),
       deleteSpaceUseCase: sl(),
       localDataSource: sl(),
+      spaceSettingsStore: sl(),
     ),
   );
 
@@ -143,11 +146,12 @@ Future<void> configureDependencies() async {
       deleteDeckUseCase: sl(),
       flashcardRepository: sl(),
       localDataSource: sl(),
+      spaceSettingsStore: sl(),
     ),
   );
 
   sl.registerFactoryParam<StatisticsCubit, String, void>(
-    (spaceId, _) => StatisticsCubit(sl(), sl(), spaceId),
+    (spaceId, _) => StatisticsCubit(sl(), sl(), spaceId, sl()),
   );
 
   sl.registerFactoryParam<StudyCubit, StudyConfig, void>(
@@ -167,20 +171,26 @@ Future<void> configureDependencies() async {
       deckId: deckId,
       spaceId: spaceId,
       addCardUseCase: sl(),
+      addDeckUseCase: sl(),
+      getDecksUseCase: sl(),
       localDataSource: sl(),
     ),
   );
 
-  sl.registerFactoryParam<DeckDetailCubit, String, void>(
-    (deckId, _) => DeckDetailCubit(
+  sl.registerFactoryParam<DeckDetailCubit, String, String>(
+    (deckId, spaceId) => DeckDetailCubit(
       deckId: deckId,
+      spaceId: spaceId,
       getDeckUseCase: sl(),
+      getDecksUseCase: sl(),
       getCardsByDeckUseCase: sl(),
       getDueCardsUseCase: sl(),
       updateDeckUseCase: sl(),
       deleteDeckUseCase: sl(),
       updateCardUseCase: sl(),
       deleteCardUseCase: sl(),
+      moveCardsToDeckUseCase: sl(),
+      spaceSettingsStore: sl(),
     ),
   );
 

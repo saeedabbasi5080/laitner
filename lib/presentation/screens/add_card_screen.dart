@@ -4,6 +4,8 @@ import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/add_card/add_card_cubit.dart';
+import 'package:recall/presentation/widgets/common_widgets.dart';
+import 'package:recall/presentation/widgets/deck_card_sheets.dart';
 import 'package:recall/presentation/widgets/soft_ui.dart';
 
 class AddCardScreen extends StatelessWidget {
@@ -19,7 +21,7 @@ class AddCardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => sl<AddCardCubit>(param1: deckId, param2: spaceId),
+      create: (_) => sl<AddCardCubit>(param1: deckId, param2: spaceId)..loadDecks(),
       child: const _AddCardView(),
     );
   }
@@ -67,7 +69,60 @@ class _AddCardViewState extends State<_AddCardView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const AppPageHeader(title: AppStrings.newCard),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
+                        const SectionLabel(AppStrings.selectDeck),
+                        const SizedBox(height: 8),
+                        if (state.decks.isEmpty)
+                          Text(
+                            AppStrings.noDecksForCard,
+                            style: TextStyle(color: colors.mutedForeground),
+                          )
+                        else
+                          DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            initialValue: state.decks.any((d) => d.id == state.deckId)
+                                ? state.deckId
+                                : state.decks.first.id,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: colors.muted,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            items: state.decks
+                                .map(
+                                  (deck) => DropdownMenuItem(
+                                    value: deck.id,
+                                    child: Text(deck.name),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (id) {
+                              if (id != null) {
+                                context.read<AddCardCubit>().selectDeck(id);
+                              }
+                            },
+                          ),
+                        Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: TextButton.icon(
+                            onPressed: () => showModalBottomSheet<void>(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => DeckFormSheet(
+                                onSubmit: (name, color) => context
+                                    .read<AddCardCubit>()
+                                    .createDeck(name, color),
+                              ),
+                            ),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text(AppStrings.createNewDeck),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                         SoftTextField(
                           controller: _frontController,
                           hint: AppStrings.frontHint,

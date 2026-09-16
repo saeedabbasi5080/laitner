@@ -22,6 +22,8 @@ class Flashcard extends Equatable {
 
   bool get isLearned => box >= learnedBox;
 
+  bool isLearnedIn(int maxLearningBox) => box > maxLearningBox;
+
   Flashcard copyWith({
     String? id,
     String? deckId,

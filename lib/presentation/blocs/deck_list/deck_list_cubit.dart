@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:recall/core/constants/leitner_constants.dart';
 import 'package:recall/data/datasources/local_data_source.dart';
+import 'package:recall/data/datasources/space_settings_store.dart';
 import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/domain/entities/deck_color.dart';
 import 'package:recall/domain/repositories/flashcard_repository.dart';
@@ -26,6 +26,7 @@ class DeckListCubit extends Cubit<DeckListState> {
     required DeleteDeckUseCase deleteDeckUseCase,
     required IFlashcardRepository flashcardRepository,
     required LocalDataSource localDataSource,
+    required SpaceSettingsStore spaceSettingsStore,
   })  : _spaceId = spaceId,
         _getDecksUseCase = getDecksUseCase,
         _getDueCardsUseCase = getDueCardsUseCase,
@@ -35,6 +36,7 @@ class DeckListCubit extends Cubit<DeckListState> {
         _deleteDeckUseCase = deleteDeckUseCase,
         _flashcardRepository = flashcardRepository,
         _localDataSource = localDataSource,
+        _spaceSettingsStore = spaceSettingsStore,
         super(const DeckListState());
 
   final String _spaceId;
@@ -46,6 +48,7 @@ class DeckListCubit extends Cubit<DeckListState> {
   final DeleteDeckUseCase _deleteDeckUseCase;
   final IFlashcardRepository _flashcardRepository;
   final LocalDataSource _localDataSource;
+  final SpaceSettingsStore _spaceSettingsStore;
 
   String get spaceId => _spaceId;
 
@@ -56,22 +59,26 @@ class DeckListCubit extends Cubit<DeckListState> {
       final dueCounts = <String, int>{};
       final totalCounts = <String, int>{};
 
+      final spaceSettings = await _spaceSettingsStore.load(_spaceId);
+      final boxes = spaceSettings.leitnerBoxes;
+
       for (final deck in decks) {
-        final due = await _getDueCardsUseCase(deck.id);
+        final due = await _getDueCardsUseCase(deck.id, boxes: boxes);
         final all = await _getCardsByDeckUseCase(deck.id);
         dueCounts[deck.id] = due.length;
         totalCounts[deck.id] = all.length;
       }
 
       final allCards = await _flashcardRepository.getCardsBySpaceId(_spaceId);
-      final boxCounts = {for (var i = 1; i <= maxBox; i++) i: 0};
+      final boxCounts = {for (var i = 1; i <= boxes.maxBox; i++) i: 0};
       for (final card in allCards) {
-        if (card.box >= 1 && card.box <= maxBox) {
+        if (card.box >= 1 && card.box <= boxes.maxBox) {
           boxCounts[card.box] = (boxCounts[card.box] ?? 0) + 1;
         }
       }
 
-      final learnedCount = allCards.where((card) => card.isLearned).length;
+      final learnedCount =
+          allCards.where((card) => card.isLearnedIn(boxes.maxBox)).length;
 
       final totalDue =
           dueCounts.values.fold<int>(0, (sum, count) => sum + count);
@@ -83,6 +90,7 @@ class DeckListCubit extends Cubit<DeckListState> {
           dueCounts: dueCounts,
           totalCounts: totalCounts,
           boxCounts: boxCounts,
+          maxBox: boxes.maxBox,
           totalDue: totalDue,
           learnedCount: learnedCount,
         ),
@@ -114,8 +122,8 @@ class DeckListCubit extends Cubit<DeckListState> {
     await load();
   }
 
-  Future<void> deleteDeck(String id) async {
-    await _deleteDeckUseCase(id);
+  Future<void> deleteDeck(String id, {String? transferToDeckId}) async {
+    await _deleteDeckUseCase(id, transferToDeckId: transferToDeckId);
     await load();
   }
 }

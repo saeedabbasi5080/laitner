@@ -6,16 +6,19 @@ import 'package:recall/core/theme/card_font_size.dart';
 import 'package:recall/core/tts/auto_speak_side.dart';
 import 'package:recall/core/tts/tts_language.dart';
 import 'package:recall/data/datasources/space_settings_store.dart';
+import 'package:recall/domain/entities/leitner_box_config.dart';
+import 'package:recall/domain/repositories/flashcard_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 part 'settings_state.dart';
 
 class SettingsCubit extends Cubit<SettingsState> {
-  SettingsCubit(this._prefs, this._spaceSettingsStore)
+  SettingsCubit(this._prefs, this._spaceSettingsStore, this._flashcards)
       : super(const SettingsState());
 
   final SharedPreferences _prefs;
   final SpaceSettingsStore _spaceSettingsStore;
+  final IFlashcardRepository _flashcards;
   static const _themeKey = 'theme_mode';
   static const _accentKey = 'app_accent';
 
@@ -52,6 +55,8 @@ class SettingsCubit extends Cubit<SettingsState> {
         autoSpeak: spaceSettings.autoSpeak,
         autoSpeakSide: spaceSettings.autoSpeakSide,
         defaultReversed: spaceSettings.defaultReversed,
+        ttsSpeechRate: spaceSettings.ttsSpeechRate,
+        leitnerBoxes: spaceSettings.leitnerBoxes,
       ),
     );
   }
@@ -111,6 +116,23 @@ class SettingsCubit extends Cubit<SettingsState> {
     emit(state.copyWith(defaultReversed: reversed));
   }
 
+  Future<void> setTtsSpeechRate(double rate) async {
+    final clamped = rate.clamp(0.2, 0.8).toDouble();
+    await _updateSpaceSettings(
+      (settings) => settings.copyWith(ttsSpeechRate: clamped),
+    );
+    emit(state.copyWith(ttsSpeechRate: clamped));
+  }
+
+  Future<void> setLeitnerBoxes(LeitnerBoxConfig boxes) async {
+    final previous = state.leitnerBoxes;
+    await _updateSpaceSettings(
+      (settings) => settings.copyWith(leitnerBoxes: boxes),
+    );
+    emit(state.copyWith(leitnerBoxes: boxes));
+    await _migrateBoxes(previous.maxBox, boxes.maxBox);
+  }
+
   Future<void> _updateSpaceSettings(
     SpaceSettingsData Function(SpaceSettingsData settings) update,
   ) async {
@@ -119,5 +141,22 @@ class SettingsCubit extends Cubit<SettingsState> {
 
     final current = await _spaceSettingsStore.load(spaceId);
     await _spaceSettingsStore.save(spaceId, update(current));
+  }
+
+  Future<void> _migrateBoxes(int oldMax, int newMax) async {
+    if (oldMax == newMax) return;
+    final spaceId = state.currentSpaceId;
+    if (spaceId == null) return;
+
+    final cards = await _flashcards.getCardsBySpaceId(spaceId);
+    for (final card in cards) {
+      if (oldMax < newMax) {
+        if (card.box > oldMax) {
+          await _flashcards.updateCard(card.copyWith(box: newMax + 1));
+        }
+      } else if (card.box > newMax) {
+        await _flashcards.updateCard(card.copyWith(box: newMax + 1));
+      }
+    }
   }
 }

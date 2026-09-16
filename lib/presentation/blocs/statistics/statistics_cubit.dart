@@ -1,7 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:recall/core/constants/leitner_constants.dart';
+import 'package:recall/data/datasources/space_settings_store.dart';
 import 'package:recall/domain/entities/flashcard.dart';
+import 'package:recall/domain/entities/leitner_box_config.dart';
 import 'package:recall/domain/entities/review_log.dart';
 import 'package:recall/domain/entities/review_rating.dart';
 import 'package:recall/domain/repositories/flashcard_repository.dart';
@@ -14,12 +15,14 @@ class StatisticsCubit extends Cubit<StatisticsState> {
   StatisticsCubit(
     this._flashcardRepository,
     this._reviewHistoryRepository,
-    this._spaceId,
-  ) : super(const StatisticsState());
+    this._spaceId, [
+    this._spaceSettingsStore,
+  ]) : super(const StatisticsState());
 
   final IFlashcardRepository _flashcardRepository;
   final IReviewHistoryRepository _reviewHistoryRepository;
   final String _spaceId;
+  final SpaceSettingsStore? _spaceSettingsStore;
 
   Future<void> load() async {
     emit(state.copyWith(status: StatisticsStatus.loading));
@@ -31,22 +34,25 @@ class StatisticsCubit extends Cubit<StatisticsState> {
       ]);
       final cards = (results[0] as List).cast<Flashcard>();
       final logs = (results[1] as List).cast<ReviewLog>();
+      final boxes = _spaceSettingsStore == null
+          ? LeitnerBoxConfig.classic
+          : (await _spaceSettingsStore!.load(_spaceId)).leitnerBoxes;
       final now = DateTime.now();
       final today = _day(now);
 
-      final boxCounts = {for (var box = 1; box <= maxBox; box++) box: 0};
+      final boxCounts = {for (var box = 1; box <= boxes.maxBox; box++) box: 0};
       final futureDueCounts = List<int>.filled(7, 0);
       var masteredCards = 0;
 
       for (final card in cards) {
         final box = card.box;
-        if (box >= 1 && box <= maxBox) {
+        if (box >= 1 && box <= boxes.maxBox) {
           boxCounts[box] = (boxCounts[box] ?? 0) + 1;
         }
-        if (card.isLearned) masteredCards++;
-        if (card.isLearned) continue;
+        if (card.isLearnedIn(boxes.maxBox)) masteredCards++;
+        if (card.isLearnedIn(boxes.maxBox)) continue;
 
-        final dueDay = _day(nextReviewDate(card));
+        final dueDay = _day(nextReviewDate(card, boxes: boxes));
         final daysAway = dueDay.difference(today).inDays;
         if (daysAway <= 0) {
           futureDueCounts[0]++;

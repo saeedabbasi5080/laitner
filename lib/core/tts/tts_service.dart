@@ -44,6 +44,7 @@ class TtsService {
     String text, {
     required String languageCode,
     bool interrupt = true,
+    double speechRate = 0.45,
   }) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
@@ -60,6 +61,7 @@ class TtsService {
       _currentLanguage = languageCode;
     }
 
+    await _tts.setSpeechRate(speechRate.clamp(0.2, 0.8));
     _speaking = true;
     await _tts.speak(trimmed);
   }

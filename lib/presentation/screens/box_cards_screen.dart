@@ -342,12 +342,10 @@ void showAddMenuSheet(
                 onTap: () {
                   Navigator.pop(ctx);
                   if (decks.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text(AppStrings.noDecksForCard)),
-                    );
+                    onAddDeck();
                     return;
                   }
-                  _showDeckPicker(context, decks, onAddCard);
+                  _showDeckPicker(context, decks, onAddCard, onAddDeck);
                 },
               ),
             ),
@@ -383,6 +381,7 @@ void _showDeckPicker(
   BuildContext context,
   List<Deck> decks,
   void Function(String deckId) onAddCard,
+  VoidCallback onAddDeck,
 ) {
   final colors = context.recallColors;
 
@@ -413,9 +412,23 @@ void _showDeckPicker(
             Flexible(
               child: ListView.separated(
                 shrinkWrap: true,
-                itemCount: decks.length,
+                itemCount: decks.length + 1,
                 separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (_, index) {
+                  if (index == decks.length) {
+                    return ListTile(
+                      leading: Icon(Icons.add, color: context.accentColor),
+                      title: const Text(AppStrings.createNewDeck),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      tileColor: colors.muted,
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        onAddDeck();
+                      },
+                    );
+                  }
                   final deck = decks[index];
                   final accent = AppColors.forDeck(deck.color);
                   return ListTile(

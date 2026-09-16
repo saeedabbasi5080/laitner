@@ -60,11 +60,18 @@ class StudyCubit extends Cubit<StudyState> {
           boxCards,
           dueDay: _config.dueDay,
           overdueOnly: _config.overdueOnly,
+          boxes: _config.boxConfig,
         );
       } else if (_config.allDue) {
-        cards = await _getAllDueCardsUseCase(_config.spaceId);
+        cards = await _getAllDueCardsUseCase(
+          _config.spaceId,
+          boxes: _config.boxConfig,
+        );
       } else {
-        cards = await _getDueCardsUseCase(_config.deckId!);
+        cards = await _getDueCardsUseCase(
+          _config.deckId!,
+          boxes: _config.boxConfig,
+        );
       }
 
       final queue = List<Flashcard>.of(cards);
@@ -81,6 +88,8 @@ class StudyCubit extends Cubit<StudyState> {
           isAllDue: _config.allDue,
           boxNumber: _config.boxNumber,
           reversed: _config.reversed,
+          knowCount: 0,
+          dontKnowCount: 0,
         ),
       );
     } catch (e) {
@@ -125,10 +134,26 @@ class StudyCubit extends Cubit<StudyState> {
           card,
           rating,
           spaceId: _config.spaceId,
+          boxes: _config.boxConfig,
         );
       }
+      final remaining = [
+        for (var i = state.currentIndex + 1; i < state.queue.length; i++)
+          if (state.queue[i].id != card.id) state.queue[i],
+      ];
+      final reviewedPrefix = [
+        ...state.queue.take(state.currentIndex),
+        card,
+      ];
       emit(
-        state.copyWith(currentIndex: state.currentIndex + 1, isFlipped: false),
+        state.copyWith(
+          queue: [...reviewedPrefix, ...remaining],
+          currentIndex: reviewedPrefix.length,
+          isFlipped: false,
+          knowCount: state.knowCount + (rating == ReviewRating.know ? 1 : 0),
+          dontKnowCount:
+              state.dontKnowCount + (rating == ReviewRating.dontKnow ? 1 : 0),
+        ),
       );
     } finally {
       _isRating = false;

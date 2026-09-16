@@ -55,6 +55,41 @@ void main() {
     await cubit.close();
   });
 
+  test('finished session reports know and dontKnow counts', () async {
+    final now = DateTime.now();
+    final cards = [
+      _card('c1', box: 2, reviewedAt: now),
+      _card('c2', box: 2, reviewedAt: now),
+      _card('c3', box: 2, reviewedAt: now),
+    ];
+    final repository = _FakeFlashcardRepository(cards);
+    final history = _FakeReviewHistoryRepository();
+    final cubit = StudyCubit(
+      config: StudyConfig.byBox(2, spaceId: _spaceId),
+      getDueCardsUseCase: GetDueCardsUseCase(repository),
+      getAllDueCardsUseCase: GetAllDueCardsUseCase(repository),
+      getCardsByBoxUseCase: GetCardsByBoxUseCase(repository),
+      reviewCardUseCase: ReviewCardUseCase(repository, history),
+      updateCardUseCase: UpdateCardUseCase(repository),
+      deleteCardUseCase: DeleteCardUseCase(repository),
+    );
+
+    await cubit.load();
+    cubit.flipCard();
+    await cubit.rateCard(ReviewRating.know);
+    cubit.flipCard();
+    await cubit.rateCard(ReviewRating.dontKnow);
+    cubit.flipCard();
+    await cubit.rateCard(ReviewRating.know);
+
+    expect(cubit.state.isFinished, isTrue);
+    expect(cubit.state.knowCount, 2);
+    expect(cubit.state.dontKnowCount, 1);
+    expect(cubit.state.ratedCount, 3);
+
+    await cubit.close();
+  });
+
   test('cards are grouped into overdue, today, and future due days', () {
     final today = DateTime(2026, 7, 15);
     final cards = [
@@ -113,6 +148,37 @@ void main() {
 
     await cubit.close();
   });
+
+  test('editing a due card then rating it advances once and leaves the session',
+      () async {
+    final reviewedAt = DateTime.now().subtract(const Duration(days: 3));
+    final card = _card('edit-1', box: 1, reviewedAt: reviewedAt);
+    final repository = _FakeFlashcardRepository([card]);
+    final history = _FakeReviewHistoryRepository();
+    final cubit = StudyCubit(
+      config: const StudyConfig.deck(spaceId: _spaceId, deckId: 'd1'),
+      getDueCardsUseCase: GetDueCardsUseCase(repository),
+      getAllDueCardsUseCase: GetAllDueCardsUseCase(repository),
+      getCardsByBoxUseCase: GetCardsByBoxUseCase(repository),
+      reviewCardUseCase: ReviewCardUseCase(repository, history),
+      updateCardUseCase: UpdateCardUseCase(repository),
+      deleteCardUseCase: DeleteCardUseCase(repository),
+    );
+
+    await cubit.load();
+    expect(cubit.state.queue, hasLength(1));
+    cubit.flipCard();
+    await cubit.updateCurrentCard('updated', 'به‌روز');
+    expect(cubit.state.currentIndex, 0);
+    expect(cubit.state.currentCard!.front, 'updated');
+    await cubit.rateCard(ReviewRating.know);
+
+    expect(cubit.state.isFinished, isTrue);
+    expect(repository.cards.single.box, 2);
+    expect(repository.cards.single.front, 'updated');
+
+    await cubit.close();
+  });
 }
 
 Flashcard _card(String id, {required int box, required DateTime reviewedAt}) {
@@ -156,6 +222,8 @@ class _FakeFlashcardRepository implements IFlashcardRepository {
   @override
   Future<Flashcard> updateCard(Flashcard card) async {
     updateCount++;
+    final index = cards.indexWhere((c) => c.id == card.id);
+    if (index >= 0) cards[index] = card;
     return card;
   }
 

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
+import 'package:recall/domain/entities/deck.dart';
+import 'package:recall/domain/entities/learning_space.dart';
 
 class CircleIconButton extends StatelessWidget {
   const CircleIconButton({
@@ -288,6 +291,169 @@ Future<bool?> showConfirmDialog(
             foregroundColor: Colors.white,
           ),
           child: Text(confirmLabel),
+        ),
+      ],
+    ),
+  );
+}
+
+class DeleteDeckDecision {
+  const DeleteDeckDecision.deleteCards()
+      : deleteCards = true,
+        transferToDeckId = null;
+
+  const DeleteDeckDecision.transfer(this.transferToDeckId)
+      : deleteCards = false;
+
+  final bool deleteCards;
+  final String? transferToDeckId;
+}
+
+Future<DeleteDeckDecision?> showDeleteDeckFlow(
+  BuildContext context, {
+  required List<Deck> otherDecks,
+}) async {
+  final choice = await showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: const Text(AppStrings.deleteDeck),
+      content: const Text(AppStrings.deleteDeckQuestion),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text(AppStrings.cancel),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, 'transfer'),
+          child: const Text(AppStrings.transferDeckCards),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, 'delete'),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.danger,
+            foregroundColor: Colors.white,
+          ),
+          child: const Text(AppStrings.deleteDeckWithCards),
+        ),
+      ],
+    ),
+  );
+  if (!context.mounted || choice == null) return null;
+
+  if (choice == 'delete') {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: AppStrings.deleteDeckWithCards,
+      message: AppStrings.deleteDeckWithCardsWarning,
+    );
+    if (confirmed == true) {
+      return const DeleteDeckDecision.deleteCards();
+    }
+    return null;
+  }
+
+  if (otherDecks.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(AppStrings.noOtherDecksToTransfer)),
+    );
+    return null;
+  }
+
+  final targetId = await showPickDeckDialog(
+    context,
+    decks: otherDecks,
+    title: AppStrings.selectTargetDeck,
+  );
+  if (targetId == null) return null;
+  return DeleteDeckDecision.transfer(targetId);
+}
+
+Future<String?> showPickDeckDialog(
+  BuildContext context, {
+  required List<Deck> decks,
+  String title = AppStrings.selectTargetDeck,
+}) {
+  return showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: Text(title),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: decks.length,
+          itemBuilder: (context, index) {
+            final deck = decks[index];
+            return ListTile(
+              leading: Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: AppColors.forDeck(deck.color),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              title: Text(deck.name),
+              onTap: () => Navigator.pop(ctx, deck.id),
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text(AppStrings.cancel),
+        ),
+      ],
+    ),
+  );
+}
+
+Future<LearningSpace?> showPickSpaceDialog(
+  BuildContext context, {
+  required List<LearningSpace> spaces,
+  required String title,
+  String Function(LearningSpace space)? subtitle,
+}) {
+  if (spaces.isEmpty) return Future<LearningSpace?>.value();
+  if (spaces.length == 1) return Future<LearningSpace?>.value(spaces.first);
+
+  return showDialog<LearningSpace>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: Text(title),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: spaces.length,
+          itemBuilder: (context, index) {
+            final space = spaces[index];
+            final detail = subtitle?.call(space);
+            return ListTile(
+              leading: Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: AppColors.forDeck(space.color),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              title: Text(space.name),
+              subtitle: detail == null ? null : Text(detail),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.pop(ctx, space),
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text(AppStrings.cancel),
         ),
       ],
     ),

@@ -26,7 +26,7 @@ class DeckDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => sl<DeckDetailCubit>(param1: deckId)..load(),
+      create: (_) => sl<DeckDetailCubit>(param1: deckId, param2: spaceId)..load(),
       child: _DeckDetailView(deckId: deckId, spaceId: spaceId),
     );
   }
@@ -67,151 +67,206 @@ class _DeckDetailView extends StatelessWidget {
 
         return Scaffold(
           body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppPageHeader(
-                    title: deck.name,
-                    subtitle: AppStrings.deck,
-                    actions: [
-                      CircleIconButton(
-                        icon: Icons.edit_outlined,
-                        onPressed: () => _editDeck(context, deck),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: StatCard(
-                          label: AppStrings.cards,
-                          value: state.cards.length,
+            child: CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AppPageHeader(
+                          title: deck.name,
+                          subtitle: AppStrings.deck,
+                          actions: [
+                            CircleIconButton(
+                              icon: Icons.edit_outlined,
+                              onPressed: () => _editDeck(context, deck),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: StatCard(
-                          label: AppStrings.due,
-                          value: state.dueCount,
-                          accent: true,
+                        const SizedBox(height: 32),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: StatCard(
+                                label: AppStrings.cards,
+                                value: state.cards.length,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: StatCard(
+                                label: AppStrings.due,
+                                value: state.dueCount,
+                                accent: true,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () => _openStudy(context),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: accent,
-                        foregroundColor: null,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      ),
-                      child: Text(
-                        state.dueCount > 0
-                            ? '${AppStrings.studyNCards} ${state.dueCount} ${AppStrings.cards}'
-                            : AppStrings.studyDeck,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _openAddCard(context),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text(AppStrings.addCard),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => ExcelLibraryScreen(
-                            spaceId: spaceId,
-                            initialDeckId: deckId,
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: () => _openStudy(context),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: accent,
+                              foregroundColor: null,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            ),
+                            child: Text(
+                              state.dueCount > 0
+                                  ? '${AppStrings.studyNCards} ${state.dueCount} ${AppStrings.cards}'
+                                  : AppStrings.studyDeck,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ),
-                      ).then((_) {
-                        if (context.mounted) {
-                          context.read<DeckDetailCubit>().load();
-                        }
-                      }),
-                      icon: const Icon(Icons.table_chart_outlined, size: 18),
-                      label: const Text(AppStrings.excelLibrary),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      AppStrings.excelLibrarySubtitle,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: colors.mutedForeground,
-                      ),
-                    ),
-                  ),
-                  if (state.cards.isNotEmpty) ...[
-                    const SizedBox(height: 32),
-                    const SectionLabel(AppStrings.allCards),
-                    const SizedBox(height: 12),
-                    ...state.cards.map(
-                      (card) => _CardListItem(
-                        front: card.front,
-                        back: card.back,
-                        box: card.box,
-                        accent: accent,
-                        onEdit: () => showModalBottomSheet<void>(
-                          context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (_) => CardFormSheet(
-                            front: card.front,
-                            back: card.back,
-                            onSubmit: (f, b) => context
-                                .read<DeckDetailCubit>()
-                                .updateCard(card.id, f, b),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _openAddCard(context),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text(AppStrings.addCard),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            ),
                           ),
                         ),
-                        onDelete: () async {
-                          final ok = await showConfirmDialog(
-                            context,
-                            title: AppStrings.deleteCard,
-                            message: AppStrings.deleteCardConfirm,
-                          );
-                          if (ok == true && context.mounted) {
-                            await context
-                                .read<DeckDetailCubit>()
-                                .deleteCard(card.id);
-                          }
-                        },
-                      ),
+                        if (state.cards.isNotEmpty &&
+                            state.otherDecks.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => _transferCards(
+                                context,
+                                state.cards.map((c) => c.id).toList(),
+                                state.otherDecks,
+                              ),
+                              icon: const Icon(
+                                Icons.drive_file_move_outline,
+                                size: 18,
+                              ),
+                              label: const Text(AppStrings.transferAllCards),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => Navigator.of(context)
+                                .push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => ExcelLibraryScreen(
+                                  spaceId: spaceId,
+                                  initialDeckId: deckId,
+                                ),
+                              ),
+                            )
+                                .then((_) {
+                              if (context.mounted) {
+                                context.read<DeckDetailCubit>().load();
+                              }
+                            }),
+                            icon: const Icon(
+                              Icons.table_chart_outlined,
+                              size: 18,
+                            ),
+                            label: const Text(AppStrings.excelLibrary),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            AppStrings.excelLibrarySubtitle,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: colors.mutedForeground,
+                            ),
+                          ),
+                        ),
+                        if (state.cards.isNotEmpty) ...[
+                          const SizedBox(height: 32),
+                          const SectionLabel(AppStrings.allCards),
+                          const SizedBox(height: 12),
+                        ],
+                      ],
                     ),
-                  ],
-                ],
-              ),
+                  ),
+                ),
+                if (state.cards.isNotEmpty)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    sliver: SliverList.builder(
+                      itemCount: state.cards.length,
+                      itemBuilder: (context, index) {
+                        final card = state.cards[index];
+                        return _CardListItem(
+                          front: card.front,
+                          back: card.back,
+                          box: card.box,
+                          accent: accent,
+                          onEdit: () => showModalBottomSheet<void>(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => CardFormSheet(
+                              front: card.front,
+                              back: card.back,
+                              onSubmit: (f, b) => context
+                                  .read<DeckDetailCubit>()
+                                  .updateCard(card.id, f, b),
+                            ),
+                          ),
+                          onDelete: () async {
+                            final ok = await showConfirmDialog(
+                              context,
+                              title: AppStrings.deleteCard,
+                              message: AppStrings.deleteCardConfirm,
+                            );
+                            if (ok == true && context.mounted) {
+                              await context
+                                  .read<DeckDetailCubit>()
+                                  .deleteCard(card.id);
+                            }
+                          },
+                          onTransfer: state.otherDecks.isEmpty
+                              ? null
+                              : () => _transferCards(
+                                    context,
+                                    [card.id],
+                                    state.otherDecks,
+                                  ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
             ),
           ),
         );
@@ -230,13 +285,14 @@ class _DeckDetailView extends StatelessWidget {
             .read<DeckDetailCubit>()
             .updateDeck(deck.copyWith(name: name.trim(), color: color)),
         onDelete: () async {
-          final ok = await showConfirmDialog(
+          final decision = await showDeleteDeckFlow(
             context,
-            title: AppStrings.deleteDeck,
-            message: AppStrings.deleteDeckConfirm,
+            otherDecks: context.read<DeckDetailCubit>().state.otherDecks,
           );
-          if (ok == true && context.mounted) {
-            await context.read<DeckDetailCubit>().deleteDeck();
+          if (decision != null && context.mounted) {
+            await context.read<DeckDetailCubit>().deleteDeck(
+              transferToDeckId: decision.transferToDeckId,
+            );
             if (context.mounted) Navigator.of(context).pop();
           }
         },
@@ -265,6 +321,25 @@ class _DeckDetailView extends StatelessWidget {
       if (context.mounted) context.read<DeckDetailCubit>().load();
     });
   }
+
+  Future<void> _transferCards(
+    BuildContext context,
+    List<String> cardIds,
+    List<Deck> otherDecks,
+  ) async {
+    final targetId = await showPickDeckDialog(
+      context,
+      decks: otherDecks,
+      title: AppStrings.selectTargetDeck,
+    );
+    if (targetId == null || !context.mounted) return;
+    await context.read<DeckDetailCubit>().moveCards(cardIds, targetId);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.cardsTransferred)),
+      );
+    }
+  }
 }
 
 class _CardListItem extends StatelessWidget {
@@ -275,6 +350,7 @@ class _CardListItem extends StatelessWidget {
     required this.accent,
     required this.onEdit,
     required this.onDelete,
+    this.onTransfer,
   });
 
   final String front;
@@ -283,58 +359,70 @@ class _CardListItem extends StatelessWidget {
   final Color accent;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback? onTransfer;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.recallColors;
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
         color: colors.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.border),
-        boxShadow: AppShadows.card(context),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(front, style: const TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 4),
-                Text(
-                  back,
-                  style: TextStyle(fontSize: 13, color: colors.mutedForeground),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      front,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      back,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: colors.mutedForeground,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${AppStrings.box} $box',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: accent,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  '${AppStrings.box} $box',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: accent,
-                    fontWeight: FontWeight.w500,
-                  ),
+              ),
+              IconButton(
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_outlined, size: 18),
+              ),
+              if (onTransfer != null)
+                IconButton(
+                  tooltip: AppStrings.transferCard,
+                  onPressed: onTransfer,
+                  icon: const Icon(Icons.drive_file_move_outline, size: 18),
                 ),
-              ],
-            ),
+              IconButton(
+                onPressed: onDelete,
+                icon: Icon(
+                  Icons.delete_outline,
+                  size: 18,
+                  color: AppColors.danger,
+                ),
+              ),
+            ],
           ),
-          IconButton(
-            onPressed: onEdit,
-            icon: const Icon(Icons.edit_outlined, size: 18),
-          ),
-          IconButton(
-            onPressed: onDelete,
-            icon: Icon(
-              Icons.delete_outline,
-              size: 18,
-              color: AppColors.danger,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

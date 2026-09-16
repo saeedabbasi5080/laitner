@@ -6,6 +6,8 @@ import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/core/theme/card_font_size.dart';
 import 'package:recall/core/tts/auto_speak_side.dart';
 import 'package:recall/core/tts/tts_language.dart';
+import 'package:recall/core/constants/leitner_constants.dart';
+import 'package:recall/domain/entities/leitner_box_config.dart';
 import 'package:recall/core/utils/responsive.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/settings/settings_cubit.dart';
@@ -150,7 +152,7 @@ class _SettingsView extends StatelessWidget {
                         leading: Icon(Icons.volume_up_outlined, color: accent),
                         title: const Text(AppStrings.ttsLanguage),
                         subtitle: Text(state.ttsLanguage.label),
-                        trailing: const Icon(Icons.chevron_left),
+                        trailing: const Icon(Icons.chevron_right),
                         onTap: () =>
                             _selectTtsLanguage(context, state.ttsLanguage),
                       ),
@@ -173,7 +175,7 @@ class _SettingsView extends StatelessWidget {
                               : AppStrings.autoSpeakFront,
                         ),
                         value: state.autoSpeakSide == AutoSpeakSide.back,
-                        onChanged: state.autoSpeak
+                          onChanged: state.autoSpeak
                             ? (back) => context
                                   .read<SettingsCubit>()
                                   .setAutoSpeakSide(
@@ -182,6 +184,13 @@ class _SettingsView extends StatelessWidget {
                                         : AutoSpeakSide.front,
                                   )
                             : null,
+                      ),
+                      Divider(height: 1, color: colors.border),
+                      _TtsSpeechRatePicker(
+                        value: state.ttsSpeechRate,
+                        onChanged: (rate) => context
+                            .read<SettingsCubit>()
+                            .setTtsSpeechRate(rate),
                       ),
                     ],
                   ),
@@ -238,6 +247,18 @@ class _SettingsView extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(height: 32),
+                const SectionLabel(AppStrings.extraLeitnerHouses),
+                const SizedBox(height: 8),
+                Text(
+                  AppStrings.extraLeitnerHousesHint,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colors.mutedForeground,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _ExtraHousesSettings(config: state.leitnerBoxes),
                 const SizedBox(height: 32),
                 ],
                 const SectionLabel(AppStrings.about),
@@ -557,6 +578,194 @@ class _AccentSwatch extends StatelessWidget {
               ? Icon(Icons.check, size: 20, color: checkColor)
               : null,
         ),
+      ),
+    );
+  }
+}
+
+class _TtsSpeechRatePicker extends StatelessWidget {
+  const _TtsSpeechRatePicker({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final double value;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.recallColors;
+    final accent = context.accentColor;
+    final label = value <= 0.35
+        ? AppStrings.ttsSpeechRateSlow
+        : value >= 0.6
+            ? AppStrings.ttsSpeechRateFast
+            : AppStrings.ttsSpeechRateNormal;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.speed, color: accent),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  AppStrings.ttsSpeechRate,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+              ),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: accent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            AppStrings.ttsSpeechRateHint,
+            style: TextStyle(fontSize: 12, color: colors.mutedForeground),
+          ),
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Slider(
+              value: value.clamp(0.2, 0.8),
+              min: 0.2,
+              max: 0.8,
+              divisions: 12,
+              onChanged: onChanged,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExtraHousesSettings extends StatelessWidget {
+  const _ExtraHousesSettings({required this.config});
+
+  final LeitnerBoxConfig config;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.recallColors;
+    final cubit = context.read<SettingsCubit>();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colors.border),
+        boxShadow: AppShadows.card(context),
+      ),
+      child: Column(
+        children: [
+          _ExtraHouseTile(
+            box: 6,
+            enabled: config.box6Enabled,
+            days: config.box6Days,
+            onEnabled: (v) => cubit.setLeitnerBoxes(
+              config.copyWith(box6Enabled: v),
+            ),
+            onDays: (days) => cubit.setLeitnerBoxes(
+              config.copyWith(box6Days: days),
+            ),
+          ),
+          Divider(height: 1, color: colors.border),
+          _ExtraHouseTile(
+            box: 7,
+            enabled: config.box7Enabled,
+            days: config.box7Days,
+            enabledLocked: !config.box6Enabled,
+            onEnabled: (v) => cubit.setLeitnerBoxes(
+              config.copyWith(box7Enabled: v),
+            ),
+            onDays: (days) => cubit.setLeitnerBoxes(
+              config.copyWith(box7Days: days),
+            ),
+          ),
+          Divider(height: 1, color: colors.border),
+          _ExtraHouseTile(
+            box: 8,
+            enabled: config.box8Enabled,
+            days: config.box8Days,
+            enabledLocked: !config.box7Enabled,
+            onEnabled: (v) => cubit.setLeitnerBoxes(
+              config.copyWith(box8Enabled: v),
+            ),
+            onDays: (days) => cubit.setLeitnerBoxes(
+              config.copyWith(box8Days: days),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExtraHouseTile extends StatelessWidget {
+  const _ExtraHouseTile({
+    required this.box,
+    required this.enabled,
+    required this.days,
+    required this.onEnabled,
+    required this.onDays,
+    this.enabledLocked = false,
+  });
+
+  final int box;
+  final bool enabled;
+  final int days;
+  final bool enabledLocked;
+  final ValueChanged<bool> onEnabled;
+  final ValueChanged<int> onDays;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.recallColors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+      child: Column(
+        children: [
+          SwitchListTile(
+            title: Text(AppStrings.extraHouseLabel(box)),
+            subtitle: enabled
+                ? Text(AppStrings.extraHouseDays(days))
+                : null,
+            value: enabled,
+            onChanged: enabledLocked ? null : onEnabled,
+          ),
+          if (enabled)
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Slider(
+                value: days.toDouble().clamp(
+                  extraBoxMinDays.toDouble(),
+                  extraBoxMaxDays.toDouble(),
+                ),
+                min: extraBoxMinDays.toDouble(),
+                max: extraBoxMaxDays.toDouble(),
+                divisions: extraBoxMaxDays - extraBoxMinDays,
+                label: AppStrings.extraHouseDays(days),
+                onChanged: (v) => onDays(v.round()),
+              ),
+            ),
+          if (enabledLocked)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                AppStrings.extraHouseRequiresPrevious,
+                style: TextStyle(fontSize: 11, color: colors.mutedForeground),
+              ),
+            ),
+        ],
       ),
     );
   }

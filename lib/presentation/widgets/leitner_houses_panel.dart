@@ -12,12 +12,14 @@ class LeitnerHousesPanel extends StatelessWidget {
     required this.learnedCount,
     required this.onBoxTap,
     required this.onLearnedTap,
+    this.maxBox = classicMaxBox,
   });
 
   final Map<int, int> boxCounts;
   final int learnedCount;
   final ValueChanged<int> onBoxTap;
   final VoidCallback onLearnedTap;
+  final int maxBox;
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +86,7 @@ class LeitnerHousesPanel extends StatelessWidget {
                     child: _HouseColumn(
                       box: box,
                       count: boxCounts[box] ?? 0,
+                      houseCount: maxBox,
                       onTap: () => onBoxTap(box),
                     ),
                   ),
@@ -92,7 +95,7 @@ class LeitnerHousesPanel extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        const _ProgressLegend(),
+        _ProgressLegend(houseCount: maxBox),
         const SizedBox(height: 18),
         _LearnedBanner(
           count: learnedCount,
@@ -107,11 +110,13 @@ class _HouseColumn extends StatelessWidget {
   const _HouseColumn({
     required this.box,
     required this.count,
+    required this.houseCount,
     required this.onTap,
   });
 
   final int box;
   final int count;
+  final int houseCount;
   final VoidCallback onTap;
 
   @override
@@ -119,7 +124,7 @@ class _HouseColumn extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final highlighted = box == 1;
-    final depth = (box - 1) / (maxBox - 1);
+    final depth = houseCount <= 1 ? 0.0 : (box - 1) / (houseCount - 1);
     final fill = highlighted
         ? scheme.primary
         : Color.alphaBlend(
@@ -222,7 +227,9 @@ class _HouseColumn extends StatelessWidget {
 }
 
 class _ProgressLegend extends StatelessWidget {
-  const _ProgressLegend();
+  const _ProgressLegend({required this.houseCount});
+
+  final int houseCount;
 
   @override
   Widget build(BuildContext context) {
@@ -236,7 +243,10 @@ class _ProgressLegend extends StatelessWidget {
           child: SizedBox(
             height: 18,
             child: CustomPaint(
-              painter: _ProgressLinePainter(color: scheme.primary),
+              painter: _ProgressLinePainter(
+                color: scheme.primary,
+                nodes: houseCount,
+              ),
               size: Size.infinite,
             ),
           ),
@@ -273,9 +283,10 @@ class _ProgressLegend extends StatelessWidget {
 }
 
 class _ProgressLinePainter extends CustomPainter {
-  _ProgressLinePainter({required this.color});
+  _ProgressLinePainter({required this.color, required this.nodes});
 
   final Color color;
+  final int nodes;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -285,9 +296,9 @@ class _ProgressLinePainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
     final y = size.height / 2;
     canvas.drawLine(Offset(8, y), Offset(size.width - 8, y), paint);
-    const nodes = maxBox;
-    for (var i = 0; i < nodes; i++) {
-      final t = nodes == 1 ? 0.0 : i / (nodes - 1);
+    final count = nodes < 1 ? 1 : nodes;
+    for (var i = 0; i < count; i++) {
+      final t = count == 1 ? 0.0 : i / (count - 1);
       final x = size.width - 8 - t * (size.width - 16);
       canvas.drawCircle(Offset(x, y), 4, paint);
     }
@@ -301,7 +312,7 @@ class _ProgressLinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ProgressLinePainter oldDelegate) =>
-      oldDelegate.color != color;
+      oldDelegate.color != color || oldDelegate.nodes != nodes;
 }
 
 class _LearnedBanner extends StatelessWidget {
@@ -420,7 +431,7 @@ class _LearnedBanner extends StatelessWidget {
                               ),
                               const SizedBox(width: 2),
                               Icon(
-                                Icons.chevron_left,
+                                Icons.chevron_right,
                                 size: 16,
                                 color: scheme.primary,
                               ),

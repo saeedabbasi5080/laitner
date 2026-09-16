@@ -7,6 +7,7 @@ class DeckDetailState extends Equatable {
     this.status = DeckDetailStatus.initial,
     this.deck,
     this.cards = const [],
+    this.otherDecks = const [],
     this.dueCount = 0,
     this.errorMessage,
   });
@@ -14,6 +15,7 @@ class DeckDetailState extends Equatable {
   final DeckDetailStatus status;
   final Deck? deck;
   final List<Flashcard> cards;
+  final List<Deck> otherDecks;
   final int dueCount;
   final String? errorMessage;
 
@@ -21,6 +23,7 @@ class DeckDetailState extends Equatable {
     DeckDetailStatus? status,
     Deck? deck,
     List<Flashcard>? cards,
+    List<Deck>? otherDecks,
     int? dueCount,
     String? errorMessage,
   }) {
@@ -28,11 +31,13 @@ class DeckDetailState extends Equatable {
       status: status ?? this.status,
       deck: deck ?? this.deck,
       cards: cards ?? this.cards,
+      otherDecks: otherDecks ?? this.otherDecks,
       dueCount: dueCount ?? this.dueCount,
       errorMessage: errorMessage,
     );
   }
 
   @override
-  List<Object?> get props => [status, deck, cards, dueCount, errorMessage];
+  List<Object?> get props =>
+      [status, deck, cards, otherDecks, dueCount, errorMessage];
 }

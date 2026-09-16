@@ -1,4 +1,5 @@
 import 'package:recall/domain/entities/flashcard.dart';
+import 'package:recall/domain/entities/leitner_box_config.dart';
 import 'package:recall/domain/usecases/leitner_logic.dart';
 
 class DueDayBucket {
@@ -14,17 +15,25 @@ class DueDayBucket {
 DateTime calendarDay(DateTime value) =>
     DateTime(value.year, value.month, value.day);
 
-DateTime cardDueDay(Flashcard card, {DateTime? now}) {
-  return calendarDay(nextReviewDate(card));
+DateTime cardDueDay(
+  Flashcard card, {
+  DateTime? now,
+  LeitnerBoxConfig boxes = LeitnerBoxConfig.classic,
+}) {
+  return calendarDay(nextReviewDate(card, boxes: boxes));
 }
 
-List<DueDayBucket> groupCardsByDueDay(List<Flashcard> cards, {DateTime? now}) {
+List<DueDayBucket> groupCardsByDueDay(
+  List<Flashcard> cards, {
+  DateTime? now,
+  LeitnerBoxConfig boxes = LeitnerBoxConfig.classic,
+}) {
   final today = calendarDay(now ?? DateTime.now());
   final overdue = <Flashcard>[];
   final byDay = <DateTime, List<Flashcard>>{};
 
   for (final card in cards) {
-    final dueDay = cardDueDay(card, now: today);
+    final dueDay = cardDueDay(card, now: today, boxes: boxes);
     if (dueDay.isBefore(today)) {
       overdue.add(card);
     } else {
@@ -44,19 +53,22 @@ List<Flashcard> filterCardsByDueDay(
   DateTime? dueDay,
   bool overdueOnly = false,
   DateTime? now,
+  LeitnerBoxConfig boxes = LeitnerBoxConfig.classic,
 }) {
   if (dueDay == null && !overdueOnly) return List.of(cards);
 
   final today = calendarDay(now ?? DateTime.now());
   if (overdueOnly) {
     return cards
-        .where((card) => cardDueDay(card, now: today).isBefore(today))
+        .where(
+          (card) => cardDueDay(card, now: today, boxes: boxes).isBefore(today),
+        )
         .toList();
   }
 
   final selectedDay = calendarDay(dueDay!);
   return cards
-      .where((card) => cardDueDay(card, now: today) == selectedDay)
+      .where((card) => cardDueDay(card, now: today, boxes: boxes) == selectedDay)
       .toList();
 }
 

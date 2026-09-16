@@ -146,6 +146,7 @@ class _DeckListViewState extends State<_DeckListView>
                       const SizedBox(height: 24),
                       LeitnerHousesPanel(
                         boxCounts: state.boxCounts,
+                        maxBox: state.maxBox,
                         learnedCount: state.learnedCount,
                         onBoxTap: (box) => _openBoxCards(context, box),
                         onLearnedTap: () => _openLearnedCards(context),
@@ -160,6 +161,7 @@ class _DeckListViewState extends State<_DeckListView>
                                 context,
                                 spaceId: widget.space.id,
                                 boxCounts: state.boxCounts,
+                                maxBox: state.maxBox,
                               );
                               if (context.mounted) {
                                 context.read<DeckListCubit>().load();
@@ -279,13 +281,21 @@ class _DeckListViewState extends State<_DeckListView>
           deck.copyWith(name: name.trim(), color: color),
         ),
         onDelete: () async {
-          final confirmed = await showConfirmDialog(
+          final others = context
+              .read<DeckListCubit>()
+              .state
+              .decks
+              .where((d) => d.id != deck.id)
+              .toList();
+          final decision = await showDeleteDeckFlow(
             context,
-            title: AppStrings.deleteDeck,
-            message: AppStrings.deleteDeckConfirm,
+            otherDecks: others,
           );
-          if (confirmed == true && context.mounted) {
-            await context.read<DeckListCubit>().deleteDeck(deck.id);
+          if (decision != null && context.mounted) {
+            await context.read<DeckListCubit>().deleteDeck(
+              deck.id,
+              transferToDeckId: decision.transferToDeckId,
+            );
           }
         },
       ),

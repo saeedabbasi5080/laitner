@@ -43,6 +43,25 @@ abstract final class AppStrings {
   static const deleteDeck = 'حذف دسته';
   static const deleteDeckConfirm =
       'آیا از حذف این دسته و تمام کارت‌های آن مطمئن هستید؟';
+  static const deleteDeckQuestion =
+      'کارت‌های این دسته چه شوند؟';
+  static const deleteDeckWithCards = 'حذف دسته و همه کارت‌ها';
+  static const deleteDeckWithCardsHint =
+      'دسته و تمام کارت‌های داخل آن برای همیشه حذف می‌شوند و قابل بازگردانی نیستند.';
+  static const deleteDeckWithCardsWarning =
+      'این کار قابل برگشت نیست. همه کارت‌های این دسته، پیشرفت مرور و جایگاه‌شان در خانه‌های لایتنر حذف می‌شود.';
+  static const transferDeckCards = 'انتقال کارت‌ها به دسته دیگر';
+  static const transferDeckCardsHint =
+      'کارت‌ها حفظ می‌شوند و فقط به دسته دیگری در همین فضا منتقل می‌شوند.';
+  static const selectTargetDeck = 'انتخاب دسته مقصد';
+  static const noOtherDecksToTransfer =
+      'دسته دیگری در این فضا نیست. اول یک دسته جدید بسازید یا کارت‌ها را حذف کنید.';
+  static const cardsTransferred = 'کارت‌ها منتقل شدند';
+  static const transferCards = 'انتقال کارت‌ها';
+  static const transferCard = 'انتقال به دسته دیگر';
+  static const transferAllCards = 'انتقال همه کارت‌ها';
+  static const transferSelectedCards = 'انتقال انتخاب‌شده‌ها';
+  static const createNewDeck = 'ساخت دسته جدید';
   static const cancel = 'انصراف';
   static const delete = 'حذف';
   static const importExcel = 'ورود از اکسل';
@@ -82,7 +101,8 @@ abstract final class AppStrings {
   static const excelAdded = 'اضافه‌شده';
   static const deleteExcelFile = 'حذف فایل اکسل';
   static const deleteExcelFileConfirm =
-      'آیا از حذف این فایل و تمام لغات ذخیره‌شده آن مطمئن هستید؟';
+      'فقط فایل ذخیره‌شده و فهرست لغات همین فایل از کتابخانه اکسل حذف می‌شود. '
+      'کارت‌هایی که قبلاً به دسته‌ها اضافه شده‌اند در برنامه می‌مانند و حذف نمی‌شوند.';
   static const excelImportNotFound = 'فایل اکسل پیدا نشد.';
   static const selectAllPending = 'انتخاب همه';
   static const clearSelection = 'پاک کردن انتخاب';
@@ -91,6 +111,9 @@ abstract final class AppStrings {
   static const excelAllAdded = 'همه لغات این فایل قبلاً اضافه شده‌اند.';
   static const excelAlreadyAdded = 'قبلاً اضافه شده';
   static const editExcelRow = 'ویرایش لغت';
+  static const excelDeleteSelected = 'حذف انتخاب‌شده‌ها';
+  static const excelDeleteSelectedConfirm =
+      'لغات انتخاب‌شده فقط از این فایل اکسل حذف می‌شوند و اگر قبلاً به دسته اضافه شده باشند در برنامه می‌مانند.';
   static const deleteExcelRow = 'حذف لغت';
   static const deleteExcelRowConfirm = 'آیا از حذف این لغت از فایل اکسل مطمئن هستید؟';
   static const learnedCards = 'کارت‌های یادگرفته‌شده';
@@ -114,6 +137,11 @@ abstract final class AppStrings {
   static const allDone = 'تمام شد!';
   static const noDueCards = 'الان کارتی برای مرور وجود ندارد.';
   static const reviewedCards = 'کارت امروز مرور شد';
+  static String sessionResultSummary(int correct, int wrong) =>
+      '$correct تا درست گفتی و $wrong تا اشتباه بود.';
+  static const sessionCorrect = 'درست';
+  static const sessionWrong = 'اشتباه';
+  static const sessionAccuracy = 'دقت';
   static const backToSpaces = 'بازگشت به فضاها';
   static const backToDecks = 'بازگشت به دسته‌ها';
   static const reviewSettingsSpaceHint =
@@ -148,7 +176,20 @@ abstract final class AppStrings {
   static const boxOverview = 'کارت‌ها در هر خانه';
   static const leitnerHousesTitle = 'کارت‌ها در خانه‌های لایتنر';
   static const leitnerHousesHint =
-      'مرور کلی کارت‌های شما در ۵ خانه لایتنر';
+      'مرور کلی کارت‌های شما در خانه‌های لایتنر';
+  static const extraLeitnerHouses = 'خانه‌های اضافی لایتنر';
+  static const extraLeitnerHousesHint =
+      'خانه‌های ۱ تا ۵ همیشه فعال‌اند. خانه‌های ۶ تا ۸ را برای همین فضا می‌توانید روشن کنید و فاصله مرورشان را بین ۱۶ تا ۶۰ روز بگذارید.';
+  static String extraHouseLabel(int box) => 'خانه $box';
+  static String extraHouseDays(int days) => '$days روز';
+  static const extraHouseRequiresPrevious =
+      'برای فعال‌کردن این خانه، خانه قبلی را روشن کنید.';
+  static const ttsSpeechRate = 'سرعت تلفظ';
+  static const ttsSpeechRateHint =
+      'سرعت خواندن کلمات با موتور تبدیل متن به گفتار دستگاه';
+  static const ttsSpeechRateSlow = 'آهسته';
+  static const ttsSpeechRateNormal = 'عادی';
+  static const ttsSpeechRateFast = 'سریع';
   static const newestCards = 'جدیدترین';
   static const currentlyLearning = 'در حال یادگیری';
   static const stableMastered = 'پایدار و مسلط';
@@ -287,6 +328,12 @@ abstract final class AppStrings {
   static const navStats = 'آمار';
   static const navMore = 'بیشتر';
   static const navAddCard = 'کارت‌ها';
+  static const pickSpaceForReview = 'کدام فضا را مرور می‌کنی؟';
+  static const pickSpaceForStats = 'آمار کدام فضا را می‌بینی؟';
+  static const pickSpaceForCards = 'کارت‌های کدام فضا را می‌بینی؟';
+  static const reviewedCardsHome = 'کارت‌های بازبینی شده';
+  static const spaceCardsEmpty = 'هنوز کارتی در این فضا نیست.';
+  static const createSpaceFirst = 'اول یک فضای یادگیری بساز.';
 
   // عمومی
   static const error = 'خطایی رخ داد';

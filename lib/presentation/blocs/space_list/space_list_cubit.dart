@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/constants/space_constants.dart';
 import 'package:recall/data/datasources/local_data_source.dart';
+import 'package:recall/data/datasources/space_settings_store.dart';
 import 'package:recall/domain/entities/deck_color.dart';
 import 'package:recall/domain/entities/learning_space.dart';
 import 'package:recall/domain/usecases/add_space_usecase.dart';
@@ -22,6 +23,7 @@ class SpaceListCubit extends Cubit<SpaceListState> {
     required UpdateSpaceUseCase updateSpaceUseCase,
     required DeleteSpaceUseCase deleteSpaceUseCase,
     required LocalDataSource localDataSource,
+    required SpaceSettingsStore spaceSettingsStore,
   })  : _getSpacesUseCase = getSpacesUseCase,
         _getDecksUseCase = getDecksUseCase,
         _getDueCardsUseCase = getDueCardsUseCase,
@@ -30,6 +32,7 @@ class SpaceListCubit extends Cubit<SpaceListState> {
         _updateSpaceUseCase = updateSpaceUseCase,
         _deleteSpaceUseCase = deleteSpaceUseCase,
         _localDataSource = localDataSource,
+        _spaceSettingsStore = spaceSettingsStore,
         super(const SpaceListState());
 
   final GetSpacesUseCase _getSpacesUseCase;
@@ -40,6 +43,7 @@ class SpaceListCubit extends Cubit<SpaceListState> {
   final UpdateSpaceUseCase _updateSpaceUseCase;
   final DeleteSpaceUseCase _deleteSpaceUseCase;
   final LocalDataSource _localDataSource;
+  final SpaceSettingsStore _spaceSettingsStore;
 
   Future<void> load() async {
     emit(state.copyWith(status: SpaceListStatus.loading));
@@ -49,11 +53,12 @@ class SpaceListCubit extends Cubit<SpaceListState> {
 
       for (final space in spaces) {
         final decks = await _getDecksUseCase(space.id);
+        final boxes = (await _spaceSettingsStore.load(space.id)).leitnerBoxes;
         var totalCards = 0;
         var dueCards = 0;
         for (final deck in decks) {
           totalCards += (await _getCardsByDeckUseCase(deck.id)).length;
-          dueCards += (await _getDueCardsUseCase(deck.id)).length;
+          dueCards += (await _getDueCardsUseCase(deck.id, boxes: boxes)).length;
         }
         summaries.add(
           SpaceSummary(

@@ -2,6 +2,7 @@ import 'package:recall/core/theme/app_accent.dart';
 import 'package:recall/core/theme/card_font_size.dart';
 import 'package:recall/core/tts/auto_speak_side.dart';
 import 'package:recall/core/tts/tts_language.dart';
+import 'package:recall/domain/entities/leitner_box_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -12,6 +13,7 @@ class SpaceSettingsStore {
   final SharedPreferences _prefs;
 
   static const _prefix = 'recall_space_settings_';
+  static const defaultTtsSpeechRate = 0.45;
 
   String _key(String spaceId) => '$_prefix$spaceId';
 
@@ -31,6 +33,12 @@ class SpaceSettingsStore {
         accent: json['accent'] == null
             ? null
             : AppAccent.fromName(json['accent'] as String),
+        ttsSpeechRate:
+            (json['ttsSpeechRate'] as num?)?.toDouble() ??
+            defaultTtsSpeechRate,
+        leitnerBoxes: LeitnerBoxConfig.fromJson(
+          json['leitnerBoxes'] as Map<String, dynamic>?,
+        ),
       );
     } on FormatException {
       return const SpaceSettingsData();
@@ -50,6 +58,8 @@ class SpaceSettingsStore {
         'autoSpeakSide': data.autoSpeakSide.name,
         'defaultReversed': data.defaultReversed,
         if (data.accent != null) 'accent': data.accent!.name,
+        'ttsSpeechRate': data.ttsSpeechRate,
+        'leitnerBoxes': data.leitnerBoxes.toJson(),
       }),
     );
   }
@@ -68,6 +78,8 @@ class SpaceSettingsData {
     this.autoSpeakSide = AutoSpeakSide.front,
     this.defaultReversed = false,
     this.accent,
+    this.ttsSpeechRate = SpaceSettingsStore.defaultTtsSpeechRate,
+    this.leitnerBoxes = LeitnerBoxConfig.classic,
   });
 
   final TtsLanguage ttsLanguage;
@@ -77,6 +89,8 @@ class SpaceSettingsData {
   final AutoSpeakSide autoSpeakSide;
   final bool defaultReversed;
   final AppAccent? accent;
+  final double ttsSpeechRate;
+  final LeitnerBoxConfig leitnerBoxes;
 
   SpaceSettingsData copyWith({
     TtsLanguage? ttsLanguage,
@@ -86,6 +100,8 @@ class SpaceSettingsData {
     AutoSpeakSide? autoSpeakSide,
     bool? defaultReversed,
     AppAccent? accent,
+    double? ttsSpeechRate,
+    LeitnerBoxConfig? leitnerBoxes,
   }) {
     return SpaceSettingsData(
       ttsLanguage: ttsLanguage ?? this.ttsLanguage,
@@ -95,6 +111,8 @@ class SpaceSettingsData {
       autoSpeakSide: autoSpeakSide ?? this.autoSpeakSide,
       defaultReversed: defaultReversed ?? this.defaultReversed,
       accent: accent ?? this.accent,
+      ttsSpeechRate: ttsSpeechRate ?? this.ttsSpeechRate,
+      leitnerBoxes: leitnerBoxes ?? this.leitnerBoxes,
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/localization/app_strings.dart';
@@ -31,6 +33,7 @@ class ExcelImportDetailScreen extends StatelessWidget {
         getImportUseCase: sl(),
         getDecksUseCase: sl(),
         addSelectedRowsUseCase: sl(),
+        addDeckUseCase: sl(),
         syncAddedStatusUseCase: sl(),
         removeExcelRowsUseCase: sl(),
         updateExcelRowUseCase: sl(),
@@ -98,8 +101,18 @@ class _ExcelImportDetailView extends StatelessWidget {
                       const SectionLabel(AppStrings.selectDeck),
                       const SizedBox(height: 8),
                       _DeckDropdown(state: state),
-                      const SizedBox(height: 16),
-                      Row(
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: TextButton.icon(
+                          onPressed: () => _createDeck(context),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text(AppStrings.createNewDeck),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
                         children: [
                           TextButton(
                             onPressed: state.import!.pendingCount > 0
@@ -117,7 +130,16 @@ class _ExcelImportDetailView extends StatelessWidget {
                                 : null,
                             child: const Text(AppStrings.clearSelection),
                           ),
+                          if (state.selectedRowIds.isNotEmpty)
+                            TextButton(
+                              onPressed: () => _deleteSelected(context),
+                              child: Text(
+                                AppStrings.excelDeleteSelected,
+                                style: TextStyle(color: AppColors.danger),
+                              ),
+                            ),
                         ],
+                        ),
                       ),
                       Align(
                         alignment: AlignmentDirectional.centerStart,
@@ -237,34 +259,17 @@ class _ExcelImportDetailView extends StatelessWidget {
     final result = await cubit.addSelectedToDeck();
     if (!context.mounted) return;
 
-    showDialog(
+    showDialog<void>(
       context: context,
       barrierDismissible: true,
       builder: (ctx) {
-        Future.delayed(const Duration(seconds: 3), () {
-          if (ctx.mounted) {
-            Navigator.of(ctx).pop();
-          }
-        });
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
+        return _AutoDismissAlert(
+          title: AppStrings.importSuccess,
+          content: AppStrings.excelImportResultSummary(
+            result.totalProcessed,
+            result.addedCount,
+            result.skippedDuplicates,
           ),
-          title: const Text(AppStrings.importSuccess),
-          content: Text(
-            AppStrings.excelImportResultSummary(
-              result.totalProcessed,
-              result.addedCount,
-              result.skippedDuplicates,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text(AppStrings.close),
-            ),
-          ],
         );
       },
     );
@@ -310,6 +315,101 @@ class _ExcelImportDetailView extends StatelessWidget {
     if (confirmed == true && context.mounted) {
       await context.read<ExcelImportDetailCubit>().removeRows([row.id]);
     }
+  }
+
+  Future<void> _deleteSelected(BuildContext context) async {
+    final cubit = context.read<ExcelImportDetailCubit>();
+    final ids = cubit.state.selectedRowIds.toList();
+    if (ids.isEmpty) return;
+    final confirmed = await showConfirmDialog(
+      context,
+      title: AppStrings.excelDeleteSelected,
+      message: AppStrings.excelDeleteSelectedConfirm,
+    );
+    if (confirmed == true && context.mounted) {
+      await cubit.removeRows(ids);
+    }
+  }
+
+  Future<void> _createDeck(BuildContext context) async {
+    final cubit = context.read<ExcelImportDetailCubit>();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DeckFormSheet(
+        onSubmit: (name, color) => cubit.createDeck(name, color),
+      ),
+    );
+  }
+}
+
+class _AutoDismissAlert extends StatefulWidget {
+  const _AutoDismissAlert({
+    required this.title,
+    required this.content,
+    this.duration = const Duration(seconds: 3),
+  });
+
+  final String title;
+  final String content;
+  final Duration duration;
+
+  @override
+  State<_AutoDismissAlert> createState() => _AutoDismissAlertState();
+}
+
+class _AutoDismissAlertState extends State<_AutoDismissAlert> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(widget.duration, _dismissIfOpen);
+  }
+
+  void _dismissIfOpen() {
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
+
+  void _dismissNow() {
+    _timer?.cancel();
+    _timer = null;
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        _timer?.cancel();
+        _timer = null;
+      },
+      child: AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        title: Text(widget.title),
+        content: Text(
+          widget.content,
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          TextButton(
+            onPressed: _dismissNow,
+            child: const Text(AppStrings.close),
+          ),
+        ],
+      ),
+    );
   }
 }
 

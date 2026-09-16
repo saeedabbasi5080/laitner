@@ -28,6 +28,7 @@ Future<void> showFreeReviewSheet(
   BuildContext context, {
   required String spaceId,
   required Map<int, int> boxCounts,
+  int maxBox = classicMaxBox,
   int? initialBox,
 }) async {
   final colors = context.recallColors;

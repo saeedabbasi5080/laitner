@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:recall/core/constants/space_constants.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
+import 'package:recall/domain/entities/learning_space.dart';
+import 'package:recall/domain/usecases/add_space_usecase.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/settings/settings_cubit.dart';
 import 'package:recall/presentation/blocs/space_list/space_list_cubit.dart';
 import 'package:recall/presentation/blocs/space_list/space_list_state.dart';
+import 'package:recall/presentation/blocs/study/study_config.dart';
 import 'package:recall/presentation/screens/deck_list_screen.dart';
 import 'package:recall/presentation/screens/settings_screen.dart';
+import 'package:recall/presentation/screens/space_cards_screen.dart';
 import 'package:recall/presentation/screens/space_list_screen.dart';
 import 'package:recall/presentation/screens/statistics_screen.dart';
-import 'package:recall/presentation/widgets/space_form_sheet.dart';
+import 'package:recall/presentation/screens/study_screen.dart';
+import 'package:recall/presentation/widgets/common_widgets.dart';
 import 'package:recall/presentation/widgets/soft_ui.dart';
-import 'package:recall/core/constants/space_constants.dart';
-import 'package:recall/domain/usecases/add_space_usecase.dart';
+import 'package:recall/presentation/widgets/space_form_sheet.dart';
 
 class AppShellScreen extends StatefulWidget {
   const AppShellScreen({super.key});
@@ -24,6 +29,7 @@ class AppShellScreen extends StatefulWidget {
 
 class _AppShellScreenState extends State<AppShellScreen> {
   int _currentIndex = 0;
+  String? _statsSpaceId;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +43,7 @@ class _AppShellScreenState extends State<AppShellScreen> {
               children: [
                 _HomeTab(spaceState: spaceState),
                 const SpaceListScreen(),
-                _StatsTab(spaceState: spaceState),
+                _StatsTab(spaceId: _statsSpaceId),
                 const _MoreTab(),
               ],
             ),
@@ -76,9 +82,9 @@ class _AppShellScreenState extends State<AppShellScreen> {
                 onTap: () => setState(() => _currentIndex = 0),
               ),
               _NavItem(
-                icon: Icons.style_outlined,
-                activeIcon: Icons.style_rounded,
-                label: AppStrings.navAddCard,
+                icon: Icons.layers_outlined,
+                activeIcon: Icons.layers_rounded,
+                label: AppStrings.navSpaces,
                 isActive: _currentIndex == 1,
                 onTap: () => setState(() => _currentIndex = 1),
               ),
@@ -90,7 +96,7 @@ class _AppShellScreenState extends State<AppShellScreen> {
                 activeIcon: Icons.bar_chart_rounded,
                 label: AppStrings.navStats,
                 isActive: _currentIndex == 2,
-                onTap: () => setState(() => _currentIndex = 2),
+                onTap: () => _openStats(context, spaceState),
               ),
               _NavItem(
                 icon: Icons.more_horiz,
@@ -106,45 +112,32 @@ class _AppShellScreenState extends State<AppShellScreen> {
     );
   }
 
-  void _handleAdd(BuildContext context, SpaceListState spaceState) {
-    if (spaceState.summaries.isEmpty) {
-      _showNewSpace(context);
-    } else {
-      final firstSpace = spaceState.summaries.first.space;
-      sl<SettingsCubit>().loadForSpace(firstSpace.id);
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => DeckListScreen(space: firstSpace),
-        ),
-      ).then((_) {
-        if (context.mounted) context.read<SpaceListCubit>().load();
-      });
-    }
+  Future<void> _openStats(
+    BuildContext context,
+    SpaceListState spaceState,
+  ) async {
+    final space = await pickSpaceOrNotify(
+      context,
+      spaceState,
+      AppStrings.pickSpaceForStats,
+    );
+    if (space == null || !mounted) return;
+    setState(() {
+      _statsSpaceId = space.id;
+      _currentIndex = 2;
+    });
   }
 
-  void _showNewSpace(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => SpaceFormSheet(
-        onSubmit: (name, color) async {
-          try {
-            await context.read<SpaceListCubit>().addSpace(name, color);
-          } on SpaceLimitReachedException {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    AppStrings.spaceLimitReached(maxLearningSpaces),
-                  ),
-                ),
-              );
-            }
-          }
-        },
-      ),
-    );
+  void _handleAdd(BuildContext context, SpaceListState spaceState) {
+    if (!spaceState.canAddSpace) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppStrings.spaceLimitReached(maxLearningSpaces)),
+        ),
+      );
+      return;
+    }
+    _showNewSpace(context);
   }
 }
 
@@ -155,9 +148,11 @@ class _HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (spaceState.summaries.isEmpty) {
+    if (spaceState.status == SpaceListStatus.loading &&
+        spaceState.summaries.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
+
     final totalDue = spaceState.summaries.fold<int>(
       0,
       (sum, s) => sum + s.dueCards,
@@ -174,24 +169,23 @@ class _HomeTab extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AppPageHeader(
+            const AppPageHeader(
               title: AppStrings.appTitle,
               showBack: false,
-              onMenu: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const SettingsScreen(),
-                ),
-              ),
             ),
             const SizedBox(height: 8),
             BlobHeroCard(
               label: AppStrings.dueToday,
               value: totalDue,
+              onTap: () => _startTodayReview(context),
             ),
             const SizedBox(height: 20),
             _SummaryChips(spaceState: spaceState, totalCards: totalCards),
             const SizedBox(height: 16),
-            _RecentReviewRow(spaceState: spaceState),
+            _RecentReviewRow(
+              spaceState: spaceState,
+              onTap: () => _openReviewedCards(context),
+            ),
             const SizedBox(height: 24),
             Text(
               AppStrings.yourSpaces,
@@ -202,33 +196,89 @@ class _HomeTab extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            ...spaceState.summaries.map(
-              (summary) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: SoftListTile(
-                  title: summary.space.name,
-                  subtitle: '${summary.totalCards} ${AppStrings.cards}',
-                  icon: Icons.auto_stories_outlined,
-                  accent: AppColors.forDeck(summary.space.color),
-                  onTap: () async {
-                    await sl<SettingsCubit>().loadForSpace(summary.space.id);
-                    if (!context.mounted) return;
-                    await Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => DeckListScreen(space: summary.space),
-                      ),
-                    );
-                    if (context.mounted) {
-                      context.read<SpaceListCubit>().load();
-                    }
-                  },
+            if (spaceState.summaries.isEmpty)
+              Text(
+                AppStrings.emptySpaces,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: context.recallColors.mutedForeground,
+                  height: 1.5,
+                ),
+              )
+            else
+              ...spaceState.summaries.map(
+                (summary) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SoftListTile(
+                    title: summary.space.name,
+                    subtitle: '${summary.totalCards} ${AppStrings.cards}',
+                    icon: Icons.auto_stories_outlined,
+                    accent: AppColors.forDeck(summary.space.color),
+                    onTap: () async {
+                      await sl<SettingsCubit>().loadForSpace(summary.space.id);
+                      if (!context.mounted) return;
+                      await Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => DeckListScreen(space: summary.space),
+                        ),
+                      );
+                      if (context.mounted) {
+                        context.read<SpaceListCubit>().load();
+                      }
+                    },
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _startTodayReview(BuildContext context) async {
+    final space = await pickSpaceOrNotify(
+      context,
+      spaceState,
+      AppStrings.pickSpaceForReview,
+      subtitle: (selected) {
+        final summary = spaceState.summaries.firstWhere(
+          (item) => item.space.id == selected.id,
+        );
+        return '${summary.dueCards} ${AppStrings.due}';
+      },
+    );
+    if (space == null || !context.mounted) return;
+    await sl<SettingsCubit>().loadForSpace(space.id);
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => StudyScreen(
+          config: StudyConfig.allDue(spaceId: space.id),
+        ),
+      ),
+    );
+    if (context.mounted) context.read<SpaceListCubit>().load();
+  }
+
+  Future<void> _openReviewedCards(BuildContext context) async {
+    final space = await pickSpaceOrNotify(
+      context,
+      spaceState,
+      AppStrings.pickSpaceForCards,
+      subtitle: (selected) {
+        final summary = spaceState.summaries.firstWhere(
+          (item) => item.space.id == selected.id,
+        );
+        return '${summary.totalCards} ${AppStrings.cards}';
+      },
+    );
+    if (space == null || !context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SpaceCardsScreen(spaceId: space.id),
+      ),
+    );
+    if (context.mounted) context.read<SpaceListCubit>().load();
   }
 }
 
@@ -282,9 +332,13 @@ class _SummaryChips extends StatelessWidget {
 }
 
 class _RecentReviewRow extends StatelessWidget {
-  const _RecentReviewRow({required this.spaceState});
+  const _RecentReviewRow({
+    required this.spaceState,
+    required this.onTap,
+  });
 
   final SpaceListState spaceState;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -296,6 +350,7 @@ class _RecentReviewRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return SoftCard(
+      onTap: onTap,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
@@ -311,7 +366,7 @@ class _RecentReviewRow extends StatelessWidget {
           ),
           const Spacer(),
           Text(
-            'کارت‌های بازبینی شده',
+            AppStrings.reviewedCardsHome,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -319,7 +374,7 @@ class _RecentReviewRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          Icon(Icons.chevron_left, color: colors.mutedForeground),
+          Icon(Icons.chevron_right, color: colors.mutedForeground),
         ],
       ),
     );
@@ -327,16 +382,30 @@ class _RecentReviewRow extends StatelessWidget {
 }
 
 class _StatsTab extends StatelessWidget {
-  const _StatsTab({required this.spaceState});
+  const _StatsTab({this.spaceId});
 
-  final SpaceListState spaceState;
+  final String? spaceId;
 
   @override
   Widget build(BuildContext context) {
-    if (spaceState.summaries.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+    if (spaceId == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            AppStrings.pickSpaceForStats,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: context.recallColors.mutedForeground,
+            ),
+          ),
+        ),
+      );
     }
-    return StatisticsScreen(spaceId: spaceState.summaries.first.space.id);
+    return StatisticsScreen(
+      key: ValueKey(spaceId),
+      spaceId: spaceId!,
+    );
   }
 }
 
@@ -425,4 +494,49 @@ class _CenterAddButton extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<LearningSpace?> pickSpaceOrNotify(
+  BuildContext context,
+  SpaceListState spaceState,
+  String title, {
+  String Function(LearningSpace space)? subtitle,
+}) async {
+  if (spaceState.summaries.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(AppStrings.createSpaceFirst)),
+    );
+    return null;
+  }
+  return showPickSpaceDialog(
+    context,
+    spaces: [for (final summary in spaceState.summaries) summary.space],
+    title: title,
+    subtitle: subtitle,
+  );
+}
+
+void _showNewSpace(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => SpaceFormSheet(
+      onSubmit: (name, color) async {
+        try {
+          await context.read<SpaceListCubit>().addSpace(name, color);
+        } on SpaceLimitReachedException {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  AppStrings.spaceLimitReached(maxLearningSpaces),
+                ),
+              ),
+            );
+          }
+        }
+      },
+    ),
+  );
 }

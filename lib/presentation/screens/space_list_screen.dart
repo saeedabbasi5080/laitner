@@ -11,6 +11,7 @@ import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/space_list/space_list_cubit.dart';
 import 'package:recall/presentation/blocs/space_list/space_list_state.dart';
 import 'package:recall/presentation/screens/deck_list_screen.dart';
+import 'package:recall/presentation/screens/settings_screen.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 import 'package:recall/presentation/widgets/soft_ui.dart';
 import 'package:recall/presentation/widgets/space_form_sheet.dart';
@@ -53,6 +54,11 @@ class _SpaceListView extends StatelessWidget {
                   AppPageHeader(
                     title: AppStrings.yourSpaces,
                     showBack: false,
+                    onMenu: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const SettingsScreen(),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(

@@ -2,7 +2,9 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/data/datasources/local_data_source.dart';
 import 'package:recall/domain/entities/deck.dart';
+import 'package:recall/domain/entities/deck_color.dart';
 import 'package:recall/domain/entities/excel_import.dart';
+import 'package:recall/domain/usecases/add_deck_usecase.dart';
 import 'package:recall/domain/usecases/add_selected_excel_rows_usecase.dart';
 import 'package:recall/domain/usecases/delete_excel_import_usecase.dart';
 import 'package:recall/domain/usecases/get_decks_usecase.dart';
@@ -21,6 +23,7 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
     required GetExcelImportUseCase getImportUseCase,
     required GetDecksUseCase getDecksUseCase,
     required AddSelectedExcelRowsUseCase addSelectedRowsUseCase,
+    required AddDeckUseCase addDeckUseCase,
     required SyncExcelImportAddedStatusUseCase syncAddedStatusUseCase,
     required RemoveExcelRowsUseCase removeExcelRowsUseCase,
     required UpdateExcelRowUseCase updateExcelRowUseCase,
@@ -31,6 +34,7 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
        _getImportUseCase = getImportUseCase,
        _getDecksUseCase = getDecksUseCase,
        _addSelectedRowsUseCase = addSelectedRowsUseCase,
+       _addDeckUseCase = addDeckUseCase,
        _syncAddedStatusUseCase = syncAddedStatusUseCase,
        _removeExcelRowsUseCase = removeExcelRowsUseCase,
        _updateExcelRowUseCase = updateExcelRowUseCase,
@@ -43,6 +47,7 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
   final GetExcelImportUseCase _getImportUseCase;
   final GetDecksUseCase _getDecksUseCase;
   final AddSelectedExcelRowsUseCase _addSelectedRowsUseCase;
+  final AddDeckUseCase _addDeckUseCase;
   final SyncExcelImportAddedStatusUseCase _syncAddedStatusUseCase;
   final RemoveExcelRowsUseCase _removeExcelRowsUseCase;
   final UpdateExcelRowUseCase _updateExcelRowUseCase;
@@ -153,7 +158,9 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
     );
     if (removed > 0) {
       final import = await _getImportUseCase(_importId);
-      emit(state.copyWith(import: import, selectedRowIds: {}));
+      final remaining = Set<String>.from(state.selectedRowIds)
+        ..removeAll(rowIds);
+      emit(state.copyWith(import: import, selectedRowIds: remaining));
     }
     return removed;
   }
@@ -172,5 +179,19 @@ class ExcelImportDetailCubit extends Cubit<ExcelImportDetailState> {
     if (updated == null) return;
     final synced = await _syncAddedStatusUseCase(updated);
     emit(state.copyWith(import: synced));
+  }
+
+  Future<Deck> createDeck(String name, DeckColor color) async {
+    final deck = Deck(
+      id: _localDataSource.generateId(),
+      spaceId: _spaceId,
+      name: name.trim(),
+      color: color,
+      createdAt: DateTime.now(),
+    );
+    final saved = await _addDeckUseCase(deck);
+    final decks = await _getDecksUseCase(_spaceId);
+    emit(state.copyWith(decks: decks, selectedDeckId: saved.id));
+    return saved;
   }
 }

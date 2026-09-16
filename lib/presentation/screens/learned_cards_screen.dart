@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/core/utils/text_direction_utils.dart';
+import 'package:recall/data/datasources/space_settings_store.dart';
 import 'package:recall/domain/entities/flashcard.dart';
 import 'package:recall/domain/repositories/flashcard_repository.dart';
 import 'package:recall/domain/usecases/update_card_usecase.dart';
@@ -22,6 +23,7 @@ class _LearnedCardsScreenState extends State<LearnedCardsScreen> {
   List<Flashcard> _cards = [];
   final Set<String> _selectedIds = {};
   bool _loading = true;
+  int _maxBox = 5;
 
   @override
   void initState() {
@@ -31,12 +33,16 @@ class _LearnedCardsScreenState extends State<LearnedCardsScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
+    final settings = await sl<SpaceSettingsStore>().load(widget.spaceId);
     final cards = await sl<IFlashcardRepository>().getCardsBySpaceId(
       widget.spaceId,
     );
     if (!mounted) return;
+    _maxBox = settings.leitnerBoxes.maxBox;
     setState(() {
-      _cards = cards.where((card) => card.isLearned).toList()
+      _cards = cards
+          .where((card) => card.isLearnedIn(_maxBox))
+          .toList()
         ..sort((a, b) => b.lastReviewed?.compareTo(a.lastReviewed ?? b.createdAt) ??
             b.createdAt.compareTo(a.createdAt));
       _selectedIds.removeWhere((id) => !_cards.any((card) => card.id == id));
