@@ -91,7 +91,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => AddSpaceUseCase(sl()));
   sl.registerLazySingleton(() => UpdateSpaceUseCase(sl()));
   sl.registerLazySingleton(
-    () => DeleteSpaceUseCase(sl(), sl(), sl(), sl()),
+    () => DeleteSpaceUseCase(sl(), sl(), sl(), sl(), sl()),
   );
   sl.registerLazySingleton(() => GetDecksUseCase(sl()));
   sl.registerLazySingleton(() => GetDeckUseCase(sl()));

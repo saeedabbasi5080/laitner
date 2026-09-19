@@ -41,6 +41,30 @@ class _SpaceListView extends StatelessWidget {
               return const Center(child: CircularProgressIndicator());
             }
 
+            if (state.status == SpaceListStatus.error &&
+                state.summaries.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        AppStrings.dataLoadFailed,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: () =>
+                            context.read<SpaceListCubit>().load(),
+                        child: const Text(AppStrings.retry),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
             return SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
                 context.pageHorizontalPadding,
@@ -86,13 +110,32 @@ class _SpaceListView extends StatelessWidget {
                           icon: Icons.layers_outlined,
                           accent: AppColors.forDeck(summary.space.color),
                           onTap: () => _openSpace(context, summary.space),
-                          trailing: IconButton(
-                            onPressed: () =>
-                                _editSpace(context, summary.space),
-                            icon: Icon(
-                              Icons.more_horiz,
-                              color: colors.mutedForeground,
-                            ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                tooltip: AppStrings.editSpace,
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () =>
+                                    _editSpace(context, summary.space),
+                                icon: Icon(
+                                  Icons.edit_outlined,
+                                  color: colors.mutedForeground,
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: AppStrings.deleteSpace,
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () => _deleteSpace(
+                                  context,
+                                  summary,
+                                ),
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: AppColors.danger,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -149,6 +192,14 @@ class _SpaceListView extends StatelessWidget {
                 ),
               );
             }
+            rethrow;
+          } catch (_) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text(AppStrings.spaceSaveFailed)),
+              );
+            }
+            rethrow;
           }
         },
       ),
@@ -157,7 +208,6 @@ class _SpaceListView extends StatelessWidget {
 
   void _editSpace(BuildContext context, LearningSpace space) {
     final cubit = context.read<SpaceListCubit>();
-    final canDelete = cubit.state.summaries.length > 1;
 
     showModalBottomSheet<void>(
       context: context,
@@ -165,30 +215,54 @@ class _SpaceListView extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => SpaceFormSheet(
         space: space,
-        canDelete: canDelete,
         onSubmit: (name, color) => cubit.updateSpace(
           space.copyWith(name: name.trim(), color: color),
         ),
-        onDelete: () async {
-          if (!canDelete) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text(AppStrings.cannotDeleteLastSpace)),
-              );
-            }
-            return;
-          }
-          final confirmed = await showConfirmDialog(
-            context,
-            title: AppStrings.deleteSpace,
-            message: AppStrings.deleteSpaceConfirm,
-          );
-          if (confirmed == true && context.mounted) {
-            await cubit.deleteSpace(space.id);
-          }
-        },
       ),
     );
+  }
+
+  Future<void> _deleteSpace(
+    BuildContext context,
+    SpaceSummary summary,
+  ) async {
+    final cubit = context.read<SpaceListCubit>();
+    final others = cubit.state.summaries
+        .where((item) => item.space.id != summary.space.id)
+        .map((item) => item.space)
+        .toList();
+
+    if (others.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.cannotDeleteLastSpace)),
+      );
+      return;
+    }
+
+    final decision = await showDeleteSpaceFlow(
+      context,
+      otherSpaces: others,
+      deckCount: summary.deckCount,
+      cardCount: summary.totalCards,
+    );
+    if (decision == null || !context.mounted) return;
+
+    final deleted = await cubit.deleteSpace(
+      summary.space.id,
+      transferToSpaceId: decision.transferToSpaceId,
+    );
+    if (!context.mounted) return;
+    if (!deleted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.cannotDeleteLastSpace)),
+      );
+      return;
+    }
+    if (decision.transferToSpaceId != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.spaceContentTransferred)),
+      );
+    }
   }
 }
 

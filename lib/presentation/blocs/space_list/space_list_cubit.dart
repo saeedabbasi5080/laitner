@@ -88,16 +88,28 @@ class SpaceListCubit extends Cubit<SpaceListState> {
   }
 
   Future<void> addSpace(String name, DeckColor color) async {
-    final spaces = await _getSpacesUseCase();
-    final space = LearningSpace(
-      id: _localDataSource.generateId(),
-      name: name.trim(),
-      color: color,
-      createdAt: DateTime.now(),
-      sortOrder: spaces.length,
-    );
-    await _addSpaceUseCase(space);
-    await load();
+    try {
+      final spaces = await _getSpacesUseCase();
+      final space = LearningSpace(
+        id: _localDataSource.generateId(),
+        name: name.trim(),
+        color: color,
+        createdAt: DateTime.now(),
+        sortOrder: spaces.length,
+      );
+      await _addSpaceUseCase(space);
+      await load();
+    } on SpaceLimitReachedException {
+      rethrow;
+    } catch (e) {
+      emit(
+        state.copyWith(
+          status: SpaceListStatus.error,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   Future<void> updateSpace(LearningSpace space) async {
@@ -105,11 +117,16 @@ class SpaceListCubit extends Cubit<SpaceListState> {
     await load();
   }
 
-  Future<bool> deleteSpace(String id) async {
+  Future<bool> deleteSpace(String id, {String? transferToSpaceId}) async {
     final spaces = await _getSpacesUseCase();
     if (spaces.length <= 1) return false;
+    if (transferToSpaceId != null &&
+        (transferToSpaceId == id ||
+            spaces.every((space) => space.id != transferToSpaceId))) {
+      return false;
+    }
 
-    await _deleteSpaceUseCase(id);
+    await _deleteSpaceUseCase(id, transferToSpaceId: transferToSpaceId);
     await load();
     return true;
   }

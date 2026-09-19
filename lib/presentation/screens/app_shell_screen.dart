@@ -202,6 +202,29 @@ class _HomeTab extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
+    if (spaceState.status == SpaceListStatus.error &&
+        spaceState.summaries.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                AppStrings.dataLoadFailed,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => context.read<SpaceListCubit>().load(),
+                child: const Text(AppStrings.retry),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final totalDue = spaceState.summaries.fold<int>(
       0,
       (sum, s) => sum + s.dueCards,
@@ -595,6 +618,14 @@ void _showNewSpace(BuildContext context) {
               ),
             );
           }
+          rethrow;
+        } catch (_) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text(AppStrings.spaceSaveFailed)),
+            );
+          }
+          rethrow;
         }
       },
     ),

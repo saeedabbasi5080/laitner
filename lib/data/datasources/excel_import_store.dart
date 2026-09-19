@@ -54,8 +54,21 @@ class ExcelImportStore {
   }
 
   Future<void> deleteBySpaceId(String spaceId) async {
-    final all = await getAll()..removeWhere((i) => i.spaceId != spaceId);
+    final all = await getAll()..removeWhere((i) => i.spaceId == spaceId);
     await _persist(all);
+  }
+
+  Future<void> reassignSpaceId(String fromSpaceId, String toSpaceId) async {
+    final all = await getAll();
+    await _persist(
+      all
+          .map(
+            (item) => item.spaceId == fromSpaceId
+                ? item.copyWith(spaceId: toSpaceId)
+                : item,
+          )
+          .toList(),
+    );
   }
 
   Future<void> _persist(List<ExcelImport> imports) async {

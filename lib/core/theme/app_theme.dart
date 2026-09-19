@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:recall/core/theme/app_accent.dart';
 import 'package:recall/domain/entities/deck_color.dart';
 
@@ -175,13 +174,15 @@ class AppTheme {
       brightness: brightness,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: colorScheme.surface,
+      fontFamily: 'Vazirmatn',
       extensions: [recallColors],
     );
 
     final foreground = colorScheme.onSurface;
 
     return base.copyWith(
-      textTheme: GoogleFonts.vazirmatnTextTheme(base.textTheme).apply(
+      textTheme: base.textTheme.apply(
+        fontFamily: 'Vazirmatn',
         bodyColor: foreground,
         displayColor: foreground,
       ),

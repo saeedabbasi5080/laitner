@@ -46,6 +46,17 @@ class ReviewHistoryStore {
     await _persist(logs);
   }
 
+  Future<void> reassignSpaceId(String fromSpaceId, String toSpaceId) async {
+    final logs = getAll()
+        .map(
+          (log) => log.spaceId == fromSpaceId
+              ? log.copyWith(spaceId: toSpaceId)
+              : log,
+        )
+        .toList();
+    await _persist(logs);
+  }
+
   Future<void> _persist(List<ReviewLog> logs) async {
     await _prefs.setString(_storageKey, jsonEncode(logs.map(_toJson).toList()));
   }

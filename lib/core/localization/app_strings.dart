@@ -14,8 +14,25 @@ abstract final class AppStrings {
   static const deleteSpace = 'حذف فضا';
   static const deleteSpaceConfirm =
       'آیا از حذف این فضا و تمام دسته‌ها، کارت‌ها، آمار و فایل‌های اکسل آن مطمئن هستید؟';
+  static const deleteSpaceIntro =
+      'اگر این فضا را حذف کنید، دسته‌ها، کارت‌ها، آمار مرور، فایل‌های اکسل و تنظیمات همان فضا از بین می‌روند و قابل بازگردانی نیستند. اگر می‌خواهید کارت‌ها بمانند، اول آن‌ها را به فضای دیگری منتقل کنید.';
+  static const deleteSpaceQuestion = 'محتوای این فضا چه شود؟';
+  static const deleteSpaceWithContent = 'حذف فضا و همه کارت‌ها';
+  static const deleteSpaceWithContentWarning =
+      'این کار قابل برگشت نیست. همه دسته‌ها و کارت‌های این فضا، پیشرفت مرور و جایگاه‌شان در خانه‌های لایتنر، آمار و فایل‌های اکسل پاک می‌شود.';
+  static const deleteEmptySpaceConfirm =
+      'این فضا خالی است. با تأیید، فقط خود فضا حذف می‌شود.';
+  static const transferSpaceCards = 'انتقال کارت‌ها به فضای دیگر';
+  static const transferSpaceCardsHint =
+      'دسته‌ها و کارت‌ها حفظ می‌شوند و به فضای انتخابی می‌روند. خود این فضا حذف می‌شود.';
+  static const selectTargetSpace = 'انتخاب فضای مقصد';
+  static const noOtherSpacesToTransfer =
+      'فضای دیگری نیست. اول یک فضای جدید بسازید یا محتوا را حذف کنید.';
+  static const spaceContentTransferred = 'کارت‌ها منتقل شدند و فضا حذف شد';
   static const emptySpaces =
       'هنوز فضایی نساخته‌اید. با دکمه + اولین فضای یادگیری را بسازید.';
+  static const dataLoadFailed = 'داده‌ها بارگذاری نشد. دوباره تلاش کنید.';
+  static const spaceSaveFailed = 'فضا ذخیره نشد. دوباره تلاش کنید.';
   static const cannotDeleteLastSpace = 'حداقل یک فضا باید باقی بماند.';
   static String spaceLimitReached(int max) =>
       'حداکثر $max فضا می‌توانید بسازید.';
@@ -179,6 +196,16 @@ abstract final class AppStrings {
   static const leitnerHousesTitle = 'کارت‌ها در خانه‌های لایتنر';
   static const leitnerHousesHint =
       'خانه‌های ۱ تا ۵ با فاصله ۱، ۲، ۴، ۸ و ۱۶ روز مرور می‌شوند';
+  static String leitnerHousesHintFor(int maxBox) {
+    if (maxBox <= 5) return leitnerHousesHint;
+    if (maxBox == 6) {
+      return '$leitnerHousesHint. خانهٔ ۶ هم در این فضا فعال است.';
+    }
+    if (maxBox == 7) {
+      return '$leitnerHousesHint. خانه‌های ۶ و ۷ هم در این فضا فعال‌اند.';
+    }
+    return '$leitnerHousesHint. خانه‌های ۶، ۷ و ۸ هم در این فضا فعال‌اند.';
+  }
   static const extraLeitnerHouses = 'خانه‌های اضافی لایتنر';
   static const extraLeitnerHousesHint =
       'خانه‌های ۱ تا ۵ همیشه فعال‌اند (۱، ۲، ۴، ۸ و ۱۶ روز). خانه‌های ۶ تا ۸ را برای همین فضا می‌توانید روشن کنید و فاصله مرورشان را بین ۱۷ تا ۶۰ روز بگذارید.';

@@ -62,7 +62,7 @@ class LeitnerHousesPanel extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    AppStrings.leitnerHousesHint,
+                    AppStrings.leitnerHousesHintFor(maxBox),
                     style: TextStyle(
                       fontSize: 12,
                       height: 1.4,
@@ -75,17 +75,21 @@ class LeitnerHousesPanel extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        Directionality(
-          textDirection: TextDirection.rtl,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              for (var box = 1; box <= maxBox; box++)
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsetsDirectional.only(
-                      end: box == maxBox ? 0 : 6,
-                    ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const gap = 6.0;
+            const housesPerRow = classicMaxBox;
+            final itemWidth =
+                (constraints.maxWidth - gap * (housesPerRow - 1)) /
+                housesPerRow;
+            return Wrap(
+              spacing: gap,
+              runSpacing: 10,
+              textDirection: TextDirection.rtl,
+              children: [
+                for (var box = 1; box <= maxBox; box++)
+                  SizedBox(
+                    width: itemWidth,
                     child: _HouseColumn(
                       box: box,
                       count: boxCounts[box] ?? 0,
@@ -94,9 +98,9 @@ class LeitnerHousesPanel extends StatelessWidget {
                       onTap: () => onBoxTap(box),
                     ),
                   ),
-                ),
-            ],
-          ),
+              ],
+            );
+          },
         ),
         const SizedBox(height: 10),
         _ProgressLegend(houseCount: maxBox),

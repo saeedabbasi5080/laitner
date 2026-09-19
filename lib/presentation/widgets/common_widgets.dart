@@ -369,6 +369,118 @@ Future<DeleteDeckDecision?> showDeleteDeckFlow(
   return DeleteDeckDecision.transfer(targetId);
 }
 
+class DeleteSpaceDecision {
+  const DeleteSpaceDecision.deleteContent()
+      : deleteContent = true,
+        transferToSpaceId = null;
+
+  const DeleteSpaceDecision.transfer(this.transferToSpaceId)
+      : deleteContent = false;
+
+  final bool deleteContent;
+  final String? transferToSpaceId;
+}
+
+Future<DeleteSpaceDecision?> showDeleteSpaceFlow(
+  BuildContext context, {
+  required List<LearningSpace> otherSpaces,
+  required int deckCount,
+  required int cardCount,
+}) async {
+  final hasContent = deckCount > 0 || cardCount > 0;
+
+  if (!hasContent) {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: AppStrings.deleteSpace,
+      message: AppStrings.deleteEmptySpaceConfirm,
+    );
+    if (confirmed == true) return const DeleteSpaceDecision.deleteContent();
+    return null;
+  }
+
+  final choice = await showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: const Text(AppStrings.deleteSpace),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              AppStrings.deleteSpaceIntro,
+              style: TextStyle(height: 1.6),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              AppStrings.deleteSpaceQuestion,
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.tonal(
+              onPressed: () => Navigator.pop(ctx, 'transfer'),
+              child: const Text(AppStrings.transferSpaceCards),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              AppStrings.transferSpaceCardsHint,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.5,
+                color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, 'delete'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.danger,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text(AppStrings.deleteSpaceWithContent),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text(AppStrings.cancel),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  if (!context.mounted || choice == null) return null;
+
+  if (choice == 'delete') {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: AppStrings.deleteSpaceWithContent,
+      message: AppStrings.deleteSpaceWithContentWarning,
+    );
+    if (confirmed == true) {
+      return const DeleteSpaceDecision.deleteContent();
+    }
+    return null;
+  }
+
+  if (otherSpaces.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(AppStrings.noOtherSpacesToTransfer)),
+    );
+    return null;
+  }
+
+  final target = await showPickSpaceDialog(
+    context,
+    spaces: otherSpaces,
+    title: AppStrings.selectTargetSpace,
+    forcePicker: true,
+  );
+  if (target == null) return null;
+  return DeleteSpaceDecision.transfer(target.id);
+}
+
 Future<String?> showPickDeckDialog(
   BuildContext context, {
   required List<Deck> decks,
@@ -416,9 +528,12 @@ Future<LearningSpace?> showPickSpaceDialog(
   required List<LearningSpace> spaces,
   required String title,
   String Function(LearningSpace space)? subtitle,
+  bool forcePicker = false,
 }) {
   if (spaces.isEmpty) return Future<LearningSpace?>.value();
-  if (spaces.length == 1) return Future<LearningSpace?>.value(spaces.first);
+  if (!forcePicker && spaces.length == 1) {
+    return Future<LearningSpace?>.value(spaces.first);
+  }
 
   return showDialog<LearningSpace>(
     context: context,

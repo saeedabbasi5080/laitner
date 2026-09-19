@@ -123,13 +123,19 @@ class _DeckListViewState extends State<_DeckListView>
                           CircleIconButton(
                             icon: Icons.settings_outlined,
                             label: AppStrings.settings,
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => SettingsScreen(
-                                  spaceId: widget.space.id,
-                                ),
-                              ),
-                            ),
+                            onPressed: () => Navigator.of(context)
+                                .push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => SettingsScreen(
+                                      spaceId: widget.space.id,
+                                    ),
+                                  ),
+                                )
+                                .then((_) {
+                                  if (context.mounted) {
+                                    context.read<DeckListCubit>().load();
+                                  }
+                                }),
                           ),
                         ],
                       ),

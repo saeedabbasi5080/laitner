@@ -22,6 +22,28 @@ class ReviewLog extends Equatable {
   final int boxAfter;
   final DateTime reviewedAt;
 
+  ReviewLog copyWith({
+    String? id,
+    String? spaceId,
+    String? cardId,
+    String? deckId,
+    ReviewRating? rating,
+    int? boxBefore,
+    int? boxAfter,
+    DateTime? reviewedAt,
+  }) {
+    return ReviewLog(
+      id: id ?? this.id,
+      spaceId: spaceId ?? this.spaceId,
+      cardId: cardId ?? this.cardId,
+      deckId: deckId ?? this.deckId,
+      rating: rating ?? this.rating,
+      boxBefore: boxBefore ?? this.boxBefore,
+      boxAfter: boxAfter ?? this.boxAfter,
+      reviewedAt: reviewedAt ?? this.reviewedAt,
+    );
+  }
+
   @override
   List<Object> get props => [
     id,
