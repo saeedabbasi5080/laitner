@@ -34,4 +34,22 @@ class Deck extends Equatable {
 
   @override
   List<Object?> get props => [id, spaceId, name, color, createdAt];
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'spaceId': spaceId,
+        'name': name,
+        'color': color.name,
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory Deck.fromJson(Map<String, dynamic> json) {
+    return Deck(
+      id: json['id'] as String,
+      spaceId: json['spaceId'] as String? ?? '',
+      name: json['name'] as String,
+      color: DeckColor.fromString(json['color'] as String),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+  }
 }

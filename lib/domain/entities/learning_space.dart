@@ -34,4 +34,22 @@ class LearningSpace extends Equatable {
 
   @override
   List<Object?> get props => [id, name, color, createdAt, sortOrder];
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'color': color.name,
+        'createdAt': createdAt.toIso8601String(),
+        'sortOrder': sortOrder,
+      };
+
+  factory LearningSpace.fromJson(Map<String, dynamic> json) {
+    return LearningSpace(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      color: DeckColor.fromString(json['color'] as String),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      sortOrder: json['sortOrder'] as int? ?? 0,
+    );
+  }
 }

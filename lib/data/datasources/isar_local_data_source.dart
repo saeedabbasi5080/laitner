@@ -189,5 +189,25 @@ class IsarLocalDataSource implements LocalDataSource {
   }
 
   @override
+  Future<void> replaceCollection({
+    required List<LearningSpace> spaces,
+    required List<Deck> decks,
+    required List<Flashcard> cards,
+  }) async {
+    await _isar.writeTxn(() async {
+      await _isar.clear();
+      await _isar.spaceModels.putAll(
+        spaces.map(SpaceModelMapper.fromEntity).toList(),
+      );
+      await _isar.deckModels.putAll(
+        decks.map(DeckModelMapper.fromEntity).toList(),
+      );
+      await _isar.flashcardModels.putAll(
+        cards.map(FlashcardModelMapper.fromEntity).toList(),
+      );
+    });
+  }
+
+  @override
   String generateId() => _uuid.v4();
 }

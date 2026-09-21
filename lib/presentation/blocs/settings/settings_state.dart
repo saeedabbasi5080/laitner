@@ -13,6 +13,7 @@ class SettingsState extends Equatable {
     this.defaultReversed = false,
     this.ttsSpeechRate = 0.45,
     this.leitnerBoxes = LeitnerBoxConfig.classic,
+    this.collectionEpoch = 0,
   });
 
   final ThemeMode themeMode;
@@ -26,6 +27,7 @@ class SettingsState extends Equatable {
   final bool defaultReversed;
   final double ttsSpeechRate;
   final LeitnerBoxConfig leitnerBoxes;
+  final int collectionEpoch;
 
   SettingsState copyWith({
     ThemeMode? themeMode,
@@ -39,11 +41,15 @@ class SettingsState extends Equatable {
     bool? defaultReversed,
     double? ttsSpeechRate,
     LeitnerBoxConfig? leitnerBoxes,
+    int? collectionEpoch,
+    bool clearCurrentSpaceId = false,
   }) {
     return SettingsState(
       themeMode: themeMode ?? this.themeMode,
       accent: accent ?? this.accent,
-      currentSpaceId: currentSpaceId ?? this.currentSpaceId,
+      currentSpaceId: clearCurrentSpaceId
+          ? currentSpaceId
+          : (currentSpaceId ?? this.currentSpaceId),
       ttsLanguage: ttsLanguage ?? this.ttsLanguage,
       randomReviewOrder: randomReviewOrder ?? this.randomReviewOrder,
       cardFontSize: cardFontSize ?? this.cardFontSize,
@@ -52,6 +58,7 @@ class SettingsState extends Equatable {
       defaultReversed: defaultReversed ?? this.defaultReversed,
       ttsSpeechRate: ttsSpeechRate ?? this.ttsSpeechRate,
       leitnerBoxes: leitnerBoxes ?? this.leitnerBoxes,
+      collectionEpoch: collectionEpoch ?? this.collectionEpoch,
     );
   }
 
@@ -68,5 +75,6 @@ class SettingsState extends Equatable {
     defaultReversed,
     ttsSpeechRate,
     leitnerBoxes,
+    collectionEpoch,
   ];
 }

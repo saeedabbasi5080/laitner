@@ -85,21 +85,28 @@ class _AppShellViewState extends State<_AppShellView>
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<SpaceListCubit, SpaceListState>(
-      builder: (context, spaceState) {
-        return Scaffold(
-          body: IndexedStack(
-            index: _currentIndex,
-            children: [
-              _HomeTab(spaceState: spaceState),
-              const SpaceListScreen(),
-              _StatsTab(spaceId: _statsSpaceId),
-              const _MoreTab(),
-            ],
-          ),
-          bottomNavigationBar: _buildBottomNav(context, spaceState),
-        );
+    return BlocListener<SettingsCubit, SettingsState>(
+      listenWhen: (previous, current) =>
+          previous.collectionEpoch != current.collectionEpoch,
+      listener: (context, _) {
+        context.read<SpaceListCubit>().load();
       },
+      child: BlocBuilder<SpaceListCubit, SpaceListState>(
+        builder: (context, spaceState) {
+          return Scaffold(
+            body: IndexedStack(
+              index: _currentIndex,
+              children: [
+                _HomeTab(spaceState: spaceState),
+                const SpaceListScreen(),
+                _StatsTab(spaceId: _statsSpaceId),
+                const _MoreTab(),
+              ],
+            ),
+            bottomNavigationBar: _buildBottomNav(context, spaceState),
+          );
+        },
+      ),
     );
   }
 

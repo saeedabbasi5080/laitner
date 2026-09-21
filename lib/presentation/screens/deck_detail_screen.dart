@@ -9,6 +9,7 @@ import 'package:recall/presentation/blocs/study/study_config.dart';
 import 'package:recall/presentation/screens/add_card_screen.dart';
 import 'package:recall/presentation/screens/excel_library_screen.dart';
 import 'package:recall/presentation/screens/study_screen.dart';
+import 'package:recall/presentation/utils/export_deck_excel.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 import 'package:recall/presentation/widgets/deck_card_sheets.dart';
 import 'package:recall/presentation/widgets/soft_ui.dart';
@@ -173,6 +174,36 @@ class _DeckDetailView extends StatelessWidget {
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
+                            onPressed: () => exportDeckExcel(context, deckId),
+                            icon: const Icon(
+                              Icons.file_download_outlined,
+                              size: 18,
+                            ),
+                            label: const Text(AppStrings.exportDeckExcel),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            AppStrings.exportDeckExcelHint,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: colors.mutedForeground,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
                             onPressed: () => Navigator.of(context)
                                 .push(
                               MaterialPageRoute<void>(
@@ -284,6 +315,7 @@ class _DeckDetailView extends StatelessWidget {
         onSubmit: (name, color) => context
             .read<DeckDetailCubit>()
             .updateDeck(deck.copyWith(name: name.trim(), color: color)),
+        onExport: () => exportDeckExcel(context, deck.id),
         onDelete: () async {
           final decision = await showDeleteDeckFlow(
             context,

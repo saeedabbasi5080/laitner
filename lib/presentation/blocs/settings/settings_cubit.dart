@@ -133,6 +133,20 @@ class SettingsCubit extends Cubit<SettingsState> {
     await _migrateBoxes(previous.maxBox, boxes.maxBox);
   }
 
+  Future<void> afterCollectionRestored(String? firstSpaceId) async {
+    emit(
+      state.copyWith(
+        collectionEpoch: state.collectionEpoch + 1,
+        clearCurrentSpaceId: true,
+      ),
+    );
+    if (firstSpaceId != null) {
+      await loadForSpace(firstSpaceId);
+    } else {
+      await load();
+    }
+  }
+
   Future<void> _updateSpaceSettings(
     SpaceSettingsData Function(SpaceSettingsData settings) update,
   ) async {

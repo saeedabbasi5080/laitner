@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/localization/app_strings.dart';
@@ -7,8 +9,12 @@ import 'package:recall/core/theme/card_font_size.dart';
 import 'package:recall/core/tts/auto_speak_side.dart';
 import 'package:recall/core/tts/tts_language.dart';
 import 'package:recall/core/constants/leitner_constants.dart';
+import 'package:recall/data/backup/collection_backup.dart';
+import 'package:recall/data/utils/pick_backup_file.dart';
 import 'package:recall/domain/entities/leitner_box_config.dart';
 import 'package:recall/core/utils/responsive.dart';
+import 'package:recall/domain/usecases/export_collection_backup_usecase.dart';
+import 'package:recall/domain/usecases/restore_collection_backup_usecase.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/settings/settings_cubit.dart';
 import 'package:recall/presentation/screens/about_app_screen.dart';
@@ -261,6 +267,15 @@ class _SettingsView extends StatelessWidget {
                 _ExtraHousesSettings(config: state.leitnerBoxes),
                 const SizedBox(height: 32),
                 ],
+                const SectionLabel(AppStrings.backup),
+                const SizedBox(height: 8),
+                Text(
+                  AppStrings.backupHint,
+                  style: TextStyle(fontSize: 12, color: colors.mutedForeground),
+                ),
+                const SizedBox(height: 12),
+                const _BackupSettings(),
+                const SizedBox(height: 32),
                 const SectionLabel(AppStrings.about),
                 const SizedBox(height: 12),
                 Container(
@@ -765,6 +780,136 @@ class _ExtraHouseTile extends StatelessWidget {
                 style: TextStyle(fontSize: 11, color: colors.mutedForeground),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BackupSettings extends StatefulWidget {
+  const _BackupSettings();
+
+  @override
+  State<_BackupSettings> createState() => _BackupSettingsState();
+}
+
+class _BackupSettingsState extends State<_BackupSettings> {
+  bool _busy = false;
+
+  String _fileName() {
+    final now = DateTime.now();
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+    return 'atilearn-backup-${now.year}$month$day.json';
+  }
+
+  Future<void> _export() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final backup = await sl<ExportCollectionBackupUseCase>()();
+      if (!mounted) return;
+      final saved = await saveBackupFile(
+        context,
+        fileName: _fileName(),
+        jsonText: _encodePretty(backup.toJson()),
+      );
+      if (!mounted || !saved) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.backupSaved)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.backupFailed)),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _restore() async {
+    if (_busy) return;
+    final confirmed = await showConfirmDialog(
+      context,
+      title: AppStrings.restoreBackup,
+      message: AppStrings.restoreBackupWarning,
+      confirmLabel: AppStrings.restoreBackup,
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _busy = true);
+    try {
+      final jsonText = await pickBackupFile(context);
+      if (!mounted) return;
+      if (jsonText == null) return;
+
+      final result = await sl<RestoreCollectionBackupUseCase>()(jsonText);
+      if (!mounted) return;
+      await context.read<SettingsCubit>().afterCollectionRestored(
+        result.firstSpaceId,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.backupRestored)),
+      );
+    } on BackupFormatException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.backupInvalid)),
+      );
+    } on FormatException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.backupInvalid)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.backupFailed)),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  String _encodePretty(Map<String, dynamic> json) {
+    return const JsonEncoder.withIndent('  ').convert(json);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.recallColors;
+    final accent = context.accentColor;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colors.border),
+        boxShadow: AppShadows.card(context),
+      ),
+      child: Column(
+        children: [
+          ListTile(
+            leading: Icon(Icons.file_download_outlined, color: accent),
+            title: const Text(AppStrings.exportBackup),
+            trailing: _busy
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.chevron_right),
+            onTap: _busy ? null : _export,
+          ),
+          Divider(height: 1, color: colors.border),
+          ListTile(
+            leading: Icon(Icons.file_upload_outlined, color: accent),
+            title: const Text(AppStrings.restoreBackup),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _busy ? null : _restore,
+          ),
         ],
       ),
     );

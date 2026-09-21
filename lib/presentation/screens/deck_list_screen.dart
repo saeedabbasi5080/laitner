@@ -18,6 +18,7 @@ import 'package:recall/presentation/screens/excel_library_screen.dart';
 import 'package:recall/presentation/screens/learned_cards_screen.dart';
 import 'package:recall/presentation/screens/settings_screen.dart';
 import 'package:recall/presentation/screens/statistics_screen.dart';
+import 'package:recall/presentation/utils/export_deck_excel.dart';
 import 'package:recall/presentation/screens/study_screen.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 import 'package:recall/presentation/widgets/deck_card_sheets.dart';
@@ -295,6 +296,7 @@ class _DeckListViewState extends State<_DeckListView>
         onSubmit: (name, color) => context.read<DeckListCubit>().updateDeck(
           deck.copyWith(name: name.trim(), color: color),
         ),
+        onExport: () => exportDeckExcel(context, deck.id),
         onDelete: () async {
           final others = context
               .read<DeckListCubit>()

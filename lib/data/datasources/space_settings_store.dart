@@ -67,6 +67,32 @@ class SpaceSettingsStore {
   Future<void> delete(String spaceId) async {
     await _prefs.remove(_key(spaceId));
   }
+
+  Future<Map<String, SpaceSettingsData>> exportAll() async {
+    final result = <String, SpaceSettingsData>{};
+    for (final key in _prefs.getKeys()) {
+      if (!key.startsWith(_prefix)) continue;
+      final spaceId = key.substring(_prefix.length);
+      if (spaceId.isEmpty) continue;
+      result[spaceId] = await load(spaceId);
+    }
+    return result;
+  }
+
+  Future<void> replaceAll(Map<String, SpaceSettingsData> settings) async {
+    await clearAll();
+    for (final entry in settings.entries) {
+      await save(entry.key, entry.value);
+    }
+  }
+
+  Future<void> clearAll() async {
+    for (final key in _prefs.getKeys().toList()) {
+      if (key.startsWith(_prefix)) {
+        await _prefs.remove(key);
+      }
+    }
+  }
 }
 
 class SpaceSettingsData {
@@ -113,6 +139,38 @@ class SpaceSettingsData {
       accent: accent ?? this.accent,
       ttsSpeechRate: ttsSpeechRate ?? this.ttsSpeechRate,
       leitnerBoxes: leitnerBoxes ?? this.leitnerBoxes,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'ttsLanguage': ttsLanguage.code,
+        'randomReviewOrder': randomReviewOrder,
+        'cardFontSize': cardFontSize.name,
+        'autoSpeak': autoSpeak,
+        'autoSpeakSide': autoSpeakSide.name,
+        'defaultReversed': defaultReversed,
+        if (accent != null) 'accent': accent!.name,
+        'ttsSpeechRate': ttsSpeechRate,
+        'leitnerBoxes': leitnerBoxes.toJson(),
+      };
+
+  factory SpaceSettingsData.fromJson(Map<String, dynamic> json) {
+    return SpaceSettingsData(
+      ttsLanguage: TtsLanguage.fromCode(json['ttsLanguage'] as String?),
+      randomReviewOrder: json['randomReviewOrder'] as bool? ?? false,
+      cardFontSize: CardFontSize.fromName(json['cardFontSize'] as String?),
+      autoSpeak: json['autoSpeak'] as bool? ?? false,
+      autoSpeakSide: AutoSpeakSide.fromName(json['autoSpeakSide'] as String?),
+      defaultReversed: json['defaultReversed'] as bool? ?? false,
+      accent: json['accent'] == null
+          ? null
+          : AppAccent.fromName(json['accent'] as String),
+      ttsSpeechRate:
+          (json['ttsSpeechRate'] as num?)?.toDouble() ??
+          SpaceSettingsStore.defaultTtsSpeechRate,
+      leitnerBoxes: LeitnerBoxConfig.fromJson(
+        json['leitnerBoxes'] as Map<String, dynamic>?,
+      ),
     );
   }
 }

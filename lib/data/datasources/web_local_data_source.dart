@@ -234,5 +234,16 @@ class WebLocalDataSource implements LocalDataSource {
   }
 
   @override
+  Future<void> replaceCollection({
+    required List<LearningSpace> spaces,
+    required List<Deck> decks,
+    required List<Flashcard> cards,
+  }) async {
+    await _saveSpaces(spaces);
+    await _saveDecks(decks);
+    await _saveCards(cards);
+  }
+
+  @override
   String generateId() => _uuid.v4();
 }

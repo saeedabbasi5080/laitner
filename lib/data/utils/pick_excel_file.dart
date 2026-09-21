@@ -76,3 +76,111 @@ Future<PickedExcelFile?> pickExcelFile(BuildContext context) async {
 
   return PickedExcelFile(name: file.name, bytes: bytes);
 }
+
+/// Requests storage permission (Android) then opens a multi-file Excel picker.
+Future<List<PickedExcelFile>> pickExcelFiles(BuildContext context) async {
+  final granted = await ensureStoragePermissionForFileAccess();
+  if (!context.mounted) return const [];
+
+  if (!granted) {
+    final permanentlyDenied = await isStoragePermissionPermanentlyDenied();
+    if (!context.mounted) return const [];
+
+    if (permanentlyDenied) {
+      final openSettings = await showConfirmDialog(
+        context,
+        title: AppStrings.storagePermissionTitle,
+        message: AppStrings.storagePermissionPermanentlyDenied,
+        confirmLabel: AppStrings.openSettings,
+      );
+      if (openSettings == true) {
+        await openStoragePermissionSettings();
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.storagePermissionDenied)),
+      );
+    }
+    return const [];
+  }
+
+  final result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: ['xlsx', 'xls'],
+    withData: true,
+    allowMultiple: true,
+  );
+
+  if (!context.mounted) return const [];
+
+  if (result == null || result.files.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(AppStrings.noFileSelected)),
+    );
+    return const [];
+  }
+
+  final picked = <PickedExcelFile>[];
+  for (final file in result.files) {
+    Uint8List? bytes;
+    try {
+      bytes = await readPickedFileBytes(file);
+    } catch (_) {
+      bytes = null;
+    }
+    if (bytes == null || bytes.isEmpty) continue;
+    picked.add(PickedExcelFile(name: file.name, bytes: bytes));
+  }
+
+  if (!context.mounted) return const [];
+
+  if (picked.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(AppStrings.importFailed)),
+    );
+    return const [];
+  }
+
+  return picked;
+}
+
+/// Requests storage permission then opens the system save dialog (SAF).
+Future<bool> saveExcelFile(
+  BuildContext context, {
+  required String fileName,
+  required Uint8List bytes,
+}) async {
+  final granted = await ensureStoragePermissionForFileAccess();
+  if (!context.mounted) return false;
+
+  if (!granted) {
+    final permanentlyDenied = await isStoragePermissionPermanentlyDenied();
+    if (!context.mounted) return false;
+
+    if (permanentlyDenied) {
+      final openSettings = await showConfirmDialog(
+        context,
+        title: AppStrings.storagePermissionTitle,
+        message: AppStrings.storagePermissionPermanentlyDenied,
+        confirmLabel: AppStrings.openSettings,
+      );
+      if (openSettings == true) {
+        await openStoragePermissionSettings();
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.storagePermissionDenied)),
+      );
+    }
+    return false;
+  }
+
+  final path = await FilePicker.platform.saveFile(
+    dialogTitle: AppStrings.exportDeckExcel,
+    fileName: fileName,
+    type: FileType.custom,
+    allowedExtensions: const ['xlsx'],
+    bytes: bytes,
+  );
+  return path != null;
+}

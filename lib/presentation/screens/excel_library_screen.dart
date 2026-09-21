@@ -115,15 +115,18 @@ class _ExcelLibraryView extends StatelessWidget {
 
   Future<void> _pickAndSaveExcel(BuildContext context) async {
     final cubit = context.read<ExcelLibraryCubit>();
-    final picked = await pickExcelFile(context);
-    if (picked == null) return;
+    final picked = await pickExcelFiles(context);
+    if (picked.isEmpty) return;
 
-    ExcelImport? import;
+    final saved = <ExcelImport>[];
+    var failed = 0;
     try {
-      import = await cubit.importFile(
-        bytes: picked.bytes,
-        fileName: picked.name,
+      saved.addAll(
+        await cubit.importFiles([
+          for (final file in picked) (bytes: file.bytes, fileName: file.name),
+        ]),
       );
+      failed = picked.length - saved.length;
     } on ExcelParseException catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -142,32 +145,40 @@ class _ExcelLibraryView extends StatelessWidget {
 
     if (!context.mounted) return;
 
-    if (import == null) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.excelNoRows)),
-        );
-      }
+    if (saved.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.excelNoRows)),
+      );
       return;
     }
 
-    final savedImport = import;
-
-    if (!context.mounted) return;
-
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ExcelImportDetailScreen(
-          importId: savedImport.id,
-          spaceId: spaceId,
-          initialDeckId: initialDeckId,
+    if (failed > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppStrings.excelSomeFilesFailed(saved.length, failed)),
         ),
-      ),
-    );
-
-    if (context.mounted) {
-      await cubit.load();
+      );
+    } else if (saved.length > 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppStrings.excelFilesImported(saved.length))),
+      );
     }
+
+    if (saved.length == 1) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ExcelImportDetailScreen(
+            importId: saved.first.id,
+            spaceId: spaceId,
+            initialDeckId: initialDeckId,
+          ),
+        ),
+      );
+      if (context.mounted) await cubit.load();
+      return;
+    }
+
+    await cubit.load();
   }
 
   void _openDetail(BuildContext context, String importId) {

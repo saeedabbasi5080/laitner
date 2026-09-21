@@ -72,6 +72,33 @@ class ExcelLibraryCubit extends Cubit<ExcelLibraryState> {
     return import;
   }
 
+  Future<List<ExcelImport>> importFiles(
+    List<({Uint8List bytes, String fileName})> files,
+  ) async {
+    final saved = <ExcelImport>[];
+    for (final file in files) {
+      try {
+        final import = await _parseAndSaveUseCase(
+          spaceId: _spaceId,
+          bytes: file.bytes,
+          fileName: file.fileName,
+          generateId: _localDataSource.generateId,
+        );
+        if (import != null) saved.add(import);
+      } catch (_) {
+        continue;
+      }
+    }
+    final imports = await _getImportsUseCase(_spaceId);
+    emit(
+      state.copyWith(
+        status: ExcelLibraryStatus.loaded,
+        imports: imports,
+      ),
+    );
+    return saved;
+  }
+
   Future<void> deleteImport(String id) async {
     await _deleteImportUseCase(id);
     await load();

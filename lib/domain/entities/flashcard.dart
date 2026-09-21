@@ -48,4 +48,28 @@ class Flashcard extends Equatable {
   @override
   List<Object?> get props =>
       [id, deckId, front, back, box, lastReviewed, createdAt];
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'deckId': deckId,
+        'front': front,
+        'back': back,
+        'box': box,
+        'lastReviewed': lastReviewed?.toIso8601String(),
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory Flashcard.fromJson(Map<String, dynamic> json) {
+    return Flashcard(
+      id: json['id'] as String,
+      deckId: json['deckId'] as String,
+      front: json['front'] as String,
+      back: json['back'] as String,
+      box: json['box'] as int? ?? 1,
+      lastReviewed: json['lastReviewed'] != null
+          ? DateTime.parse(json['lastReviewed'] as String)
+          : null,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+  }
 }

@@ -25,6 +25,9 @@ import 'package:recall/domain/usecases/delete_card_usecase.dart';
 import 'package:recall/domain/usecases/delete_deck_usecase.dart';
 import 'package:recall/domain/usecases/delete_excel_import_usecase.dart';
 import 'package:recall/domain/usecases/delete_space_usecase.dart';
+import 'package:recall/domain/usecases/export_collection_backup_usecase.dart';
+import 'package:recall/domain/usecases/export_deck_excel_usecase.dart';
+import 'package:recall/domain/usecases/restore_collection_backup_usecase.dart';
 import 'package:recall/domain/usecases/find_duplicate_card_usecase.dart';
 import 'package:recall/domain/usecases/get_all_due_cards_usecase.dart';
 import 'package:recall/domain/usecases/get_cards_by_deck_usecase.dart';
@@ -87,6 +90,23 @@ Future<void> configureDependencies() async {
     () => ExcelImportRepositoryImpl(sl()),
   );
 
+  sl.registerLazySingleton(
+    () => ExportCollectionBackupUseCase(
+      localDataSource: sl(),
+      reviewHistoryStore: sl(),
+      excelImportStore: sl(),
+      spaceSettingsStore: sl(),
+    ),
+  );
+  sl.registerLazySingleton(
+    () => RestoreCollectionBackupUseCase(
+      localDataSource: sl(),
+      reviewHistoryStore: sl(),
+      excelImportStore: sl(),
+      spaceSettingsStore: sl(),
+      prefs: sl(),
+    ),
+  );
   sl.registerLazySingleton(() => GetSpacesUseCase(sl()));
   sl.registerLazySingleton(() => AddSpaceUseCase(sl()));
   sl.registerLazySingleton(() => UpdateSpaceUseCase(sl()));
@@ -99,6 +119,12 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => UpdateDeckUseCase(sl()));
   sl.registerLazySingleton(() => DeleteDeckUseCase(sl(), sl()));
   sl.registerLazySingleton(() => GetCardsByDeckUseCase(sl()));
+  sl.registerLazySingleton(
+    () => ExportDeckExcelUseCase(
+      getDeckUseCase: sl(),
+      getCardsByDeckUseCase: sl(),
+    ),
+  );
   sl.registerLazySingleton(() => GetDueCardsUseCase(sl()));
   sl.registerLazySingleton(() => GetAllDueCardsUseCase(sl()));
   sl.registerLazySingleton(() => GetCardsByBoxUseCase(sl()));

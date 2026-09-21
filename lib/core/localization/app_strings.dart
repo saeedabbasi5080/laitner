@@ -83,6 +83,13 @@ abstract final class AppStrings {
   static const delete = 'حذف';
   static const importExcel = 'ورود از اکسل';
   static const importExcelHint = 'ستون اول: روی کارت — ستون دوم: پشت کارت';
+  static const exportDeckExcel = 'خروجی اکسل';
+  static const exportDeckExcelHint =
+      'لغات این دسته با قالب کی‌ولیو ذخیره می‌شود: ستون اول روی کارت، ستون دوم پشت کارت.';
+  static const deckExcelExported = 'فایل اکسل ذخیره شد';
+  static const deckExcelExportEmpty = 'این دسته کارتی برای خروجی ندارد.';
+  static const deckExcelExportFailed =
+      'خروجی اکسل انجام نشد. دوباره تلاش کنید.';
   static const importSuccess = 'کارت با موفقیت وارد شد';
   static const importFailed = 'خطا در خواندن فایل اکسل';
   static const noFileSelected = 'فایلی انتخاب نشده';
@@ -96,10 +103,10 @@ abstract final class AppStrings {
   static const excelLibrarySubtitle =
       'فایل‌ها ذخیره می‌مانند؛ هر بار لغات دلخواه را انتخاب کنید';
   static const excelLibraryEmpty =
-      'هنوز فایل اکسلی اضافه نکرده‌اید. با دکمه پایین یک فایل انتخاب کنید.';
+      'هنوز فایل اکسلی اضافه نکرده‌اید. با دکمه پایین یک یا چند فایل انتخاب کنید.';
   static const excelFormatGuideTitle = 'راهنمای فایل اکسل';
   static const excelFormatGuideIntro =
-      'قبل از انتخاب فایل، مطمئن شوید اکسل شما مطابق قالب زیر است:';
+      'قبل از انتخاب فایل، مطمئن شوید اکسل شما مطابق قالب زیر است. می‌توانید چند فایل را با هم انتخاب کنید.';
   static const excelFormatRuleFormat = 'فرمت فایل: xlsx یا xls';
   static const excelFormatRuleColumnA = 'ستون اول (A): روی کارت';
   static const excelFormatRuleColumnB = 'ستون دوم (B): پشت کارت';
@@ -109,8 +116,12 @@ abstract final class AppStrings {
   static const excelFormatExampleTitle = 'مثال';
   static const excelFormatExampleFront = 'hello';
   static const excelFormatExampleBack = 'سلام';
-  static const excelSelectFile = 'انتخاب فایل اکسل';
+  static const excelSelectFile = 'انتخاب فایل‌های اکسل';
   static const importExcelFile = 'افزودن فایل اکسل';
+  static String excelFilesImported(int count) =>
+      count == 1 ? 'فایل ذخیره شد' : '$count فایل اکسل اضافه شد';
+  static String excelSomeFilesFailed(int saved, int failed) =>
+      '$saved فایل اضافه شد و $failed فایل خوانده نشد.';
   static const excelFileSaved = 'فایل ذخیره شد';
   static const excelNoRows =
       'ردیف معتبری در فایل پیدا نشد. ستون اول و دوم باید پر باشند.';
@@ -322,6 +333,18 @@ abstract final class AppStrings {
   static const defaultCardDirectionHint =
       'فقط مرور عادی این فضا؛ مرور آزاد جهت جداگانه دارد';
   static const about = 'درباره';
+  static const backup = 'پشتیبان‌گیری';
+  static const backupHint =
+      'یک فایل روی همین گوشی ذخیره می‌شود. اگر برنامه پاک شد یا مشکلی پیش آمد، می‌توانید لغت‌ها، دسته‌ها، فضاها و پیشرفت مرور را از همان فایل برگردانید.';
+  static const exportBackup = 'تهیه نسخه پشتیبان';
+  static const restoreBackup = 'بازگردانی از نسخه پشتیبان';
+  static const restoreBackupWarning =
+      'بازگردانی همه فضاها، دسته‌ها، کارت‌ها، آمار مرور و فایل‌های اکسل فعلی را با محتوای فایل پشتیبان عوض می‌کند. این کار قابل برگشت نیست مگر نسخه پشتیبان دیگری داشته باشید.';
+  static const backupSaved = 'نسخه پشتیبان ذخیره شد';
+  static const backupRestored = 'اطلاعات از نسخه پشتیبان بازگردانده شد';
+  static const backupInvalid =
+      'این فایل نسخه پشتیبان آتی‌لرن نیست یا آسیب دیده است.';
+  static const backupFailed = 'پشتیبان‌گیری انجام نشد. دوباره تلاش کنید.';
   static const aboutApp = 'درباره برنامه';
   static const aboutDeveloper = 'درباره توسعه‌دهنده';
   static const appName = 'Atilearn';

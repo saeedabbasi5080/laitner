@@ -24,5 +24,11 @@ abstract class LocalDataSource {
   Future<Flashcard> updateCard(Flashcard card);
   Future<void> deleteCard(String id);
 
+  Future<void> replaceCollection({
+    required List<LearningSpace> spaces,
+    required List<Deck> decks,
+    required List<Flashcard> cards,
+  });
+
   String generateId();
 }

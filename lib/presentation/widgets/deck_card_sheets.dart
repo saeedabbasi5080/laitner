@@ -12,11 +12,13 @@ class DeckFormSheet extends StatefulWidget {
     required this.onSubmit,
     this.deck,
     this.onDelete,
+    this.onExport,
   });
 
   final Future<void> Function(String name, DeckColor color) onSubmit;
   final Deck? deck;
   final Future<void> Function()? onDelete;
+  final Future<void> Function()? onExport;
 
   bool get isEditing => deck != null;
 
@@ -210,6 +212,30 @@ class _DeckFormSheetState extends State<DeckFormSheet> {
                             ),
                           ),
                         ),
+                        if (widget.isEditing && widget.onExport != null) ...[
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                await widget.onExport!();
+                              },
+                              icon: const Icon(
+                                Icons.file_download_outlined,
+                                size: 18,
+                              ),
+                              label: const Text(AppStrings.exportDeckExcel),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                         if (widget.isEditing && widget.onDelete != null) ...[
                           const SizedBox(height: 12),
                           SizedBox(
