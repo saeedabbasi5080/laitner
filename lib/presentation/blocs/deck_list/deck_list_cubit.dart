@@ -1,11 +1,11 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:recall/data/datasources/local_data_source.dart';
 import 'package:recall/data/datasources/space_settings_store.dart';
 import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/domain/entities/deck_color.dart';
 import 'package:recall/domain/entities/leitner_box_config.dart';
 import 'package:recall/domain/repositories/flashcard_repository.dart';
+import 'package:recall/domain/services/id_generator.dart';
 import 'package:recall/domain/usecases/add_deck_usecase.dart';
 import 'package:recall/domain/usecases/delete_deck_usecase.dart';
 import 'package:recall/domain/usecases/get_decks_usecase.dart';
@@ -26,7 +26,7 @@ class DeckListCubit extends Cubit<DeckListState> {
     required UpdateDeckUseCase updateDeckUseCase,
     required DeleteDeckUseCase deleteDeckUseCase,
     required IFlashcardRepository flashcardRepository,
-    required LocalDataSource localDataSource,
+    required IdGenerator idGenerator,
     required SpaceSettingsStore spaceSettingsStore,
   })  : _spaceId = spaceId,
         _getDecksUseCase = getDecksUseCase,
@@ -36,7 +36,7 @@ class DeckListCubit extends Cubit<DeckListState> {
         _updateDeckUseCase = updateDeckUseCase,
         _deleteDeckUseCase = deleteDeckUseCase,
         _flashcardRepository = flashcardRepository,
-        _localDataSource = localDataSource,
+        _idGenerator = idGenerator,
         _spaceSettingsStore = spaceSettingsStore,
         super(const DeckListState());
 
@@ -48,7 +48,7 @@ class DeckListCubit extends Cubit<DeckListState> {
   final UpdateDeckUseCase _updateDeckUseCase;
   final DeleteDeckUseCase _deleteDeckUseCase;
   final IFlashcardRepository _flashcardRepository;
-  final LocalDataSource _localDataSource;
+  final IdGenerator _idGenerator;
   final SpaceSettingsStore _spaceSettingsStore;
 
   String get spaceId => _spaceId;
@@ -109,7 +109,7 @@ class DeckListCubit extends Cubit<DeckListState> {
 
   Future<void> addDeck(String name, DeckColor color) async {
     final deck = Deck(
-      id: _localDataSource.generateId(),
+      id: _idGenerator.generateId(),
       spaceId: _spaceId,
       name: name.trim(),
       color: color,

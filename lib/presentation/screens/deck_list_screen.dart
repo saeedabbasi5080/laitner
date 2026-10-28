@@ -16,6 +16,7 @@ import 'package:recall/presentation/screens/box_cards_screen.dart';
 import 'package:recall/presentation/screens/deck_detail_screen.dart';
 import 'package:recall/presentation/screens/excel_library_screen.dart';
 import 'package:recall/presentation/screens/learned_cards_screen.dart';
+import 'package:recall/presentation/screens/mistakes_screen.dart';
 import 'package:recall/presentation/screens/settings_screen.dart';
 import 'package:recall/presentation/screens/statistics_screen.dart';
 import 'package:recall/presentation/utils/export_deck_excel.dart';
@@ -109,6 +110,18 @@ class _DeckListViewState extends State<_DeckListView>
                       AppPageHeader(
                         title: widget.space.name,
                         actions: [
+                          CircleIconButton(
+                            icon: Icons.error_outline_rounded,
+                            label: AppStrings.todaysMistakes,
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => MistakesScreen(
+                                  spaceId: widget.space.id,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           CircleIconButton(
                             icon: Icons.insights_outlined,
                             label: AppStrings.statistics,

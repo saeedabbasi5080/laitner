@@ -1,3 +1,4 @@
+import 'package:recall/core/utils/day_key.dart';
 import 'package:recall/domain/entities/flashcard.dart';
 import 'package:recall/domain/entities/leitner_box_config.dart';
 import 'package:recall/domain/usecases/leitner_logic.dart';
@@ -12,8 +13,14 @@ class DueDayBucket {
   int get count => cards.length;
 }
 
-DateTime calendarDay(DateTime value) =>
-    DateTime(value.year, value.month, value.day);
+/// Local midnight of [value]'s calendar day.
+///
+/// Delegates to the shared helper so due-day buckets and the statistics
+/// charts can never disagree about where a day begins.
+DateTime calendarDay(DateTime value) => dayStart(value);
+
+/// Days since the Unix epoch for [value]'s calendar day.
+int calendarDayNumber(DateTime value) => dayNumber(value);
 
 /// Time until just after the next local midnight, for day-boundary UI refresh.
 Duration untilNextLocalDay([DateTime? now]) {

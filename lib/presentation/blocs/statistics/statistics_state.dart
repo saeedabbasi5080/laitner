@@ -5,80 +5,57 @@ enum StatisticsStatus { initial, loading, loaded, error }
 class StatisticsState extends Equatable {
   const StatisticsState({
     this.status = StatisticsStatus.initial,
-    this.boxCounts = const {},
-    this.dailyReviewCounts = const [],
-    this.futureDueCounts = const [],
-    this.totalCards = 0,
-    this.masteredCards = 0,
-    this.totalReviews = 0,
-    this.knowCount = 0,
-    this.dontKnowCount = 0,
-    this.currentStreak = 0,
-    this.bestStreak = 0,
+    this.range = StatisticsRange.month,
+    this.snapshot,
+    this.historyCount = 0,
     this.errorMessage,
   });
 
   final StatisticsStatus status;
-  final Map<int, int> boxCounts;
-  final List<int> dailyReviewCounts;
-  final List<int> futureDueCounts;
-  final int totalCards;
-  final int masteredCards;
-  final int totalReviews;
-  final int knowCount;
-  final int dontKnowCount;
-  final int currentStreak;
-  final int bestStreak;
+
+  /// The selected time scope, mirroring Anki's "History" selector.
+  final StatisticsRange range;
+
+  /// Everything the charts render, or `null` before the first load finishes.
+  final StatisticsSnapshot? snapshot;
+
+  /// Total reviews ever recorded for this space, independent of [range].
+  ///
+  /// Kept separately so the empty-state hint can tell "no reviews in this
+  /// window" apart from "this space has never been studied".
+  final int historyCount;
+
   final String? errorMessage;
 
-  double get masteryProgress =>
-      totalCards == 0 ? 0 : masteredCards / totalCards;
+  bool get isLoading => status == StatisticsStatus.loading;
 
-  double get knowRate => totalReviews == 0 ? 0 : knowCount / totalReviews;
+  /// True when the space has review history at all.
+  bool get hasHistory => historyCount > 0;
+
+  /// True when the loaded [range] has nothing to show.
+  bool get isRangeEmpty => snapshot?.reviewBuckets.every((b) => b.total == 0) ?? false;
+
+  double get masteryProgress => snapshot?.masteryProgress ?? 0;
+
+  double get knowRate => snapshot?.knowRate ?? 0;
 
   StatisticsState copyWith({
     StatisticsStatus? status,
-    Map<int, int>? boxCounts,
-    List<int>? dailyReviewCounts,
-    List<int>? futureDueCounts,
-    int? totalCards,
-    int? masteredCards,
-    int? totalReviews,
-    int? knowCount,
-    int? dontKnowCount,
-    int? currentStreak,
-    int? bestStreak,
+    StatisticsRange? range,
+    StatisticsSnapshot? snapshot,
+    int? historyCount,
     String? errorMessage,
+    bool clearError = false,
   }) {
     return StatisticsState(
       status: status ?? this.status,
-      boxCounts: boxCounts ?? this.boxCounts,
-      dailyReviewCounts: dailyReviewCounts ?? this.dailyReviewCounts,
-      futureDueCounts: futureDueCounts ?? this.futureDueCounts,
-      totalCards: totalCards ?? this.totalCards,
-      masteredCards: masteredCards ?? this.masteredCards,
-      totalReviews: totalReviews ?? this.totalReviews,
-      knowCount: knowCount ?? this.knowCount,
-      dontKnowCount: dontKnowCount ?? this.dontKnowCount,
-      currentStreak: currentStreak ?? this.currentStreak,
-      bestStreak: bestStreak ?? this.bestStreak,
-      errorMessage: errorMessage,
+      range: range ?? this.range,
+      snapshot: snapshot ?? this.snapshot,
+      historyCount: historyCount ?? this.historyCount,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
 
   @override
-  List<Object?> get props => [
-    status,
-    boxCounts,
-    dailyReviewCounts,
-    futureDueCounts,
-    totalCards,
-    masteredCards,
-    totalReviews,
-    knowCount,
-    dontKnowCount,
-    currentStreak,
-    bestStreak,
-    errorMessage,
-  ];
+  List<Object?> get props => [status, range, snapshot, historyCount, errorMessage];
 }

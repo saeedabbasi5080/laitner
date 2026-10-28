@@ -12,10 +12,14 @@ class ExcelEncodeException implements Exception {
 }
 
 class ExcelWorkbookEncoder {
-  /// Column A = front (key), column B = back (value). No header row so the
-  /// file round-trips with [ExcelParser] and Anki/Quizlet-style two-field lists.
+  /// Column A = front (key), column B = back (value), column C = optional
+  /// tags.
+  ///
+  /// No header row, so the file still round-trips with [ExcelParser] and with
+  /// Anki/Quizlet-style two-field lists. The tag column is only written when a
+  /// row actually has tags, which keeps plain exports byte-identical to before.
   static Uint8List encodeKeyValue(
-    Iterable<({String front, String back})> rows,
+    Iterable<({String front, String back, List<String> tags})> rows,
   ) {
     final excel = Excel.createExcel();
     final sheetName = excel.getDefaultSheet() ?? 'Sheet1';
@@ -26,7 +30,14 @@ class ExcelWorkbookEncoder {
       final front = row.front.trim();
       final back = row.back.trim();
       if (front.isEmpty || back.isEmpty) continue;
-      sheet.appendRow([TextCellValue(front), TextCellValue(back)]);
+
+      final tags = row.tags.map((tag) => tag.trim()).where((t) => t.isNotEmpty);
+      final tagList = tags.toList();
+      sheet.appendRow([
+        TextCellValue(front),
+        TextCellValue(back),
+        if (tagList.isNotEmpty) TextCellValue(tagList.join(' ')),
+      ]);
       count++;
     }
 

@@ -112,7 +112,7 @@ class _SpaceCardsScreenState extends State<SpaceCardsScreen> {
                                       Text(
                                         [
                                           '${AppStrings.box} ${card.box}',
-                                          ?deckName,
+                                          if (deckName != null) deckName,
                                         ].join(' · '),
                                         style: TextStyle(
                                           fontSize: 11,

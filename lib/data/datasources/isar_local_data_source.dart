@@ -2,17 +2,17 @@ import 'package:isar/isar.dart';
 import 'package:recall/data/datasources/local_data_source.dart';
 import 'package:recall/data/models/deck_model.dart';
 import 'package:recall/data/models/flashcard_model.dart';
+import 'package:recall/data/models/review_log_model.dart';
 import 'package:recall/data/models/space_model.dart';
 import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/domain/entities/flashcard.dart';
 import 'package:recall/domain/entities/learning_space.dart';
-import 'package:uuid/uuid.dart';
+import 'package:recall/domain/entities/review_log.dart';
 
 class IsarLocalDataSource implements LocalDataSource {
   IsarLocalDataSource(this._isar);
 
   final Isar _isar;
-  final _uuid = const Uuid();
 
   @override
   Future<List<LearningSpace>> getAllSpaces() async {
@@ -189,10 +189,74 @@ class IsarLocalDataSource implements LocalDataSource {
   }
 
   @override
+  Future<List<ReviewLog>> getAllReviewLogs() async {
+    final models = await _isar.reviewLogModels.where().sortByReviewedAt().findAll();
+    return models.map((m) => m.toEntity()).toList();
+  }
+
+  @override
+  Future<List<ReviewLog>> getReviewLogsBySpaceId(String spaceId) async {
+    final models = await _isar.reviewLogModels
+        .filter()
+        .spaceIdEqualTo(spaceId)
+        .sortByReviewedAt()
+        .findAll();
+    return models.map((m) => m.toEntity()).toList();
+  }
+
+  @override
+  Future<int> countReviewLogsBySpaceId(String spaceId) async {
+    return _isar.reviewLogModels.filter().spaceIdEqualTo(spaceId).count();
+  }
+
+  @override
+  Future<List<ReviewLog>> getReviewLogsInRange({
+    required String spaceId,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final models = await _isar.reviewLogModels
+        .filter()
+        .spaceIdEqualTo(spaceId)
+        .reviewedAtGreaterThan(from, include: true)
+        .reviewedAtLessThan(to)
+        .sortByReviewedAt()
+        .findAll();
+    return models.map((m) => m.toEntity()).toList();
+  }
+
+  @override
+  Future<ReviewLog> addReviewLog(ReviewLog log) async {
+    final model = ReviewLogModelMapper.fromEntity(log);
+    await _isar.writeTxn(() async {
+      await _isar.reviewLogModels.put(model);
+    });
+    return model.toEntity();
+  }
+
+  @override
+  Future<void> deleteReviewLogsBySpaceId(String spaceId) async {
+    await _isar.writeTxn(() async {
+      await _isar.reviewLogModels.filter().spaceIdEqualTo(spaceId).deleteAll();
+    });
+  }
+
+  @override
+  Future<void> replaceReviewLogs(List<ReviewLog> logs) async {
+    await _isar.writeTxn(() async {
+      await _isar.reviewLogModels.clear();
+      await _isar.reviewLogModels.putAll(
+        logs.map(ReviewLogModelMapper.fromEntity).toList(),
+      );
+    });
+  }
+
+  @override
   Future<void> replaceCollection({
     required List<LearningSpace> spaces,
     required List<Deck> decks,
     required List<Flashcard> cards,
+    required List<ReviewLog> reviewLogs,
   }) async {
     await _isar.writeTxn(() async {
       await _isar.clear();
@@ -205,9 +269,9 @@ class IsarLocalDataSource implements LocalDataSource {
       await _isar.flashcardModels.putAll(
         cards.map(FlashcardModelMapper.fromEntity).toList(),
       );
+      await _isar.reviewLogModels.putAll(
+        reviewLogs.map(ReviewLogModelMapper.fromEntity).toList(),
+      );
     });
   }
-
-  @override
-  String generateId() => _uuid.v4();
 }

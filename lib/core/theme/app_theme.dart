@@ -20,6 +20,10 @@ class AppColors {
   static const know = Color(0xFF10B981);
   static const dontKnow = Color(0xFFEF4444);
 
+  /// Marks cards that graduated into the learned archive.
+  static const gold = Color(0xFFD4A017);
+  static const goldLight = Color(0xFFF2C94C);
+
   static Color forDeck(DeckColor color) => switch (color) {
         DeckColor.lavender => lavender,
         DeckColor.mint => mint,

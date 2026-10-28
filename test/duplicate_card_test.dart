@@ -10,7 +10,6 @@ import 'package:recall/domain/repositories/flashcard_repository.dart';
 import 'package:recall/domain/usecases/add_card_usecase.dart';
 import 'package:recall/domain/usecases/add_selected_excel_rows_usecase.dart';
 import 'package:recall/domain/usecases/find_duplicate_card_usecase.dart';
-import 'package:recall/domain/usecases/remove_excel_rows_usecase.dart';
 
 const _spaceId = 'space-1';
 
@@ -87,7 +86,72 @@ void main() {
     expect(flashcards.cards, hasLength(1));
   });
 
-  test('Excel import reports each duplicate and its existing deck', () async {
+  test('Excel import adds duplicates the user selected and counts them',
+      () async {
+    final now = DateTime(2026, 7, 15);
+    final flashcards = _FakeFlashcardRepository([
+      Flashcard(
+        id: 'existing',
+        deckId: 'english',
+        front: 'Apple',
+        back: 'سیب',
+        box: 1,
+        createdAt: now,
+      ),
+    ]);
+    final decks = _FakeDeckRepository([
+      Deck(
+        id: 'english',
+        spaceId: _spaceId,
+        name: 'انگلیسی',
+        color: DeckColor.sky,
+        createdAt: now,
+      ),
+      Deck(
+        id: 'target',
+        spaceId: _spaceId,
+        name: 'جدید',
+        color: DeckColor.mint,
+        createdAt: now,
+      ),
+    ]);
+    final excel = _FakeExcelImportRepository(
+      ExcelImport(
+        id: 'file',
+        spaceId: _spaceId,
+        fileName: 'words.xlsx',
+        createdAt: now,
+        rows: const [
+          ExcelImportRow(id: '1', front: 'Banana', back: 'موز'),
+          ExcelImportRow(id: '2', front: ' apple ', back: 'سیب — میوه'),
+          ExcelImportRow(id: '3', front: 'banana', back: 'موز'),
+        ],
+      ),
+    );
+    final useCase = AddSelectedExcelRowsUseCase(excel, flashcards, decks);
+
+    var nextId = 0;
+    final result = await useCase(
+      importId: 'file',
+      deckId: 'target',
+      rowIds: const ['1', '2', '3'],
+      generateId: () => 'new-${nextId++}',
+    );
+
+    // Nothing is withheld: the row list already warned, so the user's choice
+    // is respected and merely reported back.
+    expect(result.addedCount, 3);
+    expect(result.addedDuplicateCount, 2);
+    expect(result.hasAddedDuplicates, isTrue);
+    expect(flashcards.cards, hasLength(4));
+    expect(
+      flashcards.cards.where((card) => card.deckId == 'target'),
+      hasLength(3),
+    );
+    expect(excel.value.rows.every((row) => row.isAdded), isTrue);
+  });
+
+  test('Excel import adds only the rows the user actually selected', () async {
     final now = DateTime(2026, 7, 15);
     final flashcards = _FakeFlashcardRepository([
       Flashcard(
@@ -124,7 +188,6 @@ void main() {
         rows: const [
           ExcelImportRow(id: '1', front: 'Banana', back: 'موز'),
           ExcelImportRow(id: '2', front: ' apple ', back: 'سیب'),
-          ExcelImportRow(id: '3', front: 'banana', back: 'موز'),
         ],
       ),
     );
@@ -134,26 +197,55 @@ void main() {
     final result = await useCase(
       importId: 'file',
       deckId: 'target',
-      rowIds: const ['1', '2', '3'],
+      rowIds: const ['1'],
       generateId: () => 'new-${nextId++}',
     );
 
-    expect(result.totalProcessed, 3);
     expect(result.addedCount, 1);
-    expect(result.skippedDuplicates, 2);
-    expect(result.duplicates[0].front, 'apple');
-    expect(result.duplicates[0].rowId, '2');
-    expect(result.duplicates[0].existingDeckName, 'انگلیسی');
-    expect(result.duplicates[1].front, 'banana');
-    expect(result.duplicates[1].existingDeckName, 'جدید');
+    expect(result.addedDuplicateCount, 0);
+    expect(result.hasAddedDuplicates, isFalse);
     expect(flashcards.cards, hasLength(2));
+    expect(excel.value.rows.firstWhere((row) => row.id == '1').isAdded, isTrue);
+    expect(excel.value.rows.firstWhere((row) => row.id == '2').isAdded, isFalse);
+  });
 
-    final removed = await RemoveExcelRowsUseCase(excel)(
-      importId: 'file',
-      rowIds: result.duplicates.map((item) => item.rowId),
+  test('duplicates are counted against the state the user approved', () async {
+    final now = DateTime(2026, 7, 15);
+    final flashcards = _FakeFlashcardRepository([]);
+    final decks = _FakeDeckRepository([
+      Deck(
+        id: 'target',
+        spaceId: _spaceId,
+        name: 'جدید',
+        color: DeckColor.mint,
+        createdAt: now,
+      ),
+    ]);
+    final excel = _FakeExcelImportRepository(
+      ExcelImport(
+        id: 'file',
+        spaceId: _spaceId,
+        fileName: 'words.xlsx',
+        createdAt: now,
+        rows: const [
+          ExcelImportRow(id: '1', front: 'Banana', back: 'موز'),
+          ExcelImportRow(id: '2', front: 'banana', back: 'موز — دوباره'),
+        ],
+      ),
     );
-    expect(removed, 2);
-    expect(excel.value.rows.single.front, 'Banana');
+    final useCase = AddSelectedExcelRowsUseCase(excel, flashcards, decks);
+
+    var nextId = 0;
+    final result = await useCase(
+      importId: 'file',
+      deckId: 'target',
+      rowIds: const ['1', '2'],
+      generateId: () => 'new-${nextId++}',
+    );
+
+    // The second row repeats the first within the file, so it was flagged.
+    expect(result.addedCount, 2);
+    expect(result.addedDuplicateCount, 1);
   });
 }
 

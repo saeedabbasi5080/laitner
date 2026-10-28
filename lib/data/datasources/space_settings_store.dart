@@ -2,7 +2,10 @@ import 'package:recall/core/theme/app_accent.dart';
 import 'package:recall/core/theme/card_font_size.dart';
 import 'package:recall/core/tts/auto_speak_side.dart';
 import 'package:recall/core/tts/tts_language.dart';
+import 'package:recall/domain/entities/daily_excel_feed.dart';
 import 'package:recall/domain/entities/leitner_box_config.dart';
+import 'package:recall/domain/entities/reminder_settings.dart';
+import 'package:recall/domain/entities/review_settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -39,6 +42,16 @@ class SpaceSettingsStore {
         leitnerBoxes: LeitnerBoxConfig.fromJson(
           json['leitnerBoxes'] as Map<String, dynamic>?,
         ),
+        reminder: ReminderSettings.fromJson(
+          json['reminder'] as Map<String, dynamic>?,
+        ),
+
+        reviewSettings: ReviewSettings.fromJson(
+          json['reviewSettings'] as Map<String, dynamic>?,
+        ),
+        dailyExcelFeed: DailyExcelFeedSettings.fromJson(
+          json['dailyExcelFeed'] as Map<String, dynamic>?,
+        ),
       );
     } on FormatException {
       return const SpaceSettingsData();
@@ -60,6 +73,9 @@ class SpaceSettingsStore {
         if (data.accent != null) 'accent': data.accent!.name,
         'ttsSpeechRate': data.ttsSpeechRate,
         'leitnerBoxes': data.leitnerBoxes.toJson(),
+        'reminder': data.reminder.toJson(),
+        'reviewSettings': data.reviewSettings.toJson(),
+        'dailyExcelFeed': data.dailyExcelFeed.toJson(),
       }),
     );
   }
@@ -106,6 +122,9 @@ class SpaceSettingsData {
     this.accent,
     this.ttsSpeechRate = SpaceSettingsStore.defaultTtsSpeechRate,
     this.leitnerBoxes = LeitnerBoxConfig.classic,
+    this.reminder = const ReminderSettings(),
+  this.reviewSettings = const ReviewSettings(),
+    this.dailyExcelFeed = const DailyExcelFeedSettings(),
   });
 
   final TtsLanguage ttsLanguage;
@@ -117,6 +136,11 @@ class SpaceSettingsData {
   final AppAccent? accent;
   final double ttsSpeechRate;
   final LeitnerBoxConfig leitnerBoxes;
+  final ReminderSettings reminder;
+  final ReviewSettings reviewSettings;
+
+  /// Automatic daily release of queued Excel rows into a feed deck.
+  final DailyExcelFeedSettings dailyExcelFeed;
 
   SpaceSettingsData copyWith({
     TtsLanguage? ttsLanguage,
@@ -128,6 +152,9 @@ class SpaceSettingsData {
     AppAccent? accent,
     double? ttsSpeechRate,
     LeitnerBoxConfig? leitnerBoxes,
+    ReminderSettings? reminder,
+      ReviewSettings? reviewSettings,
+      DailyExcelFeedSettings? dailyExcelFeed,
   }) {
     return SpaceSettingsData(
       ttsLanguage: ttsLanguage ?? this.ttsLanguage,
@@ -139,6 +166,9 @@ class SpaceSettingsData {
       accent: accent ?? this.accent,
       ttsSpeechRate: ttsSpeechRate ?? this.ttsSpeechRate,
       leitnerBoxes: leitnerBoxes ?? this.leitnerBoxes,
+      reminder: reminder ?? this.reminder,
+      reviewSettings: reviewSettings ?? this.reviewSettings,
+      dailyExcelFeed: dailyExcelFeed ?? this.dailyExcelFeed,
     );
   }
 
@@ -152,6 +182,9 @@ class SpaceSettingsData {
         if (accent != null) 'accent': accent!.name,
         'ttsSpeechRate': ttsSpeechRate,
         'leitnerBoxes': leitnerBoxes.toJson(),
+        'reminder': reminder.toJson(),
+      'reviewSettings': reviewSettings.toJson(),
+      'dailyExcelFeed': dailyExcelFeed.toJson(),
       };
 
   factory SpaceSettingsData.fromJson(Map<String, dynamic> json) {
@@ -170,6 +203,16 @@ class SpaceSettingsData {
           SpaceSettingsStore.defaultTtsSpeechRate,
       leitnerBoxes: LeitnerBoxConfig.fromJson(
         json['leitnerBoxes'] as Map<String, dynamic>?,
+      ),
+      reminder: ReminderSettings.fromJson(
+        json['reminder'] as Map<String, dynamic>?,
+      ),
+
+      reviewSettings: ReviewSettings.fromJson(
+        json['reviewSettings'] as Map<String, dynamic>?,
+      ),
+      dailyExcelFeed: DailyExcelFeedSettings.fromJson(
+        json['dailyExcelFeed'] as Map<String, dynamic>?,
       ),
     );
   }

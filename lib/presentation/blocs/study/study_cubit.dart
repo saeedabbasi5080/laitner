@@ -8,6 +8,9 @@ import 'package:recall/domain/entities/review_rating.dart';
 import 'package:recall/domain/usecases/delete_card_usecase.dart';
 import 'package:recall/domain/usecases/get_all_due_cards_usecase.dart';
 import 'package:recall/domain/usecases/get_cards_by_box_usecase.dart';
+import 'package:recall/domain/usecases/get_cards_by_deck_usecase.dart';
+import 'package:recall/domain/usecases/get_space_cards_usecase.dart';
+import 'package:recall/domain/usecases/get_decks_usecase.dart';
 import 'package:recall/domain/usecases/get_due_cards_usecase.dart';
 import 'package:recall/domain/usecases/review_card_usecase.dart';
 import 'package:recall/domain/usecases/update_card_usecase.dart';
@@ -20,15 +23,22 @@ class StudyCubit extends Cubit<StudyState> {
     required StudyConfig config,
     required GetDueCardsUseCase getDueCardsUseCase,
     required GetAllDueCardsUseCase getAllDueCardsUseCase,
+    required GetSpaceCardsUseCase getSpaceCardsUseCase,
     required GetCardsByBoxUseCase getCardsByBoxUseCase,
+    required GetCardsByDeckUseCase getCardsByDeckUseCase,
+    required GetDecksUseCase getDecksUseCase,
     required ReviewCardUseCase reviewCardUseCase,
     required UpdateCardUseCase updateCardUseCase,
     required DeleteCardUseCase deleteCardUseCase,
+    this.onScheduleChanged,
     Random? random,
   }) : _config = config,
        _getDueCardsUseCase = getDueCardsUseCase,
        _getAllDueCardsUseCase = getAllDueCardsUseCase,
+       _getSpaceCardsUseCase = getSpaceCardsUseCase,
        _getCardsByBoxUseCase = getCardsByBoxUseCase,
+       _getCardsByDeckUseCase = getCardsByDeckUseCase,
+       _getDecksUseCase = getDecksUseCase,
        _reviewCardUseCase = reviewCardUseCase,
        _updateCardUseCase = updateCardUseCase,
        _deleteCardUseCase = deleteCardUseCase,
@@ -36,13 +46,25 @@ class StudyCubit extends Cubit<StudyState> {
        super(const StudyState());
 
   final StudyConfig _config;
+
+  /// The session's configuration, exposed so the screen can rebuild a follow-up
+  /// session (such as a retry over this run's mistakes).
+  StudyConfig get config => _config;
   final GetDueCardsUseCase _getDueCardsUseCase;
   final GetAllDueCardsUseCase _getAllDueCardsUseCase;
+  final GetSpaceCardsUseCase _getSpaceCardsUseCase;
   final GetCardsByBoxUseCase _getCardsByBoxUseCase;
+  final GetCardsByDeckUseCase _getCardsByDeckUseCase;
+  final GetDecksUseCase _getDecksUseCase;
   final ReviewCardUseCase _reviewCardUseCase;
   final UpdateCardUseCase _updateCardUseCase;
   final DeleteCardUseCase _deleteCardUseCase;
   final Random _random;
+
+  /// Invoked once a session completes so the notification queue can pick up
+  /// the new due counts.
+  final Future<void> Function()? onScheduleChanged;
+
   bool _isRating = false;
 
   Future<void> load() async {
@@ -50,7 +72,17 @@ class StudyCubit extends Cubit<StudyState> {
     try {
       final List<Flashcard> cards;
 
-      if (_config.boxNumber != null) {
+      if (_config.isMistakeRetry) {
+        // A retry run replays an explicit list, so it must ignore due dates
+        // entirely: answering a card wrong sends it back to the first house,
+        // which makes it due tomorrow. Querying the due cards here therefore
+        // returned nothing at all, and the retry screen opened empty.
+        final pool = _config.deckId == null
+            ? await _getSpaceCardsUseCase(_config.spaceId)
+            : await _getCardsByDeckUseCase(_config.deckId!);
+        final wanted = _config.mistakeCardIds.toSet();
+        cards = pool.where((card) => wanted.contains(card.id)).toList();
+      } else if (_config.boxNumber != null) {
         final boxCards = await _getCardsByBoxUseCase(
           _config.boxNumber!,
           deckId: _config.deckId,
@@ -79,6 +111,11 @@ class StudyCubit extends Cubit<StudyState> {
         queue.shuffle(_random);
       }
 
+      final decks = await _getDecksUseCase(_config.spaceId);
+      final deckNames = {
+        for (final deck in decks) deck.id: deck.name,
+      };
+
       emit(
         state.copyWith(
           status: StudyStatus.ready,
@@ -90,6 +127,9 @@ class StudyCubit extends Cubit<StudyState> {
           reversed: _config.reversed,
           knowCount: 0,
           dontKnowCount: 0,
+          // A retry run keeps its own list; a fresh session starts clean.
+          mistakeCardIds: _config.isMistakeRetry ? state.mistakeCardIds : const [],
+          deckNames: deckNames,
         ),
       );
     } catch (e) {
@@ -110,15 +150,14 @@ class StudyCubit extends Cubit<StudyState> {
   }
 
   Future<void> resetCurrentCardToBox1() async {
+    final index = state.currentIndex;
     final card = state.currentCard;
     if (card == null || card.box == 1) return;
 
     final updated = await _updateCardUseCase(
       card.copyWith(box: 1, clearLastReviewed: true),
     );
-    final queue = List<Flashcard>.from(state.queue);
-    queue[state.currentIndex] = updated;
-    emit(state.copyWith(queue: queue));
+    _replaceInQueue(index, updated);
   }
 
   Future<void> rateCard(ReviewRating rating) async {
@@ -126,16 +165,20 @@ class StudyCubit extends Cubit<StudyState> {
     if (_isRating || card == null || !state.isFlipped) return;
 
     _isRating = true;
+    // Whether this answer pushed the card into the learned archive.
+    var graduated = false;
     try {
       // Free review is a preview session: answers must not change the card's
       // box, last-reviewed date, normal schedule, or review statistics.
       if (!state.isFreeReview) {
-        await _reviewCardUseCase(
+        final reviewed = await _reviewCardUseCase(
           card,
           rating,
           spaceId: _config.spaceId,
           boxes: _config.boxConfig,
+          settings: _config.reviewSettings,
         );
+        graduated = _config.boxConfig.isLearnedBox(reviewed.box);
       }
       final remaining = [
         for (var i = state.currentIndex + 1; i < state.queue.length; i++)
@@ -153,23 +196,54 @@ class StudyCubit extends Cubit<StudyState> {
           knowCount: state.knowCount + (rating == ReviewRating.know ? 1 : 0),
           dontKnowCount:
               state.dontKnowCount + (rating == ReviewRating.dontKnow ? 1 : 0),
+          justLearned: graduated ? [card] : const [],
+          // Remembered so the finished screen can offer a retry run.
+          mistakeCardIds: rating == ReviewRating.dontKnow
+              ? [...state.mistakeCardIds, card.id]
+              : state.mistakeCardIds,
         ),
       );
+
+      // Reminder bodies name how many cards are waiting, so they go stale the
+      // moment a card moves to another house. Rebuild once the session is over
+      // rather than after every single answer.
+      if (state.isFinished) await onScheduleChanged?.call();
     } finally {
       _isRating = false;
     }
   }
 
   Future<void> updateCurrentCard(String front, String back) async {
+    // Capture the position before any await. Reading it afterwards would pick
+    // up a rating the user made while the write was still in flight, and the
+    // edited card would land on top of whichever card moved into that slot.
+    final index = state.currentIndex;
     final card = state.currentCard;
     if (card == null) return;
 
     final updated = await _updateCardUseCase(
       card.copyWith(front: front.trim(), back: back.trim()),
     );
+    _replaceInQueue(index, updated);
+  }
 
+  /// Puts [updated] back into the queue where the card it replaces belongs.
+  ///
+  /// Matches on the card id rather than trusting the index, so a rating that
+  /// landed while the write was in flight reorders the queue without leaving a
+  /// stale copy of the edited card behind.
+  void _replaceInQueue(int index, Flashcard updated) {
     final queue = List<Flashcard>.from(state.queue);
-    queue[state.currentIndex] = updated;
+    final previous = index < queue.length ? queue[index] : null;
+
+    if (previous == null || previous.id != updated.id) {
+      final existing = queue.indexWhere((item) => item.id == updated.id);
+      if (existing < 0) return;
+      queue[existing] = updated;
+    } else {
+      queue[index] = updated;
+    }
+
     emit(state.copyWith(queue: queue));
   }
 

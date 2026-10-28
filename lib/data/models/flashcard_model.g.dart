@@ -22,33 +22,53 @@ const FlashcardModelSchema = CollectionSchema(
       name: r'back',
       type: IsarType.string,
     ),
-    r'box': PropertySchema(
+    r'backStyle': PropertySchema(
       id: 1,
+      name: r'backStyle',
+      type: IsarType.string,
+    ),
+    r'box': PropertySchema(
+      id: 2,
       name: r'box',
       type: IsarType.long,
     ),
     r'createdAt': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'deckId': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'deckId',
       type: IsarType.string,
     ),
     r'front': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'front',
       type: IsarType.string,
     ),
+    r'frontStyle': PropertySchema(
+      id: 6,
+      name: r'frontStyle',
+      type: IsarType.string,
+    ),
     r'lastReviewed': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'lastReviewed',
       type: IsarType.dateTime,
     ),
+    r'mediaJson': PropertySchema(
+      id: 8,
+      name: r'mediaJson',
+      type: IsarType.string,
+    ),
+    r'tags': PropertySchema(
+      id: 9,
+      name: r'tags',
+      type: IsarType.stringList,
+    ),
     r'uuid': PropertySchema(
-      id: 6,
+      id: 10,
       name: r'uuid',
       type: IsarType.string,
     )
@@ -101,8 +121,18 @@ int _flashcardModelEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.back.length * 3;
+  bytesCount += 3 + object.backStyle.length * 3;
   bytesCount += 3 + object.deckId.length * 3;
   bytesCount += 3 + object.front.length * 3;
+  bytesCount += 3 + object.frontStyle.length * 3;
+  bytesCount += 3 + object.mediaJson.length * 3;
+  bytesCount += 3 + object.tags.length * 3;
+  {
+    for (var i = 0; i < object.tags.length; i++) {
+      final value = object.tags[i];
+      bytesCount += value.length * 3;
+    }
+  }
   bytesCount += 3 + object.uuid.length * 3;
   return bytesCount;
 }
@@ -114,12 +144,16 @@ void _flashcardModelSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.back);
-  writer.writeLong(offsets[1], object.box);
-  writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeString(offsets[3], object.deckId);
-  writer.writeString(offsets[4], object.front);
-  writer.writeDateTime(offsets[5], object.lastReviewed);
-  writer.writeString(offsets[6], object.uuid);
+  writer.writeString(offsets[1], object.backStyle);
+  writer.writeLong(offsets[2], object.box);
+  writer.writeDateTime(offsets[3], object.createdAt);
+  writer.writeString(offsets[4], object.deckId);
+  writer.writeString(offsets[5], object.front);
+  writer.writeString(offsets[6], object.frontStyle);
+  writer.writeDateTime(offsets[7], object.lastReviewed);
+  writer.writeString(offsets[8], object.mediaJson);
+  writer.writeStringList(offsets[9], object.tags);
+  writer.writeString(offsets[10], object.uuid);
 }
 
 FlashcardModel _flashcardModelDeserialize(
@@ -130,13 +164,17 @@ FlashcardModel _flashcardModelDeserialize(
 ) {
   final object = FlashcardModel();
   object.back = reader.readString(offsets[0]);
-  object.box = reader.readLong(offsets[1]);
-  object.createdAt = reader.readDateTime(offsets[2]);
-  object.deckId = reader.readString(offsets[3]);
-  object.front = reader.readString(offsets[4]);
+  object.backStyle = reader.readString(offsets[1]);
+  object.box = reader.readLong(offsets[2]);
+  object.createdAt = reader.readDateTime(offsets[3]);
+  object.deckId = reader.readString(offsets[4]);
+  object.front = reader.readString(offsets[5]);
+  object.frontStyle = reader.readString(offsets[6]);
   object.isarId = id;
-  object.lastReviewed = reader.readDateTimeOrNull(offsets[5]);
-  object.uuid = reader.readString(offsets[6]);
+  object.lastReviewed = reader.readDateTimeOrNull(offsets[7]);
+  object.mediaJson = reader.readString(offsets[8]);
+  object.tags = reader.readStringList(offsets[9]) ?? [];
+  object.uuid = reader.readString(offsets[10]);
   return object;
 }
 
@@ -150,16 +188,24 @@ P _flashcardModelDeserializeProp<P>(
     case 0:
       return (reader.readString(offset)) as P;
     case 1:
-      return (reader.readLong(offset)) as P;
-    case 2:
-      return (reader.readDateTime(offset)) as P;
-    case 3:
       return (reader.readString(offset)) as P;
+    case 2:
+      return (reader.readLong(offset)) as P;
+    case 3:
+      return (reader.readDateTime(offset)) as P;
     case 4:
       return (reader.readString(offset)) as P;
     case 5:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 8:
+      return (reader.readString(offset)) as P;
+    case 9:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 10:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -536,6 +582,142 @@ extension FlashcardModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'back',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      backStyleEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'backStyle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      backStyleGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'backStyle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      backStyleLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'backStyle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      backStyleBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'backStyle',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      backStyleStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'backStyle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      backStyleEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'backStyle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      backStyleContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'backStyle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      backStyleMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'backStyle',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      backStyleIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'backStyle',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      backStyleIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'backStyle',
         value: '',
       ));
     });
@@ -926,6 +1108,142 @@ extension FlashcardModelQueryFilter
   }
 
   QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      frontStyleEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'frontStyle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      frontStyleGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'frontStyle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      frontStyleLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'frontStyle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      frontStyleBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'frontStyle',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      frontStyleStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'frontStyle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      frontStyleEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'frontStyle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      frontStyleContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'frontStyle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      frontStyleMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'frontStyle',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      frontStyleIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'frontStyle',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      frontStyleIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'frontStyle',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
       isarIdEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1052,6 +1370,367 @@ extension FlashcardModelQueryFilter
         upper: upper,
         includeUpper: includeUpper,
       ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      mediaJsonEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mediaJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      mediaJsonGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'mediaJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      mediaJsonLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'mediaJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      mediaJsonBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'mediaJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      mediaJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'mediaJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      mediaJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'mediaJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      mediaJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'mediaJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      mediaJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'mediaJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      mediaJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mediaJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      mediaJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'mediaJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'tags',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'tags',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'tags',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'tags',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'tags',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'tags',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'tags',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'tags',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'tags',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'tags',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tags',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tags',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tags',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tags',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tags',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterFilterCondition>
+      tagsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'tags',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
     });
   }
 
@@ -1212,6 +1891,19 @@ extension FlashcardModelQuerySortBy
     });
   }
 
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy> sortByBackStyle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'backStyle', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy>
+      sortByBackStyleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'backStyle', Sort.desc);
+    });
+  }
+
   QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy> sortByBox() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'box', Sort.asc);
@@ -1263,6 +1955,20 @@ extension FlashcardModelQuerySortBy
   }
 
   QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy>
+      sortByFrontStyle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'frontStyle', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy>
+      sortByFrontStyleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'frontStyle', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy>
       sortByLastReviewed() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastReviewed', Sort.asc);
@@ -1273,6 +1979,19 @@ extension FlashcardModelQuerySortBy
       sortByLastReviewedDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastReviewed', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy> sortByMediaJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mediaJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy>
+      sortByMediaJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mediaJson', Sort.desc);
     });
   }
 
@@ -1300,6 +2019,19 @@ extension FlashcardModelQuerySortThenBy
   QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy> thenByBackDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'back', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy> thenByBackStyle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'backStyle', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy>
+      thenByBackStyleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'backStyle', Sort.desc);
     });
   }
 
@@ -1353,6 +2085,20 @@ extension FlashcardModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy>
+      thenByFrontStyle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'frontStyle', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy>
+      thenByFrontStyleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'frontStyle', Sort.desc);
+    });
+  }
+
   QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy> thenByIsarId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isarId', Sort.asc);
@@ -1380,6 +2126,19 @@ extension FlashcardModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy> thenByMediaJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mediaJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy>
+      thenByMediaJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mediaJson', Sort.desc);
+    });
+  }
+
   QueryBuilder<FlashcardModel, FlashcardModel, QAfterSortBy> thenByUuid() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'uuid', Sort.asc);
@@ -1399,6 +2158,13 @@ extension FlashcardModelQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'back', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QDistinct> distinctByBackStyle(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'backStyle', caseSensitive: caseSensitive);
     });
   }
 
@@ -1429,10 +2195,30 @@ extension FlashcardModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<FlashcardModel, FlashcardModel, QDistinct> distinctByFrontStyle(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'frontStyle', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<FlashcardModel, FlashcardModel, QDistinct>
       distinctByLastReviewed() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'lastReviewed');
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QDistinct> distinctByMediaJson(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'mediaJson', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<FlashcardModel, FlashcardModel, QDistinct> distinctByTags() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'tags');
     });
   }
 
@@ -1455,6 +2241,12 @@ extension FlashcardModelQueryProperty
   QueryBuilder<FlashcardModel, String, QQueryOperations> backProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'back');
+    });
+  }
+
+  QueryBuilder<FlashcardModel, String, QQueryOperations> backStyleProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'backStyle');
     });
   }
 
@@ -1482,10 +2274,28 @@ extension FlashcardModelQueryProperty
     });
   }
 
+  QueryBuilder<FlashcardModel, String, QQueryOperations> frontStyleProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'frontStyle');
+    });
+  }
+
   QueryBuilder<FlashcardModel, DateTime?, QQueryOperations>
       lastReviewedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'lastReviewed');
+    });
+  }
+
+  QueryBuilder<FlashcardModel, String, QQueryOperations> mediaJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'mediaJson');
+    });
+  }
+
+  QueryBuilder<FlashcardModel, List<String>, QQueryOperations> tagsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'tags');
     });
   }
 

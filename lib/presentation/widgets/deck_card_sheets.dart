@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:recall/core/localization/app_strings.dart';
+import 'package:recall/domain/entities/card_difficulty.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/domain/entities/deck_color.dart';
@@ -284,13 +285,23 @@ class CardFormSheet extends StatefulWidget {
     required this.onSubmit,
     this.front = '',
     this.back = '',
+    this.tags = const [],
     this.title = AppStrings.editCard,
+    this.showTags = false,
   });
 
   final Future<void> Function(String front, String back) onSubmit;
   final String front;
   final String back;
+
+  /// Initial tags, used when [showTags] is on.
+  final List<String> tags;
+
   final String title;
+
+  /// Shows the optional difficulty chips. Off for the study screen so editing a
+  /// card mid-review does not ask for anything else.
+  final bool showTags;
 
   @override
   State<CardFormSheet> createState() => _CardFormSheetState();
@@ -299,12 +310,14 @@ class CardFormSheet extends StatefulWidget {
 class _CardFormSheetState extends State<CardFormSheet> {
   late final TextEditingController _frontController;
   late final TextEditingController _backController;
+  late List<String> _tags;
 
   @override
   void initState() {
     super.initState();
     _frontController = TextEditingController(text: widget.front);
     _backController = TextEditingController(text: widget.back);
+    _tags = List<String>.of(widget.tags);
   }
 
   @override
@@ -312,6 +325,16 @@ class _CardFormSheetState extends State<CardFormSheet> {
     _frontController.dispose();
     _backController.dispose();
     super.dispose();
+  }
+
+  void _toggleDifficulty(CardDifficulty difficulty) {
+    setState(() {
+      if (_tags.contains(difficulty.tag)) {
+        _tags = _tags.where((tag) => tag != difficulty.tag).toList();
+      } else {
+        _tags = [..._tags, difficulty.tag];
+      }
+    });
   }
 
   @override
@@ -393,6 +416,33 @@ class _CardFormSheetState extends State<CardFormSheet> {
                             ),
                           ),
                         ),
+                        if (widget.showTags) ...[
+                          const SizedBox(height: 20),
+                          const SectionLabel(AppStrings.difficultyTitle),
+                          const SizedBox(height: 4),
+                          Text(
+                            AppStrings.difficultyHint,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colors.mutedForeground,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final difficulty
+                                  in CardDifficulty.suggestions)
+                                ChoiceChip(
+                                  label: Text(difficulty.label),
+                                  selected: _tags.contains(difficulty.tag),
+                                  onSelected: (_) =>
+                                      _toggleDifficulty(difficulty),
+                                ),
+                            ],
+                          ),
+                        ],
                         const SizedBox(height: 24),
                         Row(
                           children: [

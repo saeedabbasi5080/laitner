@@ -1,6 +1,7 @@
 import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/domain/entities/flashcard.dart';
 import 'package:recall/domain/entities/learning_space.dart';
+import 'package:recall/domain/entities/review_log.dart';
 
 abstract class LocalDataSource {
   Future<List<LearningSpace>> getAllSpaces();
@@ -24,11 +25,33 @@ abstract class LocalDataSource {
   Future<Flashcard> updateCard(Flashcard card);
   Future<void> deleteCard(String id);
 
+  Future<List<ReviewLog>> getAllReviewLogs();
+
+  Future<List<ReviewLog>> getReviewLogsBySpaceId(String spaceId);
+
+  Future<int> countReviewLogsBySpaceId(String spaceId);
+
+  /// Reviews for [spaceId] with `reviewedAt` in `[from, to)`.
+  ///
+  /// The statistics screen asks for a window instead of the whole history, so
+  /// long-lived collections do not have to be decoded on every open.
+  Future<List<ReviewLog>> getReviewLogsInRange({
+    required String spaceId,
+    required DateTime from,
+    required DateTime to,
+  });
+
+  Future<ReviewLog> addReviewLog(ReviewLog log);
+
+  Future<void> deleteReviewLogsBySpaceId(String spaceId);
+
+  Future<void> replaceReviewLogs(List<ReviewLog> logs);
+
+  /// Wipes and rewrites the whole collection, review history included.
   Future<void> replaceCollection({
     required List<LearningSpace> spaces,
     required List<Deck> decks,
     required List<Flashcard> cards,
+    required List<ReviewLog> reviewLogs,
   });
-
-  String generateId();
 }

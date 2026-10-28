@@ -13,6 +13,9 @@ class StudyState extends Equatable {
     this.reversed = false,
     this.knowCount = 0,
     this.dontKnowCount = 0,
+    this.justLearned = const [],
+    this.mistakeCardIds = const [],
+    this.deckNames = const {},
     this.errorMessage,
   });
 
@@ -25,7 +28,29 @@ class StudyState extends Equatable {
   final bool reversed;
   final int knowCount;
   final int dontKnowCount;
+
+  /// Cards that reached the learned archive during this session.
+  ///
+  /// Cleared on the next rating, so the card that just graduated can be
+  /// congratulated before the screen moves on.
+  final List<Flashcard> justLearned;
+
+  /// Cards answered wrongly during this session, in the order they were missed.
+  /// Feeds the "review my mistakes" retry run.
+  final List<String> mistakeCardIds;
+
+  int get mistakeCount => mistakeCardIds.length;
+
+  final Map<String, String> deckNames;
   final String? errorMessage;
+
+  String? get currentDeckName {
+    final card = currentCard;
+    if (card == null) return null;
+    final name = deckNames[card.deckId];
+    if (name == null || name.trim().isEmpty) return null;
+    return name;
+  }
 
   int get ratedCount => knowCount + dontKnowCount;
 
@@ -51,6 +76,9 @@ class StudyState extends Equatable {
     bool? reversed,
     int? knowCount,
     int? dontKnowCount,
+    List<Flashcard>? justLearned,
+    List<String>? mistakeCardIds,
+    Map<String, String>? deckNames,
     String? errorMessage,
   }) {
     return StudyState(
@@ -63,6 +91,9 @@ class StudyState extends Equatable {
       reversed: reversed ?? this.reversed,
       knowCount: knowCount ?? this.knowCount,
       dontKnowCount: dontKnowCount ?? this.dontKnowCount,
+      justLearned: justLearned ?? this.justLearned,
+      mistakeCardIds: mistakeCardIds ?? this.mistakeCardIds,
+      deckNames: deckNames ?? this.deckNames,
       errorMessage: errorMessage,
     );
   }
@@ -78,6 +109,9 @@ class StudyState extends Equatable {
         reversed,
         knowCount,
         dontKnowCount,
+        justLearned,
+        mistakeCardIds,
+        deckNames,
         errorMessage,
       ];
 }

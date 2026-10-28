@@ -11,6 +11,7 @@ class UpdateExcelRowUseCase {
     required String rowId,
     required String front,
     required String back,
+    List<String>? tags,
   }) async {
     final import = await _repository.getImportById(importId);
     if (import == null) return null;
@@ -21,12 +22,13 @@ class UpdateExcelRowUseCase {
 
     final rows = import.rows.map((row) {
       if (row.id != rowId) return row;
-      return row.copyWith(
+      final patched = row.copyWith(
         front: trimmedFront,
         back: trimmedBack,
         isAdded: false,
         clearAddedAt: true,
       );
+      return tags == null ? patched : patched.copyWith(tags: tags);
     }).toList();
 
     final updated = import.copyWith(rows: rows);

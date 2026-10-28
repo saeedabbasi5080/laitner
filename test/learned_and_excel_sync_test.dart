@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/fake_review_history_repository.dart';
 import 'package:recall/core/constants/leitner_constants.dart';
 import 'package:recall/domain/entities/excel_import.dart';
 import 'package:recall/domain/entities/flashcard.dart';
@@ -6,8 +8,6 @@ import 'package:recall/domain/entities/leitner_box_config.dart';
 import 'package:recall/domain/entities/review_rating.dart';
 import 'package:recall/domain/repositories/excel_import_repository.dart';
 import 'package:recall/domain/repositories/flashcard_repository.dart';
-import 'package:recall/domain/repositories/review_history_repository.dart';
-import 'package:recall/domain/entities/review_log.dart';
 import 'package:recall/domain/usecases/review_card_usecase.dart';
 import 'package:recall/domain/usecases/sync_excel_import_added_status_usecase.dart';
 
@@ -15,7 +15,7 @@ void main() {
   test('successful Box 5 review archives the card as learned', () {
     final useCase = ReviewCardUseCase(
       _FakeFlashcardRepository(),
-      _FakeReviewHistoryRepository(),
+      FakeReviewHistoryRepository(),
     );
     final now = DateTime(2026, 8, 15);
     final card = Flashcard(
@@ -36,7 +36,7 @@ void main() {
     const boxes = LeitnerBoxConfig(box6Enabled: true, box6Days: 21);
     final useCase = ReviewCardUseCase(
       _FakeFlashcardRepository(),
-      _FakeReviewHistoryRepository(),
+      FakeReviewHistoryRepository(),
     );
     final now = DateTime(2026, 8, 15);
     final card = Flashcard(
@@ -66,7 +66,7 @@ void main() {
     );
     final useCase = ReviewCardUseCase(
       _FakeFlashcardRepository(),
-      _FakeReviewHistoryRepository(),
+      FakeReviewHistoryRepository(),
     );
     final now = DateTime(2026, 8, 15);
     final card = Flashcard(
@@ -155,19 +155,6 @@ class _FakeFlashcardRepository implements IFlashcardRepository {
     updatedCard = card;
     return card;
   }
-}
-
-class _FakeReviewHistoryRepository implements IReviewHistoryRepository {
-  final List<ReviewLog> logs = [];
-
-  @override
-  Future<void> add(ReviewLog log) async => logs.add(log);
-
-  @override
-  Future<List<ReviewLog>> getAll() async => logs;
-
-  @override
-  Future<List<ReviewLog>> getBySpaceId(String spaceId) async => logs;
 }
 
 class _FakeExcelImportRepository implements IExcelImportRepository {

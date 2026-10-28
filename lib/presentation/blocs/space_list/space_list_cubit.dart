@@ -1,9 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/constants/space_constants.dart';
-import 'package:recall/data/datasources/local_data_source.dart';
 import 'package:recall/data/datasources/space_settings_store.dart';
 import 'package:recall/domain/entities/deck_color.dart';
 import 'package:recall/domain/entities/learning_space.dart';
+import 'package:recall/domain/services/id_generator.dart';
 import 'package:recall/domain/usecases/add_space_usecase.dart';
 import 'package:recall/domain/usecases/delete_space_usecase.dart';
 import 'package:recall/domain/usecases/get_cards_by_deck_usecase.dart';
@@ -22,7 +22,7 @@ class SpaceListCubit extends Cubit<SpaceListState> {
     required AddSpaceUseCase addSpaceUseCase,
     required UpdateSpaceUseCase updateSpaceUseCase,
     required DeleteSpaceUseCase deleteSpaceUseCase,
-    required LocalDataSource localDataSource,
+    required IdGenerator idGenerator,
     required SpaceSettingsStore spaceSettingsStore,
   })  : _getSpacesUseCase = getSpacesUseCase,
         _getDecksUseCase = getDecksUseCase,
@@ -31,7 +31,7 @@ class SpaceListCubit extends Cubit<SpaceListState> {
         _addSpaceUseCase = addSpaceUseCase,
         _updateSpaceUseCase = updateSpaceUseCase,
         _deleteSpaceUseCase = deleteSpaceUseCase,
-        _localDataSource = localDataSource,
+        _idGenerator = idGenerator,
         _spaceSettingsStore = spaceSettingsStore,
         super(const SpaceListState());
 
@@ -42,7 +42,7 @@ class SpaceListCubit extends Cubit<SpaceListState> {
   final AddSpaceUseCase _addSpaceUseCase;
   final UpdateSpaceUseCase _updateSpaceUseCase;
   final DeleteSpaceUseCase _deleteSpaceUseCase;
-  final LocalDataSource _localDataSource;
+  final IdGenerator _idGenerator;
   final SpaceSettingsStore _spaceSettingsStore;
 
   Future<void> load() async {
@@ -91,7 +91,7 @@ class SpaceListCubit extends Cubit<SpaceListState> {
     try {
       final spaces = await _getSpacesUseCase();
       final space = LearningSpace(
-        id: _localDataSource.generateId(),
+        id: _idGenerator.generateId(),
         name: name.trim(),
         color: color,
         createdAt: DateTime.now(),

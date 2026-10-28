@@ -1,4 +1,4 @@
-import 'package:flutter_test/flutter_test.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
 import 'package:recall/data/utils/excel_encoder.dart';
 import 'package:recall/data/utils/excel_parser.dart';
 import 'package:recall/domain/entities/deck.dart';
@@ -13,17 +13,30 @@ import 'package:recall/domain/usecases/get_deck_usecase.dart';
 void main() {
   test('key-value xlsx round-trips with the importer', () {
     final bytes = ExcelWorkbookEncoder.encodeKeyValue([
-      (front: 'hello', back: 'سلام'),
-      (front: '  apple  ', back: 'سیب'),
-      (front: '', back: 'ignored'),
-      (front: 'only-front', back: '  '),
+      (front: 'hello', back: 'سلام', tags: <String>[]),
+      (front: '  apple  ', back: 'سیب', tags: <String>[]),
+      (front: '', back: 'ignored', tags: <String>[]),
+      (front: 'only-front', back: '  ', tags: <String>[]),
     ]);
 
     final parsed = ExcelParser.parseRows(bytes);
-    expect(parsed, [
-      (front: 'hello', back: 'سلام'),
-      (front: 'apple', back: 'سیب'),
+    expect(parsed.map((row) => (row.front, row.back)).toList(), [
+      ('hello', 'سلام'),
+      ('apple', 'سیب'),
     ]);
+    // The optional third column stays empty when the file has no tags.
+    expect(parsed.every((row) => row.tags.isEmpty), isTrue);
+  });
+
+  test('tag column round-trips through the encoder', () {
+    final bytes = ExcelWorkbookEncoder.encodeKeyValue([
+      (front: 'apple', back: 'سیب', tags: ['hard', 'noun']),
+      (front: 'book', back: 'کتاب', tags: <String>[]),
+    ]);
+
+    final parsed = ExcelParser.parseRows(bytes);
+    expect(parsed.first.tags, ['hard', 'noun']);
+    expect(parsed.last.tags, isEmpty);
   });
 
   test('file name keeps Persian text and strips path characters', () {
@@ -67,10 +80,15 @@ void main() {
     )('deck-1');
 
     expect(exported.fileName, 'Words.xlsx');
-    expect(ExcelParser.parseRows(exported.bytes), [
-      (front: 'hello', back: 'سلام'),
-      (front: 'world', back: 'دنیا'),
-    ]);
+    expect(
+      ExcelParser.parseRows(exported.bytes)
+          .map((row) => (row.front, row.back))
+          .toList(),
+      [
+        ('hello', 'سلام'),
+        ('world', 'دنیا'),
+      ],
+    );
   });
 
   test('export use case rejects an empty deck', () async {

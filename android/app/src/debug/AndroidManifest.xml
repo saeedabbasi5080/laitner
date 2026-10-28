@@ -4,4 +4,19 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!--
+      Cleartext HTTP, for the debug build only.
+
+      Sign-in talks to a backend running on the developer's own machine, which is
+      plain HTTP. Android blocks cleartext by default from API 28, so without this
+      the requests fail with no explanation the user can act on — and the default
+      address is the emulator's route to the host, which has no certificate.
+
+      Debug-only on purpose. The release manifest is untouched, so a shipped build
+      still refuses cleartext and must be given an HTTPS address. The one-time
+      code travels over this connection; allowing it in production would put that
+      code on the wire in the clear.
+    -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

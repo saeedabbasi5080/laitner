@@ -136,11 +136,17 @@ class _LearnedCardsScreenState extends State<LearnedCardsScreen> {
                                   },
                                   controlAffinity:
                                       ListTileControlAffinity.leading,
+                                  secondary: const Icon(
+                                    Icons.workspace_premium_rounded,
+                                    color: AppColors.gold,
+                                    size: 20,
+                                  ),
                                   title: Text(
                                     card.front,
                                     textDirection: textDirectionFor(card.front),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w600,
+                                      color: AppColors.gold,
                                     ),
                                   ),
                                   subtitle: Text(

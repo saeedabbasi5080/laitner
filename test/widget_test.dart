@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/fake_review_history_repository.dart';
 import 'package:recall/domain/entities/flashcard.dart';
-import 'package:recall/domain/entities/review_log.dart';
 import 'package:recall/domain/entities/review_rating.dart';
 import 'package:recall/domain/repositories/flashcard_repository.dart';
-import 'package:recall/domain/repositories/review_history_repository.dart';
 import 'package:recall/domain/usecases/leitner_logic.dart';
 import 'package:recall/domain/usecases/review_card_usecase.dart';
 
@@ -11,7 +11,7 @@ void main() {
   test('ReviewCardUseCase applies know/dontKnow rules', () {
     final useCase = ReviewCardUseCase(
       _FakeFlashcardRepository(),
-      _FakeReviewHistoryRepository(),
+      FakeReviewHistoryRepository(),
     );
     final now = DateTime(2026, 7, 13);
 
@@ -35,7 +35,7 @@ void main() {
   });
 
   test('ReviewCardUseCase persists a review log', () async {
-    final history = _FakeReviewHistoryRepository();
+    final history = FakeReviewHistoryRepository();
     final repository = _FakeFlashcardRepository();
     final useCase = ReviewCardUseCase(repository, history);
     final now = DateTime(2026, 7, 13);
@@ -100,17 +100,4 @@ class _FakeFlashcardRepository implements IFlashcardRepository {
     updatedCard = card;
     return card;
   }
-}
-
-class _FakeReviewHistoryRepository implements IReviewHistoryRepository {
-  final List<ReviewLog> logs = [];
-
-  @override
-  Future<void> add(ReviewLog log) async => logs.add(log);
-
-  @override
-  Future<List<ReviewLog>> getAll() async => logs;
-
-  @override
-  Future<List<ReviewLog>> getBySpaceId(String spaceId) async => logs;
 }

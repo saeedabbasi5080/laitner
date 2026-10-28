@@ -8,18 +8,23 @@ import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/core/theme/card_font_size.dart';
 import 'package:recall/core/tts/auto_speak_side.dart';
 import 'package:recall/core/tts/tts_language.dart';
+import 'package:recall/core/tts/tts_service.dart';
 import 'package:recall/core/constants/leitner_constants.dart';
 import 'package:recall/data/backup/collection_backup.dart';
 import 'package:recall/data/utils/pick_backup_file.dart';
 import 'package:recall/domain/entities/leitner_box_config.dart';
+import 'package:recall/domain/entities/review_settings.dart';
 import 'package:recall/core/utils/responsive.dart';
 import 'package:recall/domain/usecases/export_collection_backup_usecase.dart';
 import 'package:recall/domain/usecases/restore_collection_backup_usecase.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/settings/settings_cubit.dart';
 import 'package:recall/presentation/screens/about_app_screen.dart';
+import 'package:recall/presentation/widgets/account_section.dart';
 import 'package:recall/presentation/screens/developer_screen.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
+import 'package:recall/presentation/widgets/daily_excel_feed_section.dart';
+import 'package:recall/presentation/widgets/reminder_settings_section.dart';
 import 'package:recall/presentation/widgets/soft_ui.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -254,6 +259,18 @@ class _SettingsView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 32),
+                const SectionLabel(AppStrings.dontKnowBehaviourTitle),
+                const SizedBox(height: 8),
+                Text(
+                  AppStrings.dontKnowBehaviourHint,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.recallColors.mutedForeground,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _DontKnowBehaviourPicker(value: state.reviewSettings.dontKnowBehaviour),
+                const SizedBox(height: 32),
                 const SectionLabel(AppStrings.extraLeitnerHouses),
                 const SizedBox(height: 8),
                 Text(
@@ -266,7 +283,40 @@ class _SettingsView extends StatelessWidget {
                 const SizedBox(height: 12),
                 _ExtraHousesSettings(config: state.leitnerBoxes),
                 const SizedBox(height: 32),
+                const SectionLabel(AppStrings.reminders),
+                const SizedBox(height: 8),
+                Text(
+                  AppStrings.reviewSettingsSpaceHint,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.recallColors.mutedForeground,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ReminderSettingsSection(
+                  settings: state.reminder,
+                  onChanged: context.read<SettingsCubit>().setReminder,
+                ),
+                const SizedBox(height: 32),
                 ],
+                // The feed belongs to a space, so it is hidden when the screen was
+                // opened from the global tab where there is nothing to attach
+                // it to.
+                if (state.currentSpaceId != null) ...[
+                  const SectionLabel(AppStrings.dailyExcelFeed),
+                  const SizedBox(height: 8),
+                  DailyExcelFeedSection(
+                    spaceId: state.currentSpaceId!,
+                    settings: state.dailyExcelFeed,
+                    onChanged: context.read<SettingsCubit>().setDailyExcelFeed,
+                  ),
+                  const SizedBox(height: 32),
+                ],
+                // The account section is a warning when signed out and a control
+                // when signed in — the same place, because it answers the same
+                // question: "is my data safe if I lose this device?"
+                const AccountSection(),
+                const SizedBox(height: 32),
                 const SectionLabel(AppStrings.backup),
                 const SizedBox(height: 8),
                 Text(
@@ -598,7 +648,7 @@ class _AccentSwatch extends StatelessWidget {
   }
 }
 
-class _TtsSpeechRatePicker extends StatelessWidget {
+class _TtsSpeechRatePicker extends StatefulWidget {
   const _TtsSpeechRatePicker({
     required this.value,
     required this.onChanged,
@@ -608,12 +658,47 @@ class _TtsSpeechRatePicker extends StatelessWidget {
   final ValueChanged<double> onChanged;
 
   @override
+  State<_TtsSpeechRatePicker> createState() => _TtsSpeechRatePickerState();
+}
+
+class _TtsSpeechRatePickerState extends State<_TtsSpeechRatePicker> {
+  bool _playing = false;
+
+  @override
+  void dispose() {
+    // Leaving the screen mid-playback would keep talking over the next page.
+    sl<TtsService>().stop();
+    super.dispose();
+  }
+
+  /// Speaks the sample word at the currently selected rate.
+  ///
+  /// Slider labels like "normal" are hard to judge by eye, so the only reliable
+  /// way to tell whether the rate suits the material is to hear it.
+  Future<void> _preview() async {
+    if (_playing) {
+      await sl<TtsService>().stop();
+      if (mounted) setState(() => _playing = false);
+      return;
+    }
+
+    setState(() => _playing = true);
+    final settings = context.read<SettingsCubit>().state;
+    await sl<TtsService>().speak(
+      AppStrings.ttsSpeechRateSample,
+      languageCode: settings.ttsLanguage.code,
+      speechRate: widget.value,
+    );
+    if (mounted) setState(() => _playing = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.recallColors;
     final accent = context.accentColor;
-    final label = value <= 0.35
+    final label = widget.value <= 0.35
         ? AppStrings.ttsSpeechRateSlow
-        : value >= 0.6
+        : widget.value >= 0.6
             ? AppStrings.ttsSpeechRateFast
             : AppStrings.ttsSpeechRateNormal;
 
@@ -650,15 +735,75 @@ class _TtsSpeechRatePicker extends StatelessWidget {
           Directionality(
             textDirection: TextDirection.ltr,
             child: Slider(
-              value: value.clamp(0.2, 0.8),
+              value: widget.value.clamp(0.2, 0.8),
               min: 0.2,
               max: 0.8,
               divisions: 12,
-              onChanged: onChanged,
+              onChanged: (value) {
+                widget.onChanged(value);
+                // Auditioning the new rate immediately avoids guessing.
+                _previewAt(value);
+              },
+            ),
+          ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              onPressed: _preview,
+              icon: Icon(_playing ? Icons.stop : Icons.volume_up_outlined, size: 18),
+              label: Text(
+                _playing
+                    ? AppStrings.ttsSpeechRateStopSample
+                    : AppStrings.ttsSpeechRatePlaySample,
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _previewAt(double rate) async {
+    if (!mounted) return;
+    final settings = context.read<SettingsCubit>().state;
+    await sl<TtsService>().speak(
+      AppStrings.ttsSpeechRateSample,
+      languageCode: settings.ttsLanguage.code,
+      speechRate: rate,
+    );
+  }
+}
+
+class _DontKnowBehaviourPicker extends StatelessWidget {
+  const _DontKnowBehaviourPicker({required this.value});
+
+  final DontKnowBehaviour value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (final option in DontKnowBehaviour.values)
+          RadioListTile<DontKnowBehaviour>.adaptive(
+            value: option,
+            groupValue: value,
+            onChanged: (selected) {
+              if (selected == null) return;
+              context.read<SettingsCubit>().setDontKnowBehaviour(selected);
+            },
+            title: Text(AppStrings.dontKnowBehaviourLabel(option)),
+            subtitle: Text(
+              AppStrings.dontKnowBehaviourHintFor(option),
+              style: TextStyle(
+                fontSize: 12,
+                color: context.recallColors.mutedForeground,
+              ),
+            ),
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+          ),
+      ],
     );
   }
 }

@@ -1,4 +1,8 @@
 /// تمام متن‌های فارسی برنامه
+library;
+
+import 'package:recall/domain/entities/review_settings.dart';
+
 abstract final class AppStrings {
   static const appTitle = 'Atilearn';
 
@@ -140,6 +144,37 @@ abstract final class AppStrings {
   static const excelAlreadyAdded = 'قبلاً اضافه شده';
   static const editExcelRow = 'ویرایش لغت';
   static const excelDeleteSelected = 'حذف انتخاب‌شده‌ها';
+  static const excelDeleteSelectedFiles = 'حذف فایل‌های اکسل';
+  static String excelDeleteSelectedFilesConfirm(int count) =>
+      '$count فایل اکسل انتخاب‌شده حذف شود؟ کارت‌هایی که قبلاً اضافه شده‌اند باقی می‌مانند.';
+  static String excelFilesDeleted(int count) => '$count فایل حذف شد';
+  static String excelSelectedFiles(int count) => '$count فایل انتخاب شد';
+  static const excelSelectAll = 'همه را انتخاب کن';
+  static const excelAllSelected = 'همه فایل‌ها انتخاب شده‌اند';
+  static const selectAll = 'انتخاب همه';
+  static const ttsSpeechRateSample = 'Atilearn pronunciation sample';
+  static const ttsSpeechRatePlaySample = 'شنیدن نمونه';
+  static const ttsSpeechRateStopSample = 'توقف';
+
+  // رفتار کارت اشتباه
+  static const dontKnowBehaviourTitle = 'کارت اشتباه برود کجا؟';
+  static const justLearnedTitle = 'یاد گرفتی!';
+  static String justLearnedCard(String front) =>
+      '«$front» به کارت‌های یادگرفته‌شده اضافه شد';
+  static const dontKnowBehaviourHint =
+      'وقتی کارتی را بلد نبودید، به کدام خانه برگردد؟';
+  static String dontKnowBehaviourLabel(DontKnowBehaviour behaviour) =>
+      switch (behaviour) {
+        DontKnowBehaviour.resetToFirst => 'برود به خانه اول',
+        DontKnowBehaviour.stepBack => 'برگردد به خانه قبلی',
+      };
+  static String dontKnowBehaviourHintFor(DontKnowBehaviour behaviour) =>
+      switch (behaviour) {
+        DontKnowBehaviour.resetToFirst =>
+          'هر بار از اول. مرور سنگین‌تر ولی پایه را کاملاً تکرار می‌کند.',
+        DontKnowBehaviour.stepBack =>
+          'فقط یک خانه عقب. مرور متعادل‌تر، شبیه رفتار Anki.',
+      };
   static const excelDeleteSelectedConfirm =
       'لغات انتخاب‌شده فقط از این فایل اکسل حذف می‌شوند و اگر قبلاً به دسته اضافه شده باشند در برنامه می‌مانند.';
   static const deleteExcelRow = 'حذف لغت';
@@ -186,22 +221,132 @@ abstract final class AppStrings {
   static const backHint = 'پاسخ، تعریف یا ترجمه.';
   static const saveCard = 'ذخیره کارت';
   static const newCard = 'کارت جدید';
+  static const tags = 'برچسب‌ها';
+  static const difficultyTitle = 'سطح سختی';
+  static const houseRoleNew = 'تازه';
+  static const houseRoleLearning = 'در حال یادگیری';
+  static const houseRoleAlmostLearned = 'تقریباً یادگرفته';
+  static const houseRoleFresh = 'تازه';
+  static const houseRoleLearned = 'یادگرفته‌شده';
+  static String houseLabel(int box) => 'خانه $box';
+  static String houseNextUp(int box) => 'خانه بعدی: $box';
+  static String houseLearnedBadge = 'یادگرفته‌شده';
+  static String reviewMistakes(int count) => 'مرور $count کارتی که بلد نبودم';
+  static const retryMistakesHint = 'این کارت‌ها را دوباره مرور کن';
+  static const todaysMistakes = 'اشتباه‌های امروز';
+  static const todaysMistakesHint = 'کارت‌هایی که امروز اشتباه جواب دادی';
+  static const noMistakesToday = 'امروز هیچ اشتباهی نداشتی. عالیه!';
+  static const reviewMistakesNow = 'مرور دوباره';
+  static String mistakeCount(int count) => '$count کارت';
+  static String moreCards(int count) => 'و $count کارت دیگر';
+
+  // Daily Excel feed.
+  static const dailyExcelFeed = 'ورود روزانه از اکسل';
+  static const dailyExcelFeedHint =
+      'هر روز مقداری از فایل‌های اکسل را خودکار به دسته‌ی انتخابی اضافه می‌کند.';
+  static const dailyFeedPickDeck = 'دسته‌ی مقصد';
+  static const dailyFeedPickDeckHint = 'کارت‌های روزانه به این دسته اضافه می‌شوند';
+  static const dailyFeedNoDeck = 'یک دسته انتخاب کن';
+  static const dailyFeedPickFiles = 'فایل‌های اکسل';
+  static const dailyFeedNoFiles = 'فایلی انتخاب نشده';
+  static const dailyFeedPickFilesAction = 'افزودن فایل اکسل';
+  static const dailyFeedManageFiles = 'مدیریت فایل‌ها';
+  static const dailyFeedManageFilesHint =
+      'فایل‌ها را از کتابخانه‌ی اکسل انتخاب کن';
+  static const dailyFeedDailyLimit = 'سقف کارت روزانه';
+  static const dailyFeedDailyLimitHint =
+      'در هر روز حداکثر این تعداد کارت وارد دسته می‌شود';
+  static const dailyFeedBacklog = 'در صف';
+  static const dailyFeedLastRun = 'آخرین اجرا';
+  static const dailyFeedNeverRun = 'هنوز اجرا نشده';
+  static String dailyFeedBacklogCount(int backlog) => '$backlog کارت در صف است';
+  static String dailyFeedLastRunCount(int count) => 'دیروز $count کارت اضافه شد';
+  static String dailyFeedLastRunToday(int count) => 'امروز $count کارت اضافه شد';
+  static const dailyFeedRunNow = 'همین حالا اضافه کن';
+  static String dailyFeedAddedNow(int count) => '$count کارت اضافه شد';
+  static String dailyFeedNothingToAdd = 'کارتی برای اضافه کردن نبود';
+  static const dailyFeedCatchUpNote =
+      'اگر چند روز باز نکنی، کارت‌ها یک‌جا اضافه نمی‌شوند؛ هر بار فقط سقف روزانه آزاد می‌شود و بقیه در صف می‌ماند.';
+  static String dailyFeedSelectedFiles(int count) => '$count فایل انتخاب شده';
+  static const dailyFeedNoLibraryFiles =
+      'اول در کتابخانه‌ی اکسل فایل اضافه کن';
+  static const dailyFeedRunning = 'در حال اضافه کردن…';
+  static String dailyFeedFileCounts(int pending, int added) =>
+      '$pending در صف • $added اضافه‌شده';
+  static const dailyFeedNoDeckYet = 'اول در این فضا یک دسته بساز';
+
+  // Simplified statistics screen.
+  static const statsToday = 'امروز';
+  static const statsTodayHint = 'فقط کارهای امروز، جدا از بازه‌ی زمانی';
+  static String statsAnsweredToday(int count) => '$count پاسخ';
+  static const statsCorrect = 'درست';
+  static const statsStreak = 'پیوستگی';
+  static String statsStreakDays(int days) => '$days روز';
+  static const statsNotStudiedToday = 'امروز هنوز مروری نکردی';
+  static const statsMastery = 'تسلط';
+  static const statsMasteryHint = 'سهم کارت‌هایی که به خانه‌ی آخر رسیده‌اند';
+
+  static const statsCardDistribution = 'کارت‌ها';
+  static String statsCardDistributionHint(int total) =>
+      'مجموع $total کارت';
+
+  static const statsReviewsOverTime = 'مرور در طول زمان';
+  static const statsNoReviewsYet = 'در این بازه هنوز مروری نبوده';
+
+  static const statsForecast = 'کارهای پیش رو';
+  static const statsForecastHint = 'روزبه‌روز';
+  static const statsIfYouStop = 'اگر دست بکشی';
+  static const statsDailyLoad = 'میانگین بلندمدت';
+  static String statsCardsPerDay(double load) =>
+      '${load.round()} کارت در روز';
+  static const statsOverdueHidden = 'کارت‌های عقب‌افتاده در این فهرست نیست';
+  static const statsReviews = 'مرور';
+  static const statsCardsDeletedNote =
+      'اگر کارتی حذف شده باشد، تاریخچه‌ی مرورش حفظ می‌شود ولی در این شمارش نمی‌آید.';
+
+  // Forecast: one plain day-by-day list.
+  static const forecastToday = 'امروز';
+  static const forecastTomorrow = 'فردا';
+  static const forecastAfterTomorrow = 'پس‌فردا';
+  static const forecastNothingSoon = 'این چند روز کارتی نیست';
+  static const forecastAfterThat = 'روزهای بعد';
+  static String forecastCardsPerDayFraction(String value) =>
+      'حدود $value کارت در روز';
+  static const difficultyHint =
+      'اختیاری. اگر انتخاب نکنید، چیزی نمایش داده نمی‌شود.';
+  static const tagsHint = 'بنویس و فاصله بزن؛ مثلاً فعل  اسم';
+  static const attachMedia = 'پیوست';
+  static const attachPhoto = 'عکس از گالری';
+  static const attachCamera = 'عکس با دوربین';
+  static const attachAudio = 'فایل صوتی';
+  static const attachVoice = 'ضبط ویس';
+  static const recordingVoice = 'در حال ضبط… برای توقف بزن';
+  static const stopRecording = 'توقف ضبط';
+  static const playAttachment = 'پخش';
+  static const stopPlayback = 'توقف';
+  static const mediaPermissionDenied = 'دسترسی لازم برای این پیوست داده نشد.';
+  static const mediaAttachFailed = 'پیوست اضافه نشد. دوباره تلاش کنید.';
+  static const editorBold = 'ضخیم';
+  static const editorItalic = 'کج';
+  static const editorUnderline = 'زیرخط';
+  static const editorColor = 'رنگ';
+  static const editorSize = 'اندازه';
   static String duplicateCardInDeck(String deckName) =>
       'این کلمه قبلاً اضافه شده و در دستهٔ «$deckName» وجود دارد.';
-  static const excelDuplicatesSkipped =
-      'کلمهٔ تکراری رد شد و به دسته اضافه نشد.';
-  static const excelImportResult = 'نتیجه افزودن کلمات';
-  static String excelImportResultSummary(int total, int added, int duplicate) =>
-      'از $total کلمهٔ انتخاب‌شده، $added کلمه اضافه شد و '
-      '$duplicate کلمه به دلیل تکراری بودن اضافه نشد.';
-  static const duplicateWords = 'کلمات تکراری';
+  static String excelImportResultSummary(int added, int duplicates) =>
+      duplicates == 0
+          ? '$added کلمه اضافه شد.'
+          : '$added کلمه اضافه شد؛ از این تعداد $duplicates کلمه تکراری بود '
+              'که آگاهانه انتخاب شده بود.';
   static String duplicateExistsInDeck(String deckName) =>
       'از قبل در دستهٔ «$deckName» وجود دارد';
+  static const excelDuplicateInFile = 'در همین فایل تکرار شده';
+  static const excelDuplicateInSpace = 'از قبل در این فضا وجود دارد';
   static const removeDuplicateWords = 'حذف کلمات تکراری از فایل';
-  static const removeDuplicateWordsQuestion =
-      'آیا می‌خواهید کلمات تکراری از نسخهٔ ذخیره‌شدهٔ این فایل در کتابخانه اکسل حذف شوند؟';
-  static const removeDuplicateWordsConfirm =
-      'کلمات تکراری حذف شدند و دیگر در این فایل نمایش داده نمی‌شوند.';
+  static String removeDuplicateWordsQuestion(int count) =>
+      '$count کلمهٔ تکراری پیدا شد. از نسخهٔ ذخیره‌شدهٔ این فایل در کتابخانهٔ اکسل حذف شوند؟';
+  static String duplicateWordsRemoved(int count) =>
+      '$count کلمهٔ تکراری حذف شد';
   static const box = 'خانه';
   static const boxOverview = 'کارت‌ها در هر خانه';
   static const leitnerHousesTitle = 'کارت‌ها در خانه‌های لایتنر';
@@ -268,14 +413,20 @@ abstract final class AppStrings {
   static const statistics = 'آمار یادگیری';
   static const learningOverview = 'نمای کلی روند یادگیری شما';
   static const mastery = 'درصد تسلط';
-  static const masteryHint = 'کارت‌هایی که پس از خانه ۵ یادگرفته شده‌اند';
+  static String masteryHint(int box) =>
+      'کارت‌هایی که از خانه $box عبور کرده و یادگرفته شده‌اند';
   static const masteredCards = 'کارت مسلط';
-  static const boxDistribution = 'توزیع خانه‌ها';
-  static const boxDistributionHint = 'جایگاه فعلی همه کارت‌ها';
-  static const dailyReviews = 'مرورهای روزانه';
-  static const lastSevenDays = '۷ روز اخیر';
+  static const boxDistribution = 'ترکیب کارت‌ها';
+  static const boxDistributionHint = 'جایگاه فعلی همه کارت‌ها در خانه‌ها';
+  static const dailyReviews = 'مرورها';
+  static const rangeWeek = '۷ روز اخیر';
+  static const rangeMonth = '۳۰ روز اخیر';
+  static const rangeQuarter = '۹۰ روز اخیر';
+  static const rangeYear = 'یک سال اخیر';
+  static const rangeAll = 'کل تاریخچه';
   static const answerRate = 'نرخ پاسخ‌ها';
-  static const answerRateHint = 'بر اساس تمام مرورهای ثبت‌شده';
+  static String answerRateHint(String rangeLabel) =>
+      'بر اساس مرورهای بازه «$rangeLabel»';
   static const currentStreak = 'تداوم فعلی';
   static const bestStreak = 'بهترین تداوم';
   static const day = 'روز';
@@ -285,9 +436,59 @@ abstract final class AppStrings {
   static const tomorrowShort = 'فردا';
   static const noReviewHistory =
       'هنوز مروری ثبت نشده است. از این به بعد نتیجه مرورها در این بخش نمایش داده می‌شود.';
+  static const emptyRangeHistory =
+      'در این بازه مروری ثبت نشده است. بازه‌ی دیگری را انتخاب کنید.';
   static const reviewHistoryNote =
       'آمار مرور از زمان فعال‌شدن این قابلیت ثبت می‌شود.';
   static const retry = 'تلاش دوباره';
+
+  // اجزای نمودار آمار
+  static const stateFresh = 'تازه';
+  static const stateLearning = 'در حال یادگیری';
+  static const stateLearned = 'یادگرفته‌شده';
+  static const activityCalendar = 'تقویم فعالیت';
+  static const activityCalendarHint = 'یک سال گذشته؛ هر خانه یک روز';
+  static const hourlyBreakdown = 'پراکندگی ساعتی';
+  static String hourlyBreakdownHint(String rangeLabel) =>
+      'تعداد مرور و درصد موفقیت در هر ساعت — $rangeLabel';
+  static const reviewsPerHour = 'مرور در ساعت';
+  static const successRate = 'درصد موفقیت';
+  static const cumulativeReviews = 'مجموع تا اینجا';
+  static const dailyLoad = 'بار روزانه';
+  static const dailyLoadHint = 'میانگین تعداد کارت سررسید در هر روز';
+  static const overdue = 'معوق';
+  static String overdueCount(int count) => '$count کارت معوق از قبل';
+  static const ifYouStudyNothing = 'اگر تا آن روز مرور نکنید';
+  static String cardsCount(int count) => '$count کارت';
+  static const noActivity = 'بدون فعالیت';
+
+  // یادآور مرور
+  static const reminders = 'یادآور مرور';
+  static const reminderHint = 'در ساعت انتخابی یادآوری می‌شود که چند کارت آماده‌ی مرور است';
+  static const reminderTime = 'ساعت یادآوری';
+  static const reminderDays = 'روزهای یادآوری';
+  static const reminderShowCount = 'نمایش تعداد کارت در یادآوری';
+  static const reminderShowCountHint = 'اگر خاموش باشد، یادآوری بدون عدد ارسال می‌شود';
+  static const reminderPermissionNeeded = 'برای دریافت یادآوری، اجازه‌ی اعلان بدهید';
+  static const reminderUnsupported =
+      'زمان‌بندی یادآوری روی این سیستم‌عامل پشتیبانی نمی‌شود.';
+  static const reminderBlocked =
+      'اعلان‌ها برای این برنامه غیرفعال است. از تنظیمات سیستم آن را روشن کنید.';
+  static const reminderEveryDay = 'هر روز';
+  static String reminderTitle(String spaceName) => 'یادآور مرور — $spaceName';
+  static String reminderBodyCount(int count) => '$count کارت برای مرور آماده است';
+  static const reminderBodyEmpty = 'امروز کارتی برای مرور باقی نمانده است';
+  static const reminderBodyGeneric = 'وقت مرور کارت‌های این فضا است';
+  static String weekdayShort(int weekday) => switch (weekday) {
+        DateTime.monday => 'د',
+        DateTime.tuesday => 'س',
+        DateTime.wednesday => 'چ',
+        DateTime.thursday => 'پ',
+        DateTime.friday => 'ج',
+        DateTime.saturday => 'ش',
+        DateTime.sunday => 'ی',
+        _ => '',
+      };
 
   // جزئیات دسته
   static const deck = 'دسته';
@@ -387,9 +588,160 @@ abstract final class AppStrings {
   static const spaceCardsEmpty = 'هنوز کارتی در این فضا نیست.';
   static const createSpaceFirst = 'اول یک فضای یادگیری بساز.';
 
+  // ورود با شماره موبایل
+  static const account = 'حساب کاربری';
+  static const signIn = 'ورود';
+  static const signOut = 'خروج از حساب';
+  static const signInTitle = 'ورود با شماره موبایل';
+  static const signInSubtitle =
+      'برای اینکه اگر دستگاهتان را گم کردید کارت‌هایتان را از دست ندهید، شماره‌تان را ثبت کنید. این کار اختیاری است.';
+  static const phoneNumber = 'شماره موبایل';
+  static const phoneNumberHint = '۰۹۱۲ ۱۲۳ ۴۵۶۷';
+  static const phoneNumberInvalid = 'شماره موبایل معتبر نیست.';
+  static const sendCode = 'ارسال کد';
+  static const resendCode = 'ارسال دوباره کد';
+  static const codeSent = 'کد تأیید به شمارهٔ شما فرستاده شد.';
+  static const verificationCode = 'کد تأیید';
+  static const verificationCodeHint = '۶ رقم';
+  static const verificationCodeIncomplete = 'کد باید ۶ رقم باشد.';
+  static const confirm = 'تأیید';
+  static const changePhoneNumber = 'تغییر شماره';
+  static const changePhoneNumberConfirm = 'شماره را عوض می‌کنید؟';
+  static const changePhoneNumberWarning =
+      'کد فعلی باطل می‌شود و باید شمارهٔ جدید را دوباره تأیید کنید.';
+  static const signedInAs = 'وارد شده با';
+  static const notSignedIn = 'وارد نشده‌اید';
+  static const signOutConfirm = 'از حساب خارج می‌شوید؟';
+  static const signOutWarning =
+      'کارت‌های شما روی همین دستگاه می‌مانند و چیزی پاک نمی‌شود. برای ورود دوباره به کد تأیید نیاز دارید.';
+  static const signOutDone = 'از حساب خارج شدید.';
+  static const profileName = 'نام نمایشی';
+  static const profileSave = 'ذخیره';
+  static const profileSaved = 'نام ذخیره شد.';
+  static const profileNameEmpty = 'نام نمی‌تواند خالی باشد.';
+
+  /// The warning for someone who has not signed in.
+  ///
+  /// Says what is true and stops. Promising a backup that does not exist yet, or
+  /// pressing the point, would be the wrong way to earn a sign-in.
+  static const notSignedInWarning =
+      'وارد نشده‌اید. اگر دستگاهتان را گم کنید یا اطلاعاتش پاک شود، کارت‌هایتان برنمی‌گردد و ما نمی‌توانیم کمکی کنیم. برنامه بدون ورود هم کامل کار می‌کند.';
+  static const notSignedInWarningShort =
+      'بدون ورود، در صورت گم شدن دستگاه کارت‌هایتان قابل بازیابی نیست.';
+  static const backupComingSoon = 'پشتیبان‌گیری خودکار در نسخه‌های بعدی اضافه می‌شود.';
+
+  static String secondsLeft(int seconds) =>
+      '${_toPersianDigits(seconds.toString())} ثانیه';
+  static String minutesLeft(int seconds) {
+    final minutes = (seconds / 60).ceil();
+    return '${_toPersianDigits(minutes.toString())} دقیقه';
+  }
+  static String attemptsLeft(int attempts) =>
+      '${_toPersianDigits(attempts.toString())} تلاش باقی مانده';
+  static String codeRequestFailed(int seconds) =>
+      'ارسال دوبارهٔ کد تا ${_toPersianDigits(seconds.toString())} ثانیه دیگر ممکن نیست.';
+
+  /// Reasons a sign-in attempt can fail, when the server has not explained.
+  ///
+  /// Each one says what to do, not only what happened. "Something went wrong"
+  /// leaves the user with nothing to act on.
+  static const authServerUnreachable =
+      'سرور در دسترس نیست. اینترنت خود را بررسی کنید و دوباره تلاش کنید.';
+  static const authServerNotConfigured =
+      'سرور ورود هنوز تنظیم نشده است. بدون ورود هم می‌توانید از برنامه استفاده کنید.';
+  static const authRequestFailed = 'ارسال کد ممکن نشد. دوباره تلاش کنید.';
+  static const authVerifyFailed = 'کد تأیید نشد. دوباره تلاش کنید.';
+  static const authProfileFailed = 'ذخیرهٔ نام ممکن نشد.';
+  static const authUnexpectedResponse =
+      'پاسخ سرور قابل خواندن نبود. لطفاً بعداً تلاش کنید.';
+  static const authSomethingWentWrong = 'ورود ممکن نشد. دوباره تلاش کنید.';
+
+  // دستگاه‌های فعال
+  static const activeDevices = 'دستگاه‌های فعال';
+  static const activeDevicesHint =
+      'اگر روی دستگاه دیگری هم وارد شده‌اید، از همین‌جا می‌توانید خارجش کنید.';
+  static const thisDevice = 'همین دستگاه';
+  static const noOtherDevices = 'دستگاه دیگری وارد نشده است.';
+  static const signOutDevice = 'خروج از این دستگاه';
+  static const signOutDeviceConfirm = 'از این دستگاه خارج می‌شود؟';
+  static const signOutDeviceWarning =
+      'این دستگاه از حساب خارج می‌شود. دفعه بعد که به اینترنت وصل شود، دیگر نمی‌تواند همگام‌سازی کند و خودش هم متوجه می‌شود.';
+  static const deviceSignedOut = 'دستگاه خارج شد.';
+  static const deviceNeverSeen = 'هنوز استفاده نشده';
+  static const devicesLoadFailed = 'فهرست دستگاه‌ها بارگذاری نشد.';
+  static const deviceSignOutFailed = 'خروج از دستگاه ممکن نشد.';
+
+  /// Shown when another device has been used since this one.
+  ///
+  /// Says what is actually at risk and no more. Study progress cannot be lost —
+  /// reviews merge — so claiming otherwise would be a scare the user learns to
+  /// ignore, which is worse than saying nothing.
+  static const otherDeviceInUse = 'دستگاه دیگری هم فعال است';
+  static const otherDeviceInUseHint =
+      'حساب شما روی دستگاه دیگری هم باز شده است. اگر همزمان کارت‌ها را ویرایش کنید، ممکن است ویرایش قدیمی‌تر از دست برود. پیشرفت مطالعه گم نمی‌شود.';
+
+  static String deviceLastUsedMinutes(int minutes) =>
+      'آخرین استفاده: ${_toPersianDigits(minutes.toString())} دقیقه پیش';
+  static String deviceLastUsedHours(int hours) =>
+      'آخرین استفاده: ${_toPersianDigits(hours.toString())} ساعت پیش';
+  static String deviceLastUsedDays(int days) =>
+      'آخرین استفاده: ${_toPersianDigits(days.toString())} روز پیش';
+  static const deviceLastUsedJustNow = 'آخرین استفاده: همین حالا';
+
+  // همگام‌سازی
+  static const syncTitle = 'همگام‌سازی';
+  static const syncHint =
+      'کارت‌ها و پیشرفت مطالعه‌تان روی سرور ذخیره می‌شود تا اگر دستگاهتان را گم کردید از دست نرود.';
+  static const syncNotSignedIn = 'برای همگام‌سازی باید وارد حساب خود شوید.';
+  static const syncDeviceRemoved =
+      'این دستگاه از حساب خارج شده است، چون روی دستگاه دیگری وارد شده بودید. برای ادامه دوباره وارد شوید.';
+  static const syncUploadFailed = 'فرستادن داده‌ها به سرور ممکن نشد.';
+  static const syncDownloadFailed = 'گرفتن داده‌ها از سرور ممکن نشد.';
+  static const syncNeverRun = 'هنوز همگام‌سازی نشده';
+  static const syncRunning = 'در حال همگام‌سازی…';
+  static const syncUpToDate = 'همه‌چیز به‌روز است.';
+  static const syncDone = 'همگام‌سازی انجام شد.';
+  static const syncFailed = 'همگام‌سازی ممکن نشد.';
+  static const syncNow = 'همگام‌سازی کن';
+  static const syncPendingReviews = 'مرور ذخیره‌نشده';
+  static String syncPendingSave(int count) =>
+      '${_toPersianDigits(count.toString())} مرور هنوز روی سرور ذخیره نشده است.';
+  static const syncLastJustNow = 'آخرین همگام‌سازی: همین حالا';
+  static String syncLastMinutes(int minutes) =>
+      'آخرین همگام‌سازی: ${_toPersianDigits(minutes.toString())} دقیقه پیش';
+  static String syncLastHours(int hours) =>
+      'آخرین همگام‌سازی: ${_toPersianDigits(hours.toString())} ساعت پیش';
+  static String syncLastDays(int days) =>
+      'آخرین همگام‌سازی: ${_toPersianDigits(days.toString())} روز پیش';
+  static String syncSentReviews(int count) =>
+      '${_toPersianDigits(count.toString())} مرور فرستاده شد.';
+  static String syncReceivedReviews(int count) =>
+      '${_toPersianDigits(count.toString())} مرور از سرور گرفته شد.';
+
   // عمومی
   static const error = 'خطایی رخ داد';
   static const yes = 'بله';
   static const no = 'خیر';
   static const close = 'بستن';
+}
+
+/// Rewrites Latin digits as Persian ones.
+///
+/// Used for any number shown inside a Persian sentence. A countdown reading
+/// `120 ثانیه` next to text that is otherwise entirely Persian looks like a
+/// bug, even to a reader who cannot articulate why.
+///
+/// Deliberately not applied to phone numbers or codes the user types: those are
+/// read digit by digit and must match what the SMS said.
+String _toPersianDigits(String input) {
+  const persian = '۰۱۲۳۴۵۶۷۸۹';
+  final buffer = StringBuffer();
+  for (final rune in input.runes) {
+    if (rune >= 0x30 && rune <= 0x39) {
+      buffer.write(persian[rune - 0x30]);
+    } else {
+      buffer.writeCharCode(rune);
+    }
+  }
+  return buffer.toString();
 }

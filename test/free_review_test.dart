@@ -2,19 +2,25 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:recall/core/utils/due_day_utils.dart';
+import 'package:recall/domain/entities/deck.dart';
+import 'package:recall/domain/entities/deck_color.dart';
 import 'package:recall/domain/entities/flashcard.dart';
-import 'package:recall/domain/entities/review_log.dart';
 import 'package:recall/domain/entities/review_rating.dart';
+import 'package:recall/domain/repositories/deck_repository.dart';
 import 'package:recall/domain/repositories/flashcard_repository.dart';
-import 'package:recall/domain/repositories/review_history_repository.dart';
 import 'package:recall/domain/usecases/delete_card_usecase.dart';
 import 'package:recall/domain/usecases/get_all_due_cards_usecase.dart';
 import 'package:recall/domain/usecases/get_cards_by_box_usecase.dart';
+import 'package:recall/domain/usecases/get_cards_by_deck_usecase.dart';
+import 'package:recall/domain/usecases/get_space_cards_usecase.dart';
+import 'package:recall/domain/usecases/get_decks_usecase.dart';
 import 'package:recall/domain/usecases/get_due_cards_usecase.dart';
 import 'package:recall/domain/usecases/review_card_usecase.dart';
 import 'package:recall/domain/usecases/update_card_usecase.dart';
 import 'package:recall/presentation/blocs/study/study_config.dart';
 import 'package:recall/presentation/blocs/study/study_cubit.dart';
+
+import 'support/fake_review_history_repository.dart';
 
 const _spaceId = 'space-1';
 
@@ -31,12 +37,15 @@ void main() {
       createdAt: now,
     );
     final repository = _FakeFlashcardRepository([card]);
-    final history = _FakeReviewHistoryRepository();
+    final history = FakeReviewHistoryRepository();
     final cubit = StudyCubit(
       config: StudyConfig.byBox(3, spaceId: _spaceId),
       getDueCardsUseCase: GetDueCardsUseCase(repository),
       getAllDueCardsUseCase: GetAllDueCardsUseCase(repository),
+      getSpaceCardsUseCase: GetSpaceCardsUseCase(repository),
       getCardsByBoxUseCase: GetCardsByBoxUseCase(repository),
+      getCardsByDeckUseCase: GetCardsByDeckUseCase(repository),
+      getDecksUseCase: GetDecksUseCase(_FakeDeckRepository()),
       reviewCardUseCase: ReviewCardUseCase(repository, history),
       updateCardUseCase: UpdateCardUseCase(repository),
       deleteCardUseCase: DeleteCardUseCase(repository),
@@ -63,12 +72,15 @@ void main() {
       _card('c3', box: 2, reviewedAt: now),
     ];
     final repository = _FakeFlashcardRepository(cards);
-    final history = _FakeReviewHistoryRepository();
+    final history = FakeReviewHistoryRepository();
     final cubit = StudyCubit(
       config: StudyConfig.byBox(2, spaceId: _spaceId),
       getDueCardsUseCase: GetDueCardsUseCase(repository),
       getAllDueCardsUseCase: GetAllDueCardsUseCase(repository),
+      getSpaceCardsUseCase: GetSpaceCardsUseCase(repository),
       getCardsByBoxUseCase: GetCardsByBoxUseCase(repository),
+      getCardsByDeckUseCase: GetCardsByDeckUseCase(repository),
+      getDecksUseCase: GetDecksUseCase(_FakeDeckRepository()),
       reviewCardUseCase: ReviewCardUseCase(repository, history),
       updateCardUseCase: UpdateCardUseCase(repository),
       deleteCardUseCase: DeleteCardUseCase(repository),
@@ -86,6 +98,40 @@ void main() {
     expect(cubit.state.knowCount, 2);
     expect(cubit.state.dontKnowCount, 1);
     expect(cubit.state.ratedCount, 3);
+
+    await cubit.close();
+  });
+
+  test('review session exposes the current house and deck name', () async {
+    final now = DateTime.now();
+    final card = Flashcard(
+      id: 'c1',
+      deckId: 'd1',
+      front: 'hello',
+      back: 'سلام',
+      box: 3,
+      lastReviewed: now,
+      createdAt: now,
+    );
+    final repository = _FakeFlashcardRepository([card]);
+    final history = FakeReviewHistoryRepository();
+    final cubit = StudyCubit(
+      config: StudyConfig.byBox(3, spaceId: _spaceId),
+      getDueCardsUseCase: GetDueCardsUseCase(repository),
+      getAllDueCardsUseCase: GetAllDueCardsUseCase(repository),
+      getSpaceCardsUseCase: GetSpaceCardsUseCase(repository),
+      getCardsByBoxUseCase: GetCardsByBoxUseCase(repository),
+      getCardsByDeckUseCase: GetCardsByDeckUseCase(repository),
+      getDecksUseCase: GetDecksUseCase(_FakeDeckRepository()),
+      reviewCardUseCase: ReviewCardUseCase(repository, history),
+      updateCardUseCase: UpdateCardUseCase(repository),
+      deleteCardUseCase: DeleteCardUseCase(repository),
+    );
+
+    await cubit.load();
+
+    expect(cubit.state.currentCard!.box, 3);
+    expect(cubit.state.currentDeckName, 'Words');
 
     await cubit.close();
   });
@@ -125,14 +171,17 @@ void main() {
       (index) => _card('card-$index', box: 3, reviewedAt: now),
     );
     final repository = _FakeFlashcardRepository(cards);
-    final history = _FakeReviewHistoryRepository();
+    final history = FakeReviewHistoryRepository();
     final cubit = StudyCubit(
       config: StudyConfig.byBox(3, spaceId: _spaceId).withSessionOptions(
         randomOrder: true,
       ),
       getDueCardsUseCase: GetDueCardsUseCase(repository),
       getAllDueCardsUseCase: GetAllDueCardsUseCase(repository),
+      getSpaceCardsUseCase: GetSpaceCardsUseCase(repository),
       getCardsByBoxUseCase: GetCardsByBoxUseCase(repository),
+      getCardsByDeckUseCase: GetCardsByDeckUseCase(repository),
+      getDecksUseCase: GetDecksUseCase(_FakeDeckRepository()),
       reviewCardUseCase: ReviewCardUseCase(repository, history),
       updateCardUseCase: UpdateCardUseCase(repository),
       deleteCardUseCase: DeleteCardUseCase(repository),
@@ -154,12 +203,15 @@ void main() {
     final reviewedAt = DateTime.now().subtract(const Duration(days: 3));
     final card = _card('edit-1', box: 1, reviewedAt: reviewedAt);
     final repository = _FakeFlashcardRepository([card]);
-    final history = _FakeReviewHistoryRepository();
+    final history = FakeReviewHistoryRepository();
     final cubit = StudyCubit(
       config: const StudyConfig.deck(spaceId: _spaceId, deckId: 'd1'),
       getDueCardsUseCase: GetDueCardsUseCase(repository),
       getAllDueCardsUseCase: GetAllDueCardsUseCase(repository),
+      getSpaceCardsUseCase: GetSpaceCardsUseCase(repository),
       getCardsByBoxUseCase: GetCardsByBoxUseCase(repository),
+      getCardsByDeckUseCase: GetCardsByDeckUseCase(repository),
+      getDecksUseCase: GetDecksUseCase(_FakeDeckRepository()),
       reviewCardUseCase: ReviewCardUseCase(repository, history),
       updateCardUseCase: UpdateCardUseCase(repository),
       deleteCardUseCase: DeleteCardUseCase(repository),
@@ -231,15 +283,30 @@ class _FakeFlashcardRepository implements IFlashcardRepository {
   Future<void> deleteCard(String id) async {}
 }
 
-class _FakeReviewHistoryRepository implements IReviewHistoryRepository {
-  final List<ReviewLog> logs = [];
+class _FakeDeckRepository implements IDeckRepository {
+  @override
+  Future<List<Deck>> getAllDecks() async => [];
 
   @override
-  Future<void> add(ReviewLog log) async => logs.add(log);
+  Future<List<Deck>> getDecksBySpaceId(String spaceId) async => [
+        Deck(
+          id: 'd1',
+          spaceId: _spaceId,
+          name: 'Words',
+          color: DeckColor.sky,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      ];
 
   @override
-  Future<List<ReviewLog>> getAll() async => logs;
+  Future<Deck?> getDeckById(String id) async => null;
 
   @override
-  Future<List<ReviewLog>> getBySpaceId(String spaceId) async => logs;
+  Future<Deck> addDeck(Deck deck) => throw UnimplementedError();
+
+  @override
+  Future<Deck> updateDeck(Deck deck) => throw UnimplementedError();
+
+  @override
+  Future<void> deleteDeck(String id) => throw UnimplementedError();
 }

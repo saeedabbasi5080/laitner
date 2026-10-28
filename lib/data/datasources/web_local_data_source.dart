@@ -5,19 +5,55 @@ import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/domain/entities/deck_color.dart';
 import 'package:recall/domain/entities/flashcard.dart';
 import 'package:recall/domain/entities/learning_space.dart';
+import 'package:recall/domain/entities/review_log.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
 
 /// Web fallback storage using SharedPreferences (Isar does not support web).
+///
+/// Review history is decoded once and then kept in memory: appending a single
+/// review used to re-read and re-encode the entire history array, which made
+/// every answered card cost O(history).
 class WebLocalDataSource implements LocalDataSource {
   WebLocalDataSource(this._prefs);
 
   final SharedPreferences _prefs;
-  final _uuid = const Uuid();
 
   static const _spacesKey = 'recall_web_spaces';
   static const _decksKey = 'recall_web_decks';
   static const _cardsKey = 'recall_web_cards';
+  static const _reviewLogsKey = 'recall_web_review_logs';
+
+  List<ReviewLog>? _reviewLogCache;
+
+  List<ReviewLog> _loadReviewLogs() {
+    final cached = _reviewLogCache;
+    if (cached != null) return cached;
+
+    final raw = _prefs.getString(_reviewLogsKey);
+    if (raw == null) return _reviewLogCache = [];
+
+    try {
+      final list = jsonDecode(raw) as List<dynamic>;
+      final logs = list
+          .whereType<Map<String, dynamic>>()
+          .map(ReviewLog.fromJson)
+          .toList()
+        ..sort((a, b) => a.reviewedAt.compareTo(b.reviewedAt));
+      return _reviewLogCache = logs;
+    } on FormatException {
+      return _reviewLogCache = [];
+    } on TypeError {
+      return _reviewLogCache = [];
+    }
+  }
+
+  Future<void> _saveReviewLogs(List<ReviewLog> logs) async {
+    _reviewLogCache = logs;
+    await _prefs.setString(
+      _reviewLogsKey,
+      jsonEncode(logs.map((log) => log.toJson()).toList()),
+    );
+  }
 
   List<LearningSpace> _loadSpaces() {
     final raw = _prefs.getString(_spacesKey);
@@ -91,27 +127,9 @@ class WebLocalDataSource implements LocalDataSource {
         createdAt: DateTime.parse(json['createdAt'] as String),
       );
 
-  Map<String, dynamic> _cardToJson(Flashcard card) => {
-        'id': card.id,
-        'deckId': card.deckId,
-        'front': card.front,
-        'back': card.back,
-        'box': card.box,
-        'lastReviewed': card.lastReviewed?.toIso8601String(),
-        'createdAt': card.createdAt.toIso8601String(),
-      };
+  Map<String, dynamic> _cardToJson(Flashcard card) => card.toJson();
 
-  Flashcard _cardFromJson(Map<String, dynamic> json) => Flashcard(
-        id: json['id'] as String,
-        deckId: json['deckId'] as String,
-        front: json['front'] as String,
-        back: json['back'] as String,
-        box: json['box'] as int,
-        lastReviewed: json['lastReviewed'] != null
-            ? DateTime.parse(json['lastReviewed'] as String)
-            : null,
-        createdAt: DateTime.parse(json['createdAt'] as String),
-      );
+  Flashcard _cardFromJson(Map<String, dynamic> json) => Flashcard.fromJson(json);
 
   @override
   Future<List<LearningSpace>> getAllSpaces() async {
@@ -234,16 +252,74 @@ class WebLocalDataSource implements LocalDataSource {
   }
 
   @override
+  Future<List<ReviewLog>> getAllReviewLogs() async =>
+      List<ReviewLog>.of(_loadReviewLogs());
+
+  @override
+  Future<List<ReviewLog>> getReviewLogsBySpaceId(String spaceId) async =>
+      _loadReviewLogs().where((log) => log.spaceId == spaceId).toList();
+
+  @override
+  Future<int> countReviewLogsBySpaceId(String spaceId) async =>
+      _loadReviewLogs().where((log) => log.spaceId == spaceId).length;
+
+  @override
+  Future<List<ReviewLog>> getReviewLogsInRange({
+    required String spaceId,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    return _loadReviewLogs()
+        .where(
+          (log) =>
+              log.spaceId == spaceId &&
+              !log.reviewedAt.isBefore(from) &&
+              log.reviewedAt.isBefore(to),
+        )
+        .toList();
+  }
+
+  @override
+  Future<ReviewLog> addReviewLog(ReviewLog log) async {
+    final logs = List<ReviewLog>.of(_loadReviewLogs());
+    final index = logs.indexWhere((item) => item.id == log.id);
+    if (index >= 0) {
+      logs[index] = log;
+    } else {
+      logs.add(log);
+    }
+    await _saveReviewLogs(logs);
+    return log;
+  }
+
+  @override
+  Future<void> deleteReviewLogsBySpaceId(String spaceId) async {
+    final logs =
+        _loadReviewLogs().where((log) => log.spaceId != spaceId).toList();
+    await _saveReviewLogs(logs);
+  }
+
+  @override
+  Future<void> replaceReviewLogs(List<ReviewLog> logs) async {
+    await _saveReviewLogs(
+      List<ReviewLog>.of(logs)
+        ..sort((a, b) => a.reviewedAt.compareTo(b.reviewedAt)),
+    );
+  }
+
+  @override
   Future<void> replaceCollection({
     required List<LearningSpace> spaces,
     required List<Deck> decks,
     required List<Flashcard> cards,
+    required List<ReviewLog> reviewLogs,
   }) async {
     await _saveSpaces(spaces);
     await _saveDecks(decks);
     await _saveCards(cards);
+    await _saveReviewLogs(
+      List<ReviewLog>.of(reviewLogs)
+        ..sort((a, b) => a.reviewedAt.compareTo(b.reviewedAt)),
+    );
   }
-
-  @override
-  String generateId() => _uuid.v4();
 }

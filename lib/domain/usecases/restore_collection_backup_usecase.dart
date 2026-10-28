@@ -4,7 +4,6 @@ import 'package:recall/core/constants/space_constants.dart';
 import 'package:recall/data/backup/collection_backup.dart';
 import 'package:recall/data/datasources/excel_import_store.dart';
 import 'package:recall/data/datasources/local_data_source.dart';
-import 'package:recall/data/datasources/review_history_store.dart';
 import 'package:recall/data/datasources/space_settings_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -23,18 +22,15 @@ class RestoreCollectionResult {
 class RestoreCollectionBackupUseCase {
   RestoreCollectionBackupUseCase({
     required LocalDataSource localDataSource,
-    required ReviewHistoryStore reviewHistoryStore,
     required ExcelImportStore excelImportStore,
     required SpaceSettingsStore spaceSettingsStore,
     required SharedPreferences prefs,
   })  : _localDataSource = localDataSource,
-        _reviewHistoryStore = reviewHistoryStore,
         _excelImportStore = excelImportStore,
         _spaceSettingsStore = spaceSettingsStore,
         _prefs = prefs;
 
   final LocalDataSource _localDataSource;
-  final ReviewHistoryStore _reviewHistoryStore;
   final ExcelImportStore _excelImportStore;
   final SpaceSettingsStore _spaceSettingsStore;
   final SharedPreferences _prefs;
@@ -53,12 +49,14 @@ class RestoreCollectionBackupUseCase {
       throw const BackupFormatException();
     }
 
+    // Review history is part of the same database, so it is restored together
+    // with the cards instead of through a separate store.
     await _localDataSource.replaceCollection(
       spaces: backup.spaces,
       decks: backup.decks,
       cards: backup.cards,
+      reviewLogs: backup.reviewLogs,
     );
-    await _reviewHistoryStore.replaceAll(backup.reviewLogs);
     await _excelImportStore.replaceAll(backup.excelImports);
     await _spaceSettingsStore.replaceAll(backup.spaceSettings);
     await _prefs.setBool(defaultSpaceMigrationKey, true);

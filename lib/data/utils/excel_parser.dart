@@ -13,8 +13,13 @@ class ExcelParseException implements Exception {
 }
 
 class ExcelParser {
-  /// Column A = front, Column B = back. Skips empty rows.
-  static List<({String front, String back})> parseRows(
+  /// Column A = front, Column B = back, Column C = optional tags.
+  ///
+  /// The third column is read when present and ignored when it is not, so
+  /// existing two-column files keep working unchanged.
+  ///
+  /// Skips rows with no front or back.
+  static List<({String front, String back, List<String> tags})> parseRows(
     Uint8List bytes, {
     String? fileName,
   }) {
@@ -44,7 +49,7 @@ class ExcelParser {
     return false;
   }
 
-  static List<({String front, String back})> _parseXls(Uint8List bytes) {
+  static List<({String front, String back, List<String> tags})> _parseXls(Uint8List bytes) {
     try {
       final reader = XlsReader.fromBytes(bytes);
       reader.open();
@@ -52,13 +57,14 @@ class ExcelParser {
       if (reader.sheetCount == 0) return [];
 
       final sheet = reader.sheet(0);
-      final rows = <({String front, String back})>[];
+      final rows = <({String front, String back, List<String> tags})>[];
 
       for (var r = sheet.firstRow; r < sheet.lastRow; r++) {
         final front = _formatCell(sheet.cell(r, 0));
         final back = _formatCell(sheet.cell(r, 1));
+        final tags = _parseTags(_formatCell(sheet.cell(r, 2)));
         if (front.isEmpty || back.isEmpty) continue;
-        rows.add((front: front, back: back));
+        rows.add((front: front, back: back, tags: tags));
       }
 
       return rows;
@@ -67,26 +73,41 @@ class ExcelParser {
     }
   }
 
-  static List<({String front, String back})> _parseXlsx(Uint8List bytes) {
+  static List<({String front, String back, List<String> tags})> _parseXlsx(Uint8List bytes) {
     try {
       final excel = Excel.decodeBytes(bytes);
       if (excel.tables.isEmpty) return [];
 
       final sheet = excel.tables.values.first;
-      final rows = <({String front, String back})>[];
+      final rows = <({String front, String back, List<String> tags})>[];
 
       for (final row in sheet.rows) {
         if (row.isEmpty) continue;
         final front = _xlsxCellText(row, 0);
         final back = _xlsxCellText(row, 1);
+        final tags = _parseTags(_xlsxCellText(row, 2));
         if (front.isEmpty || back.isEmpty) continue;
-        rows.add((front: front, back: back));
+        rows.add((front: front, back: back, tags: tags));
       }
 
       return rows;
     } catch (e) {
       throw ExcelParseException('خواندن فایل xlsx ناموفق بود: $e');
     }
+  }
+
+  /// Splits the optional third column into tags.
+  ///
+  /// Accepts commas, Persian commas, and spaces, matching how the in-app tag
+  /// field behaves, so the same words work in both places.
+  static List<String> _parseTags(String raw) {
+    final parts = raw
+        .split(RegExp(r'[,\u060C]|\s+'))
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toSet()
+        .toList();
+    return parts;
   }
 
   static String _xlsxCellText(List<Data?> row, int index) {

@@ -9,6 +9,7 @@ class ExcelImportDetailState extends Equatable {
     this.decks = const [],
     this.selectedDeckId,
     this.selectedRowIds = const {},
+    this.duplicates = const [],
     this.pendingOnly = false,
     this.errorMessage,
   });
@@ -18,8 +19,25 @@ class ExcelImportDetailState extends Equatable {
   final List<Deck> decks;
   final String? selectedDeckId;
   final Set<String> selectedRowIds;
+
+  /// Pending rows that clash with a card in this space or with an earlier row
+  /// in the same file.
+  final List<ExcelRowDuplicate> duplicates;
+
   final bool pendingOnly;
   final String? errorMessage;
+
+  Set<String> get duplicateRowIds =>
+      {for (final item in duplicates) item.rowId};
+
+  bool isDuplicate(String rowId) => duplicateRowIds.contains(rowId);
+
+  ExcelRowDuplicate? duplicateFor(String rowId) {
+    for (final item in duplicates) {
+      if (item.rowId == rowId) return item;
+    }
+    return null;
+  }
 
   List<ExcelImportRow> get visibleRows {
     final import = this.import;
@@ -49,6 +67,7 @@ class ExcelImportDetailState extends Equatable {
     List<Deck>? decks,
     String? selectedDeckId,
     Set<String>? selectedRowIds,
+    List<ExcelRowDuplicate>? duplicates,
     bool? pendingOnly,
     String? errorMessage,
     bool clearSelectedDeckId = false,
@@ -60,6 +79,7 @@ class ExcelImportDetailState extends Equatable {
       selectedDeckId:
           clearSelectedDeckId ? null : (selectedDeckId ?? this.selectedDeckId),
       selectedRowIds: selectedRowIds ?? this.selectedRowIds,
+      duplicates: duplicates ?? this.duplicates,
       pendingOnly: pendingOnly ?? this.pendingOnly,
       errorMessage: errorMessage,
     );
@@ -72,6 +92,7 @@ class ExcelImportDetailState extends Equatable {
         decks,
         selectedDeckId,
         selectedRowIds,
+        duplicates,
         pendingOnly,
         errorMessage,
       ];

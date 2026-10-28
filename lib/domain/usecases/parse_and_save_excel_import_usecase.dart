@@ -30,6 +30,7 @@ class ParseAndSaveExcelImportUseCase {
               id: generateId(),
               front: r.front,
               back: r.back,
+              tags: r.tags,
             ),
           )
           .toList(),

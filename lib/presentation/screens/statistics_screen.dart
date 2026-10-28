@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
+import 'package:recall/domain/usecases/statistics_aggregator.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/statistics/statistics_cubit.dart';
+import 'package:recall/presentation/widgets/chart_primitives.dart';
+import 'package:recall/presentation/widgets/forecast_card.dart';
 import 'package:recall/presentation/widgets/soft_ui.dart';
 
 class StatisticsScreen extends StatelessWidget {
@@ -22,86 +25,89 @@ class StatisticsScreen extends StatelessWidget {
   }
 }
 
+String _rangeLabel(StatisticsRange range) => switch (range) {
+      StatisticsRange.week => AppStrings.rangeWeek,
+      StatisticsRange.month => AppStrings.rangeMonth,
+      StatisticsRange.quarter => AppStrings.rangeQuarter,
+      StatisticsRange.year => AppStrings.rangeYear,
+      StatisticsRange.all => AppStrings.rangeAll,
+    };
+
+/// The statistics screen, reduced to four blocks.
+///
+/// The order and the choice of charts follow Anki's own statistics window
+/// (docs.ankiweb.net/stats.html): plain numbers for *Today*, a card-count
+/// breakdown, a review count over time, and a forecast.
+///
+/// What made the earlier version hard to read was never the number of charts
+/// but the number of encodings inside each one. A bar chart that is also
+/// stacked by card state, overlaid with a cumulative line on a second axis, and
+/// captioned with a four-item legend asks the reader to decode three things at
+/// once — and a reader who cannot decode it concludes the app is lying. So each
+/// chart here answers exactly one question with one shape: height means count,
+/// nothing else. Where a second value genuinely matters, as in the forecast's
+/// "if you stop" line, it is the only overlay and it is labelled in place.
 class _StatisticsView extends StatelessWidget {
   const _StatisticsView();
 
   @override
   Widget build(BuildContext context) {
+    final cubit = context.read<StatisticsCubit>();
+
     return Scaffold(
       body: SafeArea(
         child: BlocBuilder<StatisticsCubit, StatisticsState>(
           builder: (context, state) {
-            if (state.status == StatisticsStatus.loading &&
-                state.totalCards == 0) {
+            final snapshot = state.snapshot;
+
+            if (state.status == StatisticsStatus.error) {
+              return _ErrorView(onRetry: cubit.load);
+            }
+
+            if (snapshot == null) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            if (state.status == StatisticsStatus.error) {
-              return _ErrorView(onRetry: context.read<StatisticsCubit>().load);
-            }
-
             return RefreshIndicator(
-              onRefresh: context.read<StatisticsCubit>().load,
+              onRefresh: cubit.load,
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
                 children: [
-                  const _Header(),
-                  const SizedBox(height: 32),
-                  _MasteryCard(state: state),
+                  const AppPageHeader(
+                    title: AppStrings.statistics,
+                    subtitle: AppStrings.learningOverview,
+                  ),
+                  const SizedBox(height: 20),
+                  _RangeSelector(
+                    selected: state.range,
+                    onSelected: cubit.setRange,
+                  ),
+                  const SizedBox(height: 16),
+                  _TodayCard(snapshot: snapshot),
                   const SizedBox(height: 16),
                   _ChartCard(
-                    title: AppStrings.boxDistribution,
-                    subtitle: AppStrings.boxDistributionHint,
-                    child: _VerticalBarChart(
-                      values: [
-                        for (final box in (state.boxCounts.keys.toList()..sort()))
-                          state.boxCounts[box] ?? 0,
-                      ],
-                      labels: [
-                        for (final box in (state.boxCounts.keys.toList()..sort()))
-                          '$box',
-                      ],
-                      colors: [
-                        AppColors.rose,
-                        AppColors.peach,
-                        AppColors.lemon,
-                        AppColors.mint,
-                        AppColors.sky,
-                        AppColors.teal,
-                        AppColors.lilac,
-                        AppColors.sand,
-                      ]
-                          .take(state.boxCounts.length)
-                          .toList(),
-                      semanticPrefix: AppStrings.box,
+                    title: AppStrings.statsCardDistribution,
+                    subtitle: AppStrings.statsCardDistributionHint(
+                      snapshot.totalCards,
                     ),
+                    child: _DistributionDonut(snapshot: snapshot),
                   ),
                   const SizedBox(height: 16),
                   _ChartCard(
-                    title: AppStrings.dailyReviews,
-                    subtitle: AppStrings.lastSevenDays,
-                    child: _VerticalBarChart(
-                      values: state.dailyReviewCounts,
-                      labels: _pastWeekLabels(),
-                      colors: List.filled(7, context.accentColor),
-                    ),
+                    title: AppStrings.statsReviewsOverTime,
+                    subtitle: _rangeLabel(state.range),
+                    child: _ReviewsChart(snapshot: snapshot),
                   ),
-                  const SizedBox(height: 16),
-                  _AnswerRateCard(state: state),
-                  const SizedBox(height: 16),
-                  _StreakCard(state: state),
                   const SizedBox(height: 16),
                   _ChartCard(
-                    title: AppStrings.futureDue,
-                    subtitle: AppStrings.nextSevenDays,
-                    child: _VerticalBarChart(
-                      values: state.futureDueCounts,
-                      labels: _futureLabels(),
-                      colors: List.filled(7, AppColors.lavender),
-                    ),
+                    title: AppStrings.statsForecast,
+                    subtitle: AppStrings.statsForecastHint,
+                    child: UpcomingCard(snapshot: snapshot),
                   ),
-                  const SizedBox(height: 16),
-                  _HistoryNote(hasHistory: state.totalReviews > 0),
+                  if (snapshot.hasHistory) ...[
+                    const SizedBox(height: 16),
+                    const _HistoryNote(),
+                  ],
                 ],
               ),
             );
@@ -110,120 +116,164 @@ class _StatisticsView extends StatelessWidget {
       ),
     );
   }
-
-  static List<String> _pastWeekLabels() {
-    final now = DateTime.now();
-    return [
-      for (var offset = 6; offset >= 0; offset--)
-        offset == 0
-            ? AppStrings.todayShort
-            : _weekdayLabel(now.subtract(Duration(days: offset))),
-    ];
-  }
-
-  static List<String> _futureLabels() {
-    final now = DateTime.now();
-    return [
-      AppStrings.todayShort,
-      AppStrings.tomorrowShort,
-      for (var offset = 2; offset < 7; offset++)
-        _weekdayLabel(now.add(Duration(days: offset))),
-    ];
-  }
-
-  static String _weekdayLabel(DateTime date) => switch (date.weekday) {
-    DateTime.monday => 'د',
-    DateTime.tuesday => 'س',
-    DateTime.wednesday => 'چ',
-    DateTime.thursday => 'پ',
-    DateTime.friday => 'ج',
-    DateTime.saturday => 'ش',
-    DateTime.sunday => 'ی',
-    _ => '',
-  };
 }
 
-class _Header extends StatelessWidget {
-  const _Header();
+class _RangeSelector extends StatelessWidget {
+  const _RangeSelector({required this.selected, required this.onSelected});
+
+  final StatisticsRange selected;
+  final ValueChanged<StatisticsRange> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    return const AppPageHeader(
-      title: AppStrings.statistics,
-      subtitle: AppStrings.learningOverview,
+    return SizedBox(
+      height: 36,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          for (final range in StatisticsRange.values)
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 8),
+              child: _RangeChip(
+                label: _rangeLabel(range),
+                selected: range == selected,
+                onTap: () => onSelected(range),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
 
-class _MasteryCard extends StatelessWidget {
-  const _MasteryCard({required this.state});
+class _RangeChip extends StatelessWidget {
+  const _RangeChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
-  final StatisticsState state;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.recallColors;
-    final percent = (state.masteryProgress * 100).round();
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: colors.card,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: colors.border),
-        boxShadow: AppShadows.card(context),
+    return Material(
+      color: selected ? context.accentColor : colors.muted,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              color: selected ? colors.card : colors.mutedForeground,
+            ),
+          ),
+        ),
       ),
+    );
+  }
+}
+
+/// Today's numbers as plain figures, no chart.
+///
+/// Anki puts these at the top of its statistics window as text rather than as a
+/// graph, and its manual makes a point of why: one day's figures are a poor
+/// guide to progress, because everyone has bad days. A bare number also stops a
+/// single low day from looking like a trend, which a one-bar chart very much
+/// does.
+class _TodayCard extends StatelessWidget {
+  const _TodayCard({required this.snapshot});
+
+  final StatisticsSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.recallColors;
+    final rate = snapshot.todayKnowRate;
+
+    // Nothing else goes in this card. A lifetime figure such as the share of
+    // graduated cards would read as a result of today's studying, which is
+    // exactly the wrong impression: a space can sit at 50% mastered without a
+    // single review today. The card-count chart below already shows that share,
+    // where it can be read as what it is.
+    return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      AppStrings.mastery,
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      AppStrings.masteryHint,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colors.mutedForeground,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '$percent٪',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: context.accentColor,
-                ),
-              ),
-            ],
+          Text(
+            AppStrings.statsToday,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 20),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: state.masteryProgress,
-              minHeight: 10,
-              backgroundColor: colors.muted,
+          const SizedBox(height: 4),
+          Text(
+            AppStrings.statsTodayHint,
+            style: TextStyle(fontSize: 12, color: colors.mutedForeground),
+          ),
+          const SizedBox(height: 16),
+          if (snapshot.todayTotal == 0)
+            Text(
+              AppStrings.statsNotStudiedToday,
+              style: TextStyle(fontSize: 14, color: colors.mutedForeground),
+            )
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _Figure(
+                  value: '${snapshot.todayTotal}',
+                  label: AppStrings.statsReviews,
+                ),
+                _Figure(
+                  // A dash rather than "۰٪": answering nothing is not a score
+                  // of zero, and showing it as one would read as total failure.
+                  value: rate == null ? '—' : '${(rate * 100).round()}٪',
+                  label: AppStrings.statsCorrect,
+                ),
+                _Figure(
+                  value: '${snapshot.currentStreak}',
+                  label: AppStrings.statsStreakDays(snapshot.currentStreak),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Figure extends StatelessWidget {
+  const _Figure({required this.value, required this.label});
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.recallColors;
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              height: 1.1,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 2),
           Text(
-            '${state.masteredCards} از ${state.totalCards} '
-            '${AppStrings.masteredCards}',
-            style: TextStyle(fontSize: 12, color: colors.mutedForeground),
+            label,
+            style: TextStyle(fontSize: 11, color: colors.mutedForeground),
           ),
         ],
       ),
@@ -244,8 +294,42 @@ class _ChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.recallColors;
+    // Its own repaint boundary so a scroll moves the finished chart rather than
+    // repainting its bars and labels on every frame.
+    return RepaintBoundary(
+      child: _Card(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 12,
+                color: context.recallColors.mutedForeground,
+              ),
+            ),
+            const SizedBox(height: 20),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
 
+class _Card extends StatelessWidget {
+  const _Card({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.recallColors;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -254,317 +338,275 @@ class _ChartCard extends StatelessWidget {
         border: Border.all(color: colors.border),
         boxShadow: AppShadows.card(context),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(fontSize: 12, color: colors.mutedForeground),
-          ),
-          const SizedBox(height: 24),
-          child,
-        ],
-      ),
+      child: child,
     );
   }
 }
 
-class _VerticalBarChart extends StatelessWidget {
-  const _VerticalBarChart({
-    required this.values,
-    required this.labels,
-    required this.colors,
-    this.semanticPrefix,
-  }) : assert(values.length == labels.length && values.length == colors.length);
+/// Reviews per period as one flat series.
+///
+/// Anki's version splits each bar by card state and overlays a cumulative line
+/// on a second axis. Both are dropped: the split only matters to someone tuning
+/// a scheduler, and a second axis cannot be read against the first without a
+/// legend. What survives is the one thing a learner actually looks at — how
+/// much they did, and when.
+class _ReviewsChart extends StatelessWidget {
+  const _ReviewsChart({required this.snapshot});
 
-  final List<int> values;
-  final List<String> labels;
-  final List<Color> colors;
-  final String? semanticPrefix;
-
-  @override
-  Widget build(BuildContext context) {
-    final largestValue = values.fold<int>(
-      0,
-      (largest, value) => value > largest ? value : largest,
-    );
-    final chartMax = largestValue <= 0 ? 1 : largestValue;
-    final muted = context.recallColors.muted;
-    final mutedForeground = context.recallColors.mutedForeground;
-
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: SizedBox(
-        height: 172,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            for (var index = 0; index < values.length; index++)
-              Expanded(
-                child: Semantics(
-                  label:
-                      '${semanticPrefix == null ? '' : '$semanticPrefix '}${labels[index]}: ${values[index]}',
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(
-                          '${values[index]}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: mutedForeground,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Flexible(
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final ratio = values[index] / chartMax;
-                              final height = values[index] == 0
-                                  ? 4.0
-                                  : math
-                                        .max(8.0, constraints.maxHeight * ratio)
-                                        .toDouble();
-                              return Align(
-                                alignment: Alignment.bottomCenter,
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 350),
-                                  curve: Curves.easeOutCubic,
-                                  width: double.infinity,
-                                  height: height,
-                                  decoration: BoxDecoration(
-                                    color: values[index] == 0
-                                        ? muted
-                                        : colors[index],
-                                    borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(8),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          labels[index],
-                          maxLines: 1,
-                          style: TextStyle(
-                            fontSize: labels[index].length > 2 ? 9 : 11,
-                            color: mutedForeground,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AnswerRateCard extends StatelessWidget {
-  const _AnswerRateCard({required this.state});
-
-  final StatisticsState state;
+  final StatisticsSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
-    final total = state.totalReviews;
-    final knowProgress = total == 0 ? 0.0 : state.knowCount / total;
-    final dontKnowProgress = total == 0 ? 0.0 : state.dontKnowCount / total;
+    final buckets = snapshot.reviewBuckets;
+    if (buckets.isEmpty || buckets.every((b) => b.total == 0)) {
+      return _EmptyHint();
+    }
 
-    return _ChartCard(
-      title: AppStrings.answerRate,
-      subtitle: AppStrings.answerRateHint,
-      child: Column(
-        children: [
-          _RateRow(
-            label: AppStrings.know,
-            count: state.knowCount,
-            progress: knowProgress,
-            color: AppColors.mint,
-          ),
-          const SizedBox(height: 20),
-          _RateRow(
-            label: AppStrings.dontKnow,
-            count: state.dontKnowCount,
-            progress: dontKnowProgress,
-            color: AppColors.rose,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RateRow extends StatelessWidget {
-  const _RateRow({
-    required this.label,
-    required this.count,
-    required this.progress,
-    required this.color,
-  });
-
-  final String label;
-  final int count;
-  final double progress;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final percent = (progress * 100).round();
-    final colors = context.recallColors;
+    // Labels are the scarcest thing on a phone, so only the ends and every
+    // third slot are drawn. The rest keep an empty box rather than being
+    // skipped, which is what keeps each label under its own bar.
+    final step = math.max(1, (buckets.length / 3).ceil());
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 8),
-            Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
-            Text(
-              '$count · $percent٪',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            ),
-          ],
+        ChartBars(
+          values: [for (final b in buckets) b.total.toDouble()],
+          color: context.accentColor,
+          zeroColor: context.recallColors.muted,
         ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: LinearProgressIndicator(
-            value: progress,
-            minHeight: 8,
-            backgroundColor: colors.muted,
-            valueColor: AlwaysStoppedAnimation(color),
-          ),
+        const SizedBox(height: 6),
+        ChartBarLabels(
+          count: buckets.length,
+          // -1 means "never show".
+          labelAt: (index) {
+            final keep = index == 0 ||
+                index == buckets.length - 1 ||
+                index % step == 0;
+            if (!keep) return null;
+            return _periodLabel(buckets[index].start, snapshot.unit);
+          },
         ),
       ],
     );
   }
 }
 
-class _StreakCard extends StatelessWidget {
-  const _StreakCard({required this.state});
+/// Card counts split three ways.
+///
+/// Anki's card-count chart splits four ways because it has a suspended queue
+/// this app does not. Three is what the Leitner model actually has, so three is
+/// what is shown — no category, legend or slice exists that would not change a
+/// number.
+class _DistributionDonut extends StatelessWidget {
+  const _DistributionDonut({required this.snapshot});
 
-  final StatisticsState state;
+  final StatisticsSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.recallColors;
+    final distribution = snapshot.distribution;
+    final total = snapshot.totalCards;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colors.card,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: colors.border),
-        boxShadow: AppShadows.card(context),
+    if (total == 0) return const _EmptyHint();
+
+    final parts = <({String label, int count, Color color})>[
+      (
+        label: AppStrings.houseRoleFresh,
+        count: distribution.freshCount,
+        color: AppColors.lemon,
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: context.accentColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(
-              Icons.local_fire_department_outlined,
-              color: context.accentColor,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: _StreakMetric(
-              label: AppStrings.currentStreak,
-              value: state.currentStreak,
-            ),
-          ),
-          Container(width: 1, height: 42, color: colors.border),
-          const SizedBox(width: 16),
-          Expanded(
-            child: _StreakMetric(
-              label: AppStrings.bestStreak,
-              value: state.bestStreak,
-            ),
-          ),
-        ],
+      (
+        label: AppStrings.houseRoleLearning,
+        count: distribution.learningCount,
+        color: AppColors.sky,
       ),
+      (
+        label: AppStrings.houseRoleLearned,
+        count: distribution.learnedCount,
+        color: AppColors.mint,
+      ),
+    ];
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 140,
+          child: Center(
+            // No entry animation. A sweep looked nice for about half a second
+            // and then cost a repaint of the whole card on every frame of every
+            // scroll, which is exactly the wrong trade on a list of charts.
+            child: RepaintBoundary(
+              child: CustomPaint(
+                size: const Size(140, 140),
+                painter: _DonutPainter(
+                  slices: [
+                    for (final part in parts)
+                      (
+                        fraction: part.count / total,
+                        color: part.color,
+                      ),
+                  ],
+                  track: context.recallColors.muted,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // A legend with the counts, the way Anki's card-count chart does: the
+        // ring shows proportions, the rows give the exact numbers.
+        for (final part in parts)
+          _LegendRow(
+            color: part.color,
+            label: part.label,
+            value: part.count,
+          ),
+      ],
     );
   }
 }
 
-class _StreakMetric extends StatelessWidget {
-  const _StreakMetric({required this.label, required this.value});
+class _LegendRow extends StatelessWidget {
+  const _LegendRow({
+    required this.color,
+    required this.label,
+    required this.value,
+  });
 
+  final Color color;
   final String label;
   final int value;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: context.recallColors.mutedForeground,
+    final colors = context.recallColors;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '$value ${AppStrings.day}',
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-      ],
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 13, color: colors.mutedForeground),
+            ),
+          ),
+          Text(
+            '$value',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _HistoryNote extends StatelessWidget {
-  const _HistoryNote({required this.hasHistory});
+class _DonutPainter extends CustomPainter {
+  const _DonutPainter({
+    required this.slices,
+    required this.track,
+  });
 
-  final bool hasHistory;
+  final List<({double fraction, Color color})> slices;
+  final Color track;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 18.0;
+    final rect = Offset.zero & size;
+    final arcRect = rect.deflate(stroke / 2);
+
+    final trackPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..color = track;
+    canvas.drawArc(arcRect, 0, math.pi * 2, false, trackPaint);
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.butt;
+
+    var start = -math.pi / 2;
+    for (final slice in slices) {
+      if (slice.fraction <= 0) continue;
+      final sweep = math.pi * 2 * slice.fraction;
+      paint.color = slice.color;
+      canvas.drawArc(arcRect, start, sweep, false, paint);
+      start += sweep;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DonutPainter oldDelegate) =>
+      oldDelegate.track != track ||
+      !_sameSlices(oldDelegate.slices, slices);
+
+  static bool _sameSlices(
+    List<({double fraction, Color color})> a,
+    List<({double fraction, Color color})> b,
+  ) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].fraction != b[i].fraction || a[i].color != b[i].color) {
+        return false;
+      }
+    }
+    return true;
+  }
+}
+/// Shown in place of a chart that has nothing to draw.
+///
+/// Says what is missing rather than rendering an empty box, so an empty graph
+/// never reads as a broken one.
+class _EmptyHint extends StatelessWidget {
+  const _EmptyHint();
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.recallColors;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(Icons.info_outline, size: 18, color: colors.mutedForeground),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            hasHistory
-                ? AppStrings.reviewHistoryNote
-                : AppStrings.noReviewHistory,
-            style: TextStyle(
-              fontSize: 11,
-              height: 1.6,
-              color: colors.mutedForeground,
-            ),
-          ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Text(
+        AppStrings.statsNoReviewsYet,
+        style: TextStyle(
+          fontSize: 13,
+          color: context.recallColors.mutedForeground,
         ),
-      ],
+      ),
+    );
+  }
+}
+
+/// Short date under the axis: day and month, or month and year for month
+/// buckets, so a multi-year axis stays legible.
+String _periodLabel(DateTime day, BucketUnit unit) => switch (unit) {
+      BucketUnit.day => '${day.day}/${day.month}',
+      BucketUnit.week => '${day.day}/${day.month}',
+      BucketUnit.month => '${day.month}/${day.year % 100}',
+    };
+
+/// Anki keeps the review history of deleted cards and excludes it from a single
+/// deck's totals. Worth saying once, because the numbers here can look a little
+/// short next to the deck's own card count.
+class _HistoryNote extends StatelessWidget {
+  const _HistoryNote();
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      AppStrings.statsCardsDeletedNote,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontSize: 11,
+        height: 1.7,
+        color: context.recallColors.mutedForeground,
+      ),
     );
   }
 }
@@ -572,22 +614,23 @@ class _HistoryNote extends StatelessWidget {
 class _ErrorView extends StatelessWidget {
   const _ErrorView({required this.onRetry});
 
-  final VoidCallback onRetry;
+  final Future<void> Function() onRetry;
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 36),
-            const SizedBox(height: 12),
-            const Text(AppStrings.error),
+            const Text(
+              AppStrings.dataLoadFailed,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 16),
             FilledButton(
-              onPressed: onRetry,
+              onPressed: () => onRetry(),
               child: const Text(AppStrings.retry),
             ),
           ],

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:recall/data/datasources/excel_import_store.dart';
-import 'package:recall/data/datasources/review_history_store.dart';
 import 'package:recall/data/datasources/space_settings_store.dart';
+import 'package:recall/data/repositories/review_history_repository_impl.dart';
 import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/domain/entities/deck_color.dart';
 import 'package:recall/domain/entities/excel_import.dart';
@@ -9,14 +9,17 @@ import 'package:recall/domain/entities/learning_space.dart';
 import 'package:recall/domain/entities/review_log.dart';
 import 'package:recall/domain/entities/review_rating.dart';
 import 'package:recall/domain/repositories/deck_repository.dart';
+import 'package:recall/domain/repositories/review_history_repository.dart';
 import 'package:recall/domain/repositories/space_repository.dart';
 import 'package:recall/domain/usecases/delete_space_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/in_memory_local_data_source.dart';
+
 void main() {
   late _FakeSpaceRepository spaces;
   late _FakeDeckRepository decks;
-  late ReviewHistoryStore reviewHistory;
+  late IReviewHistoryRepository reviewHistory;
   late ExcelImportStore excelImports;
   late SpaceSettingsStore settings;
   late DeleteSpaceUseCase useCase;
@@ -49,7 +52,7 @@ void main() {
     ];
     spaces = _FakeSpaceRepository([source, target], decksList);
     decks = _FakeDeckRepository(decksList);
-    reviewHistory = ReviewHistoryStore(prefs);
+    reviewHistory = ReviewHistoryRepositoryImpl(InMemoryLocalDataSource());
     excelImports = ExcelImportStore(prefs);
     settings = SpaceSettingsStore(prefs);
     useCase = DeleteSpaceUseCase(
@@ -89,7 +92,7 @@ void main() {
 
     expect(spaces.spaces.map((space) => space.id), ['space-b']);
     expect(decks.decks.single.spaceId, 'space-b');
-    expect(reviewHistory.getAll().single.spaceId, 'space-b');
+    expect((await reviewHistory.getAll()).single.spaceId, 'space-b');
     expect((await excelImports.getAll()).single.spaceId, 'space-b');
     expect((await excelImports.getBySpaceId('space-a')), isEmpty);
   });
@@ -99,7 +102,7 @@ void main() {
 
     expect(spaces.spaces.map((space) => space.id), ['space-b']);
     expect(decks.decks, isEmpty);
-    expect(reviewHistory.getAll(), isEmpty);
+    expect(await reviewHistory.getAll(), isEmpty);
     expect(await excelImports.getAll(), isEmpty);
   });
 }

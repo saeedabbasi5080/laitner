@@ -13,6 +13,9 @@ class SettingsState extends Equatable {
     this.defaultReversed = false,
     this.ttsSpeechRate = 0.45,
     this.leitnerBoxes = LeitnerBoxConfig.classic,
+    this.reminder = const ReminderSettings(),
+    this.reviewSettings = const ReviewSettings(),
+    this.dailyExcelFeed = const DailyExcelFeedSettings(),
     this.collectionEpoch = 0,
   });
 
@@ -27,6 +30,9 @@ class SettingsState extends Equatable {
   final bool defaultReversed;
   final double ttsSpeechRate;
   final LeitnerBoxConfig leitnerBoxes;
+  final ReminderSettings reminder;
+  final ReviewSettings reviewSettings;
+  final DailyExcelFeedSettings dailyExcelFeed;
   final int collectionEpoch;
 
   SettingsState copyWith({
@@ -41,6 +47,9 @@ class SettingsState extends Equatable {
     bool? defaultReversed,
     double? ttsSpeechRate,
     LeitnerBoxConfig? leitnerBoxes,
+    ReminderSettings? reminder,
+    ReviewSettings? reviewSettings,
+    DailyExcelFeedSettings? dailyExcelFeed,
     int? collectionEpoch,
     bool clearCurrentSpaceId = false,
   }) {
@@ -58,6 +67,9 @@ class SettingsState extends Equatable {
       defaultReversed: defaultReversed ?? this.defaultReversed,
       ttsSpeechRate: ttsSpeechRate ?? this.ttsSpeechRate,
       leitnerBoxes: leitnerBoxes ?? this.leitnerBoxes,
+      reminder: reminder ?? this.reminder,
+      reviewSettings: reviewSettings ?? this.reviewSettings,
+      dailyExcelFeed: dailyExcelFeed ?? this.dailyExcelFeed,
       collectionEpoch: collectionEpoch ?? this.collectionEpoch,
     );
   }
@@ -75,6 +87,9 @@ class SettingsState extends Equatable {
     defaultReversed,
     ttsSpeechRate,
     leitnerBoxes,
+    reminder,
+    reviewSettings,
+    dailyExcelFeed,
     collectionEpoch,
   ];
 }

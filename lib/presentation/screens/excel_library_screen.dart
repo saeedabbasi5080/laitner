@@ -39,33 +39,39 @@ class _ExcelLibraryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: BlocBuilder<ExcelLibraryCubit, ExcelLibraryState>(
-          builder: (context, state) {
-            return Column(
+    return BlocBuilder<ExcelLibraryCubit, ExcelLibraryState>(
+      builder: (context, state) {
+        return Scaffold(
+          body: SafeArea(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-                  child: AppPageHeader(
-                    title: AppStrings.excelLibrary,
-                    subtitle: AppStrings.excelLibrarySubtitle,
-                  ),
+                  child: state.selectedIds.isEmpty
+                      ? AppPageHeader(
+                          title: AppStrings.excelLibrary,
+                          subtitle: AppStrings.excelLibrarySubtitle,
+                        )
+                      : _SelectionBar(state: state),
                 ),
                 Expanded(
                   child: _buildBody(context, state),
                 ),
               ],
-            );
-          },
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _startExcelImport(context),
-        icon: const Icon(Icons.upload_file),
-        label: const Text(AppStrings.importExcelFile),
-      ),
+            ),
+          ),
+          // Hidden while picking files so it cannot collide with the delete
+          // action in the selection header.
+          floatingActionButton: state.selectedIds.isEmpty
+              ? FloatingActionButton.extended(
+                  onPressed: () => _startExcelImport(context),
+                  icon: const Icon(Icons.upload_file),
+                  label: const Text(AppStrings.importExcelFile),
+                )
+              : null,
+        );
+      },
     );
   }
 
@@ -97,9 +103,18 @@ class _ExcelLibraryView extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final item = state.imports[index];
+        final selected = state.selectedIds.contains(item.id);
         return _ImportListTile(
           import: item,
-          onTap: () => _openDetail(context, item.id),
+          selected: selected,
+          selectionMode: state.selectedIds.isNotEmpty,
+          // In selection mode a tap picks the file instead of opening it, so
+          // picking several never navigates away.
+          onTap: () => state.selectedIds.isEmpty
+              ? _openDetail(context, item.id)
+              : context.read<ExcelLibraryCubit>().toggleSelection(item.id),
+          onLongPress: () =>
+              context.read<ExcelLibraryCubit>().toggleSelection(item.id),
           onDelete: () => _confirmDelete(context, item),
         );
       },
@@ -205,6 +220,86 @@ class _ExcelLibraryView extends StatelessWidget {
       await context.read<ExcelLibraryCubit>().deleteImport(item.id);
     }
   }
+
+}
+
+/// Header shown while files are picked for a bulk delete.
+class _SelectionBar extends StatelessWidget {
+  const _SelectionBar({required this.state});
+
+  final ExcelLibraryState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<ExcelLibraryCubit>();
+    final count = state.selectedIds.length;
+
+    return Row(
+      children: [
+        CircleIconButton(
+          icon: Icons.close,
+          onPressed: cubit.clearSelection,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppStrings.excelSelectedFiles(count),
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                count < state.imports.length
+                    ? AppStrings.excelSelectAll
+                    : AppStrings.excelAllSelected,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: context.recallColors.mutedForeground,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (count < state.imports.length)
+          TextButton(onPressed: cubit.selectAll, child: const Text(AppStrings.selectAll)),
+        const SizedBox(width: 4),
+        FilledButton.icon(
+          onPressed: count == 0 ? null : () => _delete(context),
+          icon: const Icon(Icons.delete_outline, size: 18),
+          label: Text(AppStrings.delete),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.danger,
+            minimumSize: const Size(0, 44),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _delete(BuildContext context) async {
+    final cubit = context.read<ExcelLibraryCubit>();
+    final count = state.selectedIds.length;
+    if (count == 0) return;
+
+    final ok = await showConfirmDialog(
+      context,
+      title: AppStrings.excelDeleteSelectedFiles,
+      message: AppStrings.excelDeleteSelectedFilesConfirm(count),
+      confirmLabel: AppStrings.delete,
+    );
+    if (ok != true || !context.mounted) return;
+
+    final deleted = await cubit.deleteSelected();
+    if (!context.mounted || deleted == 0) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppStrings.excelFilesDeleted(deleted))),
+    );
+  }
 }
 
 class _ImportListTile extends StatelessWidget {
@@ -212,11 +307,17 @@ class _ImportListTile extends StatelessWidget {
     required this.import,
     required this.onTap,
     required this.onDelete,
+    required this.selected,
+    required this.selectionMode,
+    this.onLongPress,
   });
 
   final ExcelImport import;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final VoidCallback? onLongPress;
+  final bool selected;
+  final bool selectionMode;
 
   @override
   Widget build(BuildContext context) {
@@ -228,27 +329,45 @@ class _ImportListTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: colors.border),
+            border: Border.all(
+              color: selected ? context.accentColor : colors.border,
+              width: selected ? 1.5 : 1,
+            ),
             boxShadow: AppShadows.card(context),
           ),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: context.accentColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(16),
+              if (selectionMode)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, right: 10),
+                  child: Icon(
+                    selected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: selected
+                        ? context.accentColor
+                        : colors.mutedForeground,
+                    size: 22,
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: context.accentColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    Icons.table_chart_outlined,
+                    color: context.accentColor,
+                  ),
                 ),
-                child: Icon(
-                  Icons.table_chart_outlined,
-                  color: context.accentColor,
-                ),
-              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -271,18 +390,20 @@ class _ImportListTile extends StatelessWidget {
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: onDelete,
-                icon: Icon(
-                  Icons.delete_outline,
-                  color: AppColors.danger,
-                  size: 20,
+              if (!selectionMode)
+                IconButton(
+                  onPressed: onDelete,
+                  icon: Icon(
+                    Icons.delete_outline,
+                    color: AppColors.danger,
+                    size: 20,
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                color: colors.mutedForeground,
-              ),
+              if (!selectionMode)
+                Icon(
+                  Icons.chevron_right,
+                  color: colors.mutedForeground,
+                ),
             ],
           ),
         ),

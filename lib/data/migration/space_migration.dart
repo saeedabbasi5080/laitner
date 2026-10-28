@@ -3,11 +3,11 @@ import 'package:recall/core/theme/card_font_size.dart';
 import 'package:recall/core/tts/tts_language.dart';
 import 'package:recall/data/datasources/excel_import_store.dart';
 import 'package:recall/data/datasources/local_data_source.dart';
-import 'package:recall/data/datasources/review_history_store.dart';
 import 'package:recall/data/datasources/space_settings_store.dart';
 import 'package:recall/domain/entities/deck_color.dart';
 import 'package:recall/domain/entities/learning_space.dart';
 import 'package:recall/domain/entities/review_log.dart';
+import 'package:recall/domain/services/id_generator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _legacyTtsLanguageKey = 'tts_language';
@@ -17,8 +17,8 @@ const _legacyAutoSpeakKey = 'auto_speak';
 
 Future<void> runSpaceMigration({
   required LocalDataSource localDataSource,
+  required IdGenerator idGenerator,
   required SharedPreferences prefs,
-  required ReviewHistoryStore reviewHistoryStore,
   required ExcelImportStore excelImportStore,
   required SpaceSettingsStore spaceSettingsStore,
 }) async {
@@ -27,7 +27,7 @@ Future<void> runSpaceMigration({
   var spaces = await localDataSource.getAllSpaces();
   final defaultSpaceId = spaces.isNotEmpty
       ? spaces.first.id
-      : localDataSource.generateId();
+      : idGenerator.generateId();
 
   if (spaces.isEmpty) {
     final defaultSpace = LearningSpace(
@@ -54,7 +54,7 @@ Future<void> runSpaceMigration({
       deck.id: deck.spaceId,
   };
 
-  final reviewLogs = reviewHistoryStore.getAll();
+  final reviewLogs = await localDataSource.getAllReviewLogs();
   final migratedLogs = reviewLogs
       .map(
         (log) => log.spaceId.isNotEmpty
@@ -71,11 +71,8 @@ Future<void> runSpaceMigration({
               ),
       )
       .toList();
-  if (migratedLogs.length != reviewLogs.length ||
-      migratedLogs.any((log) => log.spaceId.isEmpty)) {
-    await reviewHistoryStore.replaceAll(migratedLogs);
-  } else if (reviewLogs.any((log) => log.spaceId.isEmpty)) {
-    await reviewHistoryStore.replaceAll(migratedLogs);
+  if (reviewLogs.any((log) => log.spaceId.isEmpty)) {
+    await localDataSource.replaceReviewLogs(migratedLogs);
   }
 
   final excelImports = await excelImportStore.getAll();

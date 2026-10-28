@@ -6,25 +6,32 @@ class ExcelLibraryState extends Equatable {
   const ExcelLibraryState({
     this.status = ExcelLibraryStatus.initial,
     this.imports = const [],
+    this.selectedIds = const {},
     this.errorMessage,
   });
 
   final ExcelLibraryStatus status;
   final List<ExcelImport> imports;
+
+  /// Files picked for a bulk delete.
+  final Set<String> selectedIds;
+
   final String? errorMessage;
 
   ExcelLibraryState copyWith({
     ExcelLibraryStatus? status,
     List<ExcelImport>? imports,
+    Set<String>? selectedIds,
     String? errorMessage,
   }) {
     return ExcelLibraryState(
       status: status ?? this.status,
       imports: imports ?? this.imports,
+      selectedIds: selectedIds ?? this.selectedIds,
       errorMessage: errorMessage,
     );
   }
 
   @override
-  List<Object?> get props => [status, imports, errorMessage];
+  List<Object?> get props => [status, imports, selectedIds, errorMessage];
 }

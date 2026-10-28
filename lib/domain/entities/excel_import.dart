@@ -5,6 +5,7 @@ class ExcelImportRow extends Equatable {
     required this.id,
     required this.front,
     required this.back,
+    this.tags = const [],
     this.isAdded = false,
     this.addedAt,
   });
@@ -12,6 +13,10 @@ class ExcelImportRow extends Equatable {
   final String id;
   final String front;
   final String back;
+
+  /// Optional labels carried over from the file's third column.
+  final List<String> tags;
+
   final bool isAdded;
   final DateTime? addedAt;
 
@@ -19,6 +24,7 @@ class ExcelImportRow extends Equatable {
     String? id,
     String? front,
     String? back,
+    List<String>? tags,
     bool? isAdded,
     DateTime? addedAt,
     bool clearAddedAt = false,
@@ -27,6 +33,7 @@ class ExcelImportRow extends Equatable {
       id: id ?? this.id,
       front: front ?? this.front,
       back: back ?? this.back,
+      tags: tags ?? this.tags,
       isAdded: isAdded ?? this.isAdded,
       addedAt: clearAddedAt ? null : (addedAt ?? this.addedAt),
     );
@@ -36,6 +43,7 @@ class ExcelImportRow extends Equatable {
         'id': id,
         'front': front,
         'back': back,
+        'tags': tags,
         'isAdded': isAdded,
         'addedAt': addedAt?.toIso8601String(),
       };
@@ -45,11 +53,20 @@ class ExcelImportRow extends Equatable {
       id: json['id'] as String,
       front: json['front'] as String,
       back: json['back'] as String,
+      tags: _tagsFromJson(json['tags']),
       isAdded: _readBool(json['isAdded']),
       addedAt: json['addedAt'] != null
           ? DateTime.parse(json['addedAt'] as String)
           : null,
     );
+  }
+
+  static List<String> _tagsFromJson(Object? raw) {
+    if (raw is! List) return const [];
+    return raw
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toList();
   }
 
   static bool _readBool(dynamic value) {

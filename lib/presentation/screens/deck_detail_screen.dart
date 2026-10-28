@@ -261,6 +261,7 @@ class _DeckDetailView extends StatelessWidget {
                           front: card.front,
                           back: card.back,
                           box: card.box,
+                          tags: card.tags,
                           accent: accent,
                           onEdit: () => showModalBottomSheet<void>(
                             context: context,
@@ -268,6 +269,8 @@ class _DeckDetailView extends StatelessWidget {
                             backgroundColor: Colors.transparent,
                             builder: (_) => CardFormSheet(
                               front: card.front,
+                              tags: card.tags,
+                              showTags: true,
                               back: card.back,
                               onSubmit: (f, b) => context
                                   .read<DeckDetailCubit>()
@@ -379,6 +382,7 @@ class _CardListItem extends StatelessWidget {
     required this.front,
     required this.back,
     required this.box,
+    required this.tags,
     required this.accent,
     required this.onEdit,
     required this.onDelete,
@@ -388,6 +392,7 @@ class _CardListItem extends StatelessWidget {
   final String front;
   final String back;
   final int box;
+  final List<String> tags;
   final Color accent;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -431,6 +436,16 @@ class _CardListItem extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    if (tags.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        tags.join(' · '),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: colors.mutedForeground,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

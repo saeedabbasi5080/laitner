@@ -28,5 +28,11 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSCameraUsageDescription</key>
+	<string>برای پیوست عکس به کارت</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>برای ضبط ویس روی کارت</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>برای انتخاب عکس کارت از گالری</string>
 </dict>
 </plist>

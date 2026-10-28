@@ -6,15 +6,20 @@ import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/core/tts/tts_service.dart';
 import 'package:recall/core/utils/responsive.dart';
-import 'package:recall/core/utils/text_direction_utils.dart';
 import 'package:recall/data/datasources/space_settings_store.dart';
+import 'package:recall/domain/entities/card_difficulty.dart';
+import 'package:recall/domain/entities/card_media.dart';
+import 'package:recall/domain/entities/flashcard.dart';
 import 'package:recall/domain/entities/review_rating.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/settings/settings_cubit.dart';
 import 'package:recall/presentation/blocs/study/study_config.dart';
 import 'package:recall/presentation/blocs/study/study_cubit.dart';
+import 'package:recall/presentation/widgets/card_side_editor.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 import 'package:recall/presentation/widgets/deck_card_sheets.dart';
+import 'package:recall/presentation/widgets/soft_ui.dart';
+import 'package:recall/presentation/widgets/study_card_media.dart';
 
 class StudyScreen extends StatefulWidget {
   const StudyScreen({super.key, required this.config});
@@ -44,6 +49,7 @@ class _StudyScreenState extends State<StudyScreen> {
         randomOrder: spaceSettings.randomReviewOrder,
         defaultReversed: spaceSettings.defaultReversed,
         boxConfig: spaceSettings.leitnerBoxes,
+        reviewSettings: spaceSettings.reviewSettings,
       );
     });
   }
@@ -212,34 +218,47 @@ class _StudyViewState extends State<_StudyView> {
                       context.pageHorizontalPadding,
                       8,
                     ),
-                    child: Row(
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(999),
-                            child: LinearProgressIndicator(
-                              value: state.progress,
-                              minHeight: 6,
-                              backgroundColor: context.recallColors.muted,
-                              valueColor: AlwaysStoppedAnimation(
-                                context.accentColor,
+                        _HouseTrack(
+                          box: card.box,
+                          maxBox: context
+                              .watch<SettingsCubit>()
+                              .state
+                              .leitnerBoxes
+                              .maxBox,
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(999),
+                                child: LinearProgressIndicator(
+                                  value: state.progress,
+                                  minHeight: 6,
+                                  backgroundColor: context.recallColors.muted,
+                                  valueColor: AlwaysStoppedAnimation(
+                                    context.accentColor,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${state.currentIndex.clamp(0, state.queue.length)}/${state.queue.length}',
-                          maxLines: 1,
-                          overflow: TextOverflow.fade,
-                          softWrap: false,
-                          textAlign: TextAlign.left,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: context.recallColors.mutedForeground,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${state.currentIndex.clamp(0, state.queue.length)}/${state.queue.length}',
+                              maxLines: 1,
+                              overflow: TextOverflow.fade,
+                              softWrap: false,
+                              textAlign: TextAlign.left,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: context.recallColors.mutedForeground,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -255,15 +274,48 @@ class _StudyViewState extends State<_StudyView> {
                               total: state.queue.length,
                               knowCount: state.knowCount,
                               dontKnowCount: state.dontKnowCount,
+                              mistakeCount: state.mistakeCount,
+                              onRetryMistakes: state.mistakeCount == 0
+                                  ? null
+                                  : () => _retryMistakes(context),
                             )
                           : card != null
                           ? _FlashcardView(
                               text: questionText,
+                              styleJson: _showingFront(
+                                isFlipped: state.isFlipped,
+                                reversed: state.reversed,
+                              )
+                                  ? card.frontStyle
+                                  : card.backStyle,
+                              media: card.mediaFor(
+                                _showingFront(
+                                  isFlipped: state.isFlipped,
+                                  reversed: state.reversed,
+                                )
+                                    ? CardMediaSide.front
+                                    : CardMediaSide.back,
+                              ),
+                              meta: [
+                                AppStrings.boxBadge(card.box),
+                                if (state.currentDeckName != null)
+                                  state.currentDeckName!,
+                                if (CardDifficulty.fromTags(card.tags) case
+                                    final difficulty?)
+                                  difficulty.label,
+                              ].join(' · '),
                               fontSize: context
                                   .watch<SettingsCubit>()
                                   .state
                                   .cardFontSize
                                   .sizeFor(questionText),
+                              learned: card.isLearnedIn(
+                                context
+                                    .watch<SettingsCubit>()
+                                    .state
+                                    .leitnerBoxes
+                                    .maxBox,
+                              ),
                               onTap: () =>
                                   context.read<StudyCubit>().flipCard(),
                             )
@@ -271,6 +323,16 @@ class _StudyViewState extends State<_StudyView> {
                     ),
                   ),
                 ),
+                if (state.justLearned.isNotEmpty && !state.isFinished)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      context.pageHorizontalPadding,
+                      8,
+                      context.pageHorizontalPadding,
+                      4,
+                    ),
+                    child: _JustLearnedBanner(card: state.justLearned.first),
+                  ),
                 if (!state.isFinished)
                   Padding(
                     padding: EdgeInsets.fromLTRB(
@@ -317,16 +379,19 @@ class _StudyViewState extends State<_StudyView> {
     );
   }
 
+  bool _showingFront({required bool isFlipped, required bool reversed}) {
+    return reversed ? isFlipped : !isFlipped;
+  }
+
   String _displayText({
     required String front,
     required String back,
     required bool isFlipped,
     required bool reversed,
   }) {
-    if (!reversed) {
-      return isFlipped ? back : front;
-    }
-    return isFlipped ? front : back;
+    return _showingFront(isFlipped: isFlipped, reversed: reversed)
+        ? front
+        : back;
   }
 
   Future<bool> _speak(
@@ -393,6 +458,24 @@ class _StudyViewState extends State<_StudyView> {
     );
   }
 
+  /// Reopens a session over exactly the cards that were missed.
+  ///
+  /// Built from the ids this session collected rather than from the day's whole
+  /// history, so the button retried what just went wrong and nothing else.
+  void _retryMistakes(BuildContext context) {
+    final cubit = context.read<StudyCubit>();
+    final ids = cubit.state.mistakeCardIds;
+    if (ids.isEmpty) return;
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => StudyScreen(
+          config: cubit.config.withMistakeRetry(ids),
+        ),
+      ),
+    );
+  }
+
   Future<void> _deleteCard(BuildContext context) async {
     final confirmed = await showConfirmDialog(
       context,
@@ -408,13 +491,23 @@ class _StudyViewState extends State<_StudyView> {
 class _FlashcardView extends StatelessWidget {
   const _FlashcardView({
     required this.text,
+    required this.styleJson,
+    required this.media,
+    required this.meta,
     required this.fontSize,
     required this.onTap,
+    this.learned = false,
   });
 
   final String text;
+  final String styleJson;
+  final List<CardMedia> media;
+  final String meta;
   final double fontSize;
   final VoidCallback onTap;
+
+  /// Tints the card gold when it has graduated into the learned archive.
+  final bool learned;
 
   @override
   Widget build(BuildContext context) {
@@ -422,6 +515,7 @@ class _FlashcardView extends StatelessWidget {
     final short = context.isShortHeight;
     final padH = short ? 20.0 : 28.0;
     final padV = short ? 24.0 : 36.0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -430,11 +524,19 @@ class _FlashcardView extends StatelessWidget {
           availableHeight: constraints.maxHeight,
         );
 
+        // Learned cards get a warm gold wash so they are recognisable at a
+        // glance in any list or review session.
+        final tint = learned
+            ? AppColors.gold.withValues(alpha: isDark ? 0.16 : 0.20)
+            : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08);
+        final borderColor =
+            learned ? AppColors.gold.withValues(alpha: 0.65) : colors.border;
+
         return Align(
           alignment: Alignment.center,
           child: Material(
             color: Color.alphaBlend(
-              Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+              tint,
               Theme.of(context).colorScheme.surfaceContainerLowest,
             ),
             borderRadius: BorderRadius.circular(28),
@@ -447,27 +549,46 @@ class _FlashcardView extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: colors.border),
+                  border: Border.all(
+                    color: borderColor,
+                    width: learned ? 1.5 : 1,
+                  ),
                   boxShadow: AppShadows.card(context),
                 ),
                 child: Stack(
                   children: [
-                    Center(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: size.width - (padH * 2),
-                            maxHeight: size.height - (padV * 2),
-                          ),
-                          child: Text(
-                            text,
-                            textAlign: TextAlign.center,
-                            textDirection: textDirectionFor(text),
-                            style: TextStyle(
-                              fontSize: fontSize,
-                              fontWeight: FontWeight.w600,
-                              height: 1.4,
+                    Align(
+                      alignment: Alignment.topCenter,
+                      child: Text(
+                        meta,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: colors.mutedForeground,
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      top: 22,
+                      child: Center(
+                        child: SingleChildScrollView(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: size.width - (padH * 2),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                StudyRichText(
+                                  plain: text,
+                                  styleJson: styleJson,
+                                  fontSize: fontSize,
+                                ),
+                                StudyCardMediaList(media: media),
+                              ],
                             ),
                           ),
                         ),
@@ -489,11 +610,18 @@ class _FinishedView extends StatelessWidget {
     required this.total,
     required this.knowCount,
     required this.dontKnowCount,
+    this.mistakeCount = 0,
+    this.onRetryMistakes,
   });
 
   final int total;
   final int knowCount;
   final int dontKnowCount;
+
+  /// How many cards were missed, which drives the retry button.
+  final int mistakeCount;
+
+  final VoidCallback? onRetryMistakes;
 
   @override
   Widget build(BuildContext context) {
@@ -534,7 +662,24 @@ class _FinishedView extends StatelessWidget {
             style: TextStyle(fontSize: 14, color: colors.mutedForeground),
           ),
           if (showResult) ...[
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
+            if (mistakeCount > 0 && onRetryMistakes != null) ...[
+              OutlinedButton.icon(
+                onPressed: onRetryMistakes,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: Text(AppStrings.reviewMistakes(mistakeCount)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
             _SessionResultChart(
               knowCount: knowCount,
               dontKnowCount: dontKnowCount,
@@ -565,6 +710,137 @@ class _FinishedView extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Horizontal strip of houses with the current one highlighted, so the user
+/// can see at a glance where a card sits and where a correct answer sends it.
+class _HouseTrack extends StatelessWidget {
+  const _HouseTrack({required this.box, required this.maxBox});
+
+  final int box;
+  final int maxBox;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.recallColors;
+    final total = math.max(1, maxBox);
+    // A card past the last house has graduated; show that instead of an index.
+    final isLearned = box > maxBox;
+
+    return Directionality(
+      // House 1 sits on the right in this RTL layout, matching the order the
+      // houses are shown in on the home panel.
+      textDirection: TextDirection.rtl,
+      child: Semantics(
+        label: isLearned
+            ? AppStrings.houseLearnedBadge
+            : AppStrings.houseLabel(box),
+        child: Row(
+          children: [
+            for (var house = 1; house <= total; house++)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: !isLearned && house <= box
+                              ? context.accentColor
+                              : colors.muted,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        isLearned ? '★' : '$house',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: !isLearned && house == box
+                              ? FontWeight.w800
+                              : FontWeight.w500,
+                          color: !isLearned && house == box
+                              ? context.accentColor
+                              : colors.mutedForeground,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Celebrates the card that just moved into the learned archive.
+class _JustLearnedBanner extends StatelessWidget {
+  const _JustLearnedBanner({required this.card});
+
+  final Flashcard card;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutBack,
+      builder: (context, progress, child) => Opacity(
+        // Fading in keeps the banner from stealing attention from the next
+        // card, which is already on screen by the time this appears.
+        opacity: progress.clamp(0.0, 1.0),
+        child: Transform.scale(scale: 0.94 + 0.06 * progress, child: child),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadii.field),
+          gradient: LinearGradient(
+            colors: [
+              AppColors.gold.withValues(alpha: 0.26),
+              AppColors.gold.withValues(alpha: 0.10),
+            ],
+          ),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.55)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.workspace_premium_rounded,
+                color: AppColors.gold, size: 26),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppStrings.justLearnedTitle,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.gold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    AppStrings.justLearnedCard(card.front),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

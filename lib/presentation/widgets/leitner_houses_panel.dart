@@ -129,6 +129,14 @@ class _HouseColumn extends StatelessWidget {
   final int houseCount;
   final VoidCallback onTap;
 
+  /// Short label explaining what this house means, so the row reads as a
+  /// journey rather than a bare list of numbers.
+  String get _role {
+    if (box == 1) return AppStrings.houseRoleNew;
+    if (box >= houseCount) return AppStrings.houseRoleAlmostLearned;
+    return AppStrings.houseRoleLearning;
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -229,6 +237,19 @@ class _HouseColumn extends StatelessWidget {
                   color: onFill.withValues(alpha: 0.62),
                 ),
               ),
+              const SizedBox(height: 6),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  _role,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    color: onFill.withValues(alpha: 0.55),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -244,25 +265,10 @@ class _ProgressLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final muted = context.recallColors.mutedForeground;
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: SizedBox(
-            height: 18,
-            child: CustomPaint(
-              painter: _ProgressLinePainter(
-                color: scheme.primary,
-                nodes: houseCount,
-              ),
-              size: Size.infinite,
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
         Row(
           children: [
             Expanded(
@@ -293,39 +299,6 @@ class _ProgressLegend extends StatelessWidget {
   }
 }
 
-class _ProgressLinePainter extends CustomPainter {
-  _ProgressLinePainter({required this.color, required this.nodes});
-
-  final Color color;
-  final int nodes;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    final y = size.height / 2;
-    canvas.drawLine(Offset(8, y), Offset(size.width - 8, y), paint);
-    final count = nodes < 1 ? 1 : nodes;
-    for (var i = 0; i < count; i++) {
-      final t = count == 1 ? 0.0 : i / (count - 1);
-      final x = size.width - 8 - t * (size.width - 16);
-      canvas.drawCircle(Offset(x, y), 4, paint);
-    }
-    final arrow = Path()
-      ..moveTo(4, y)
-      ..lineTo(12, y - 5)
-      ..lineTo(12, y + 5)
-      ..close();
-    canvas.drawPath(arrow, Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ProgressLinePainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.nodes != nodes;
-}
-
 class _LearnedBanner extends StatelessWidget {
   const _LearnedBanner({required this.count, required this.onTap});
 
@@ -351,17 +324,17 @@ class _LearnedBanner extends StatelessWidget {
               end: AlignmentDirectional.centerEnd,
               colors: [
                 Color.alphaBlend(
-                  scheme.primary.withValues(alpha: isDark ? 0.28 : 0.16),
+                  AppColors.gold.withValues(alpha: isDark ? 0.26 : 0.20),
                   scheme.surfaceContainerLow,
                 ),
                 Color.alphaBlend(
-                  scheme.primary.withValues(alpha: isDark ? 0.12 : 0.06),
+                  AppColors.gold.withValues(alpha: isDark ? 0.10 : 0.06),
                   scheme.surfaceContainerLow,
                 ),
               ],
             ),
             border: Border.all(
-              color: scheme.primary.withValues(alpha: 0.22),
+              color: AppColors.gold.withValues(alpha: 0.45),
             ),
           ),
           child: Padding(
@@ -386,7 +359,7 @@ class _LearnedBanner extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w800,
-                                color: scheme.primary,
+                                color: AppColors.gold,
                               ),
                             ),
                             TextSpan(
@@ -394,7 +367,7 @@ class _LearnedBanner extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: scheme.primary,
+                                color: AppColors.gold,
                               ),
                             ),
                           ],
@@ -425,8 +398,8 @@ class _LearnedBanner extends StatelessWidget {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: scheme.primary.withValues(
-                              alpha: isDark ? 0.22 : 0.12,
+                            color: AppColors.gold.withValues(
+                              alpha: isDark ? 0.20 : 0.14,
                             ),
                             borderRadius: BorderRadius.circular(999),
                           ),
@@ -438,13 +411,14 @@ class _LearnedBanner extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
+                                  color: AppColors.gold,
                                 ),
                               ),
                               const SizedBox(width: 2),
                               Icon(
                                 Icons.chevron_right,
                                 size: 16,
-                                color: scheme.primary,
+                                color: AppColors.gold,
                               ),
                             ],
                           ),

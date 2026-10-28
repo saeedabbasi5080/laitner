@@ -2,6 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>برای پیوست عکس به کارت</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>برای ضبط ویس روی کارت</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>برای انتخاب عکس کارت از گالری</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>برای ذخیره عکس کارت</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

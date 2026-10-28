@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
+import 'package:recall/domain/entities/excel_duplicate.dart';
 import 'package:recall/domain/entities/excel_import.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/excel_import_detail/excel_import_detail_cubit.dart';
@@ -38,7 +39,8 @@ class ExcelImportDetailScreen extends StatelessWidget {
         removeExcelRowsUseCase: sl(),
         updateExcelRowUseCase: sl(),
         deleteImportUseCase: sl(),
-        localDataSource: sl(),
+        findDuplicatesUseCase: sl(),
+        idGenerator: sl(),
       )..load(),
       child: const _ExcelImportDetailView(),
     );
@@ -130,6 +132,15 @@ class _ExcelImportDetailView extends StatelessWidget {
                                 : null,
                             child: const Text(AppStrings.clearSelection),
                           ),
+                          if (state.duplicates.isNotEmpty)
+                            TextButton(
+                              onPressed: () => _removeDuplicates(context),
+                              child: Text(
+                                '${AppStrings.removeDuplicateWords} '
+                                '(${state.duplicates.length})',
+                                style: const TextStyle(color: AppColors.danger),
+                              ),
+                            ),
                           if (state.selectedRowIds.isNotEmpty)
                             TextButton(
                               onPressed: () => _deleteSelected(context),
@@ -207,6 +218,7 @@ class _ExcelImportDetailView extends StatelessWidget {
                                   selected: state.selectedRowIds.contains(
                                     row.id,
                                   ),
+                                  duplicate: state.duplicateFor(row.id),
                                   onChanged: row.isAdded
                                       ? null
                                       : (v) => context
@@ -266,9 +278,8 @@ class _ExcelImportDetailView extends StatelessWidget {
         return _AutoDismissAlert(
           title: AppStrings.importSuccess,
           content: AppStrings.excelImportResultSummary(
-            result.totalProcessed,
             result.addedCount,
-            result.skippedDuplicates,
+            result.addedDuplicateCount,
           ),
         );
       },
@@ -315,6 +326,26 @@ class _ExcelImportDetailView extends StatelessWidget {
     if (confirmed == true && context.mounted) {
       await context.read<ExcelImportDetailCubit>().removeRows([row.id]);
     }
+  }
+
+  Future<void> _removeDuplicates(BuildContext context) async {
+    final cubit = context.read<ExcelImportDetailCubit>();
+    final count = cubit.state.duplicates.length;
+    if (count == 0) return;
+
+    final ok = await showConfirmDialog(
+      context,
+      title: AppStrings.removeDuplicateWords,
+      message: AppStrings.removeDuplicateWordsQuestion(count),
+      confirmLabel: AppStrings.removeDuplicateWords,
+    );
+    if (ok != true || !context.mounted) return;
+
+    final removed = await cubit.removeDuplicateRows();
+    if (!context.mounted || removed == 0) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppStrings.duplicateWordsRemoved(removed))),
+    );
   }
 
   Future<void> _deleteSelected(BuildContext context) async {
@@ -519,6 +550,7 @@ class _WordListTile extends StatelessWidget {
     required this.onChanged,
     required this.onEdit,
     required this.onDelete,
+    this.duplicate,
   });
 
   final ExcelImportRow row;
@@ -527,10 +559,15 @@ class _WordListTile extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
+  /// Set when the row cannot be added because its front already exists.
+  final ExcelRowDuplicate? duplicate;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.recallColors;
     final isAdded = row.isAdded;
+    final duplicate = this.duplicate;
+    final isDuplicate = duplicate != null;
 
     return Material(
       color: isAdded ? colors.muted.withValues(alpha: 0.45) : colors.card,
@@ -542,6 +579,8 @@ class _WordListTile extends StatelessWidget {
           border: Border.all(
             color: isAdded
                 ? AppColors.mint.withValues(alpha: 0.5)
+                : isDuplicate
+                ? AppColors.lemon.withValues(alpha: 0.7)
                 : (selected ? context.accentColor : colors.border),
             width: selected && !isAdded ? 1.5 : 1,
           ),
@@ -582,6 +621,8 @@ class _WordListTile extends StatelessWidget {
                 trailing: _RowActions(onEdit: onEdit, onDelete: onDelete),
               )
             : CheckboxListTile(
+                // Duplicates stay selectable: the badge below the word is the
+                // warning, and whether to keep the row is the user's call.
                 value: selected,
                 onChanged: onChanged,
                 controlAffinity: ListTileControlAffinity.leading,
@@ -589,12 +630,67 @@ class _WordListTile extends StatelessWidget {
                   row.front,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                subtitle: Text(
-                  row.back,
-                  style: TextStyle(fontSize: 13, color: colors.mutedForeground),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      row.back,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: colors.mutedForeground,
+                      ),
+                    ),
+                    if (isDuplicate) ...[
+                      const SizedBox(height: 6),
+                      _DuplicateBadge(duplicate: duplicate),
+                    ],
+                  ],
                 ),
                 secondary: _RowActions(onEdit: onEdit, onDelete: onDelete),
               ),
+      ),
+    );
+  }
+}
+
+/// Explains why a row will not be added, and where the clash is.
+class _DuplicateBadge extends StatelessWidget {
+  const _DuplicateBadge({required this.duplicate});
+
+  final ExcelRowDuplicate duplicate;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.recallColors;
+    final message = switch (duplicate.kind) {
+      ExcelDuplicateKind.existingCard => duplicate.deckName == null
+          ? AppStrings.excelDuplicateInSpace
+          : AppStrings.duplicateExistsInDeck(duplicate.deckName!),
+      ExcelDuplicateKind.withinFile => AppStrings.excelDuplicateInFile,
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.lemon.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(AppRadii.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.content_copy_rounded, size: 13, color: AppColors.sand),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: colors.mutedForeground,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
