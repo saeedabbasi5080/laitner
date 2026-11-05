@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
+import 'package:recall/core/utils/bidi.dart';
 import 'package:recall/domain/entities/auth_error.dart';
 import 'package:recall/domain/entities/auth_user.dart';
 import 'package:recall/presentation/blocs/auth/auth_cubit.dart';
@@ -46,9 +47,7 @@ class AccountSection extends StatelessWidget {
             const SectionLabel(AppStrings.account),
             const SizedBox(height: 8),
             if (state.shouldWarnAboutNoBackup) ...[
-              _NoBackupWarning(
-                onSignIn: () => _openSignIn(context),
-              ),
+              _NoBackupWarning(onSignIn: () => _openSignIn(context)),
               const SizedBox(height: 12),
             ],
             _AccountCard(
@@ -77,11 +76,9 @@ class AccountSection extends StatelessWidget {
   }
 
   void _openSignIn(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const SignInScreen(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const SignInScreen()));
   }
 
   /// Confirms before signing out.
@@ -99,7 +96,11 @@ class AccountSection extends StatelessWidget {
         title: const Text(AppStrings.signOut),
         content: Text(
           AppStrings.signOutWarning,
-          style: TextStyle(fontSize: 14, height: 1.7, color: colors.mutedForeground),
+          style: TextStyle(
+            fontSize: 14,
+            height: 1.7,
+            color: colors.mutedForeground,
+          ),
         ),
         actions: [
           TextButton(
@@ -120,9 +121,9 @@ class AccountSection extends StatelessWidget {
     // Local only: no request. A user on a plane must be able to sign out.
     await cubit.signOut();
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(AppStrings.signOutDone)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text(AppStrings.signOutDone)));
   }
 
   Future<void> _editDisplayName(BuildContext context, AuthUser user) async {
@@ -202,12 +203,20 @@ class _NoBackupWarning extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.cloud_off_outlined, size: 20, color: AppColors.danger),
+              const Icon(
+                Icons.cloud_off_outlined,
+                size: 20,
+                color: AppColors.danger,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   AppStrings.notSignedInWarning,
-                  style: TextStyle(fontSize: 13, height: 1.8, color: colors.card),
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.8,
+                    color: colors.card,
+                  ),
                 ),
               ),
             ],
@@ -219,7 +228,10 @@ class _NoBackupWarning extends StatelessWidget {
               onPressed: onSignIn,
               style: TextButton.styleFrom(
                 foregroundColor: context.accentColor,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -269,6 +281,16 @@ class _AccountCard extends StatelessWidget {
     }
 
     final user = state.user!;
+    final name = user.displayName?.trim() ?? '';
+    final phone = ltrIsolate(user.phoneNumber);
+
+    // Says whether the server has confirmed the session this launch. Without
+    // that, an offline launch and a live one look identical, and the user
+    // cannot tell a stale account tile from a current one.
+    final subtitle = [
+      if (name.isNotEmpty) phone,
+      if (!state.verified) AppStrings.notSignedInWarningShort,
+    ].join(' · ');
 
     return Container(
       decoration: _decoration(context),
@@ -277,24 +299,30 @@ class _AccountCard extends StatelessWidget {
           ListTile(
             leading: CircleAvatar(
               backgroundColor: accent.withValues(alpha: 0.15),
-              child: Text(
-                user.label.characters.first,
-                style: TextStyle(color: accent, fontWeight: FontWeight.w700),
-              ),
+              // A digit is not an initial; without a name the avatar is a person.
+              child: name.isEmpty
+                  ? Icon(Icons.person_outline, color: accent)
+                  : Text(
+                      name.characters.first,
+                      style: TextStyle(
+                        color: accent,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
             ),
             title: Text(
-              user.label,
+              name.isEmpty ? phone : name,
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
-            subtitle: Text(
-              // Says whether the server has confirmed the session this launch.
-              // Without that, an offline launch and a live one look identical, and
-              // the user cannot tell a stale account tile from a current one.
-              state.verified
-                  ? user.phoneNumber
-                  : '${user.phoneNumber} · ${AppStrings.notSignedInWarningShort}',
-              style: TextStyle(fontSize: 12, color: colors.mutedForeground),
-            ),
+            subtitle: subtitle.isEmpty
+                ? null
+                : Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colors.mutedForeground,
+                    ),
+                  ),
             trailing: PopupMenuButton<String>(
               icon: Icon(Icons.more_vert, color: colors.mutedForeground),
               color: colors.card,
@@ -307,10 +335,7 @@ class _AccountCard extends StatelessWidget {
                   value: 'name',
                   child: Text(AppStrings.profileName),
                 ),
-                PopupMenuItem(
-                  value: 'out',
-                  child: Text(AppStrings.signOut),
-                ),
+                PopupMenuItem(value: 'out', child: Text(AppStrings.signOut)),
               ],
             ),
           ),
@@ -319,7 +344,7 @@ class _AccountCard extends StatelessWidget {
             dense: true,
             leading: const Icon(Icons.cloud_done_outlined, size: 20),
             title: Text(
-              AppStrings.backupComingSoon,
+              AppStrings.backupAutomatic,
               style: TextStyle(fontSize: 13, color: colors.mutedForeground),
             ),
           ),

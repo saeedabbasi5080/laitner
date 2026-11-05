@@ -18,6 +18,7 @@ import 'package:recall/presentation/blocs/study/study_cubit.dart';
 import 'package:recall/presentation/widgets/card_side_editor.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
 import 'package:recall/presentation/widgets/deck_card_sheets.dart';
+import 'package:recall/presentation/widgets/mistake_card_list.dart';
 import 'package:recall/presentation/widgets/soft_ui.dart';
 import 'package:recall/presentation/widgets/study_card_media.dart';
 
@@ -58,9 +59,7 @@ class _StudyScreenState extends State<StudyScreen> {
   Widget build(BuildContext context) {
     final config = _effectiveConfig;
     if (config == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     return BlocProvider(
       create: (_) => sl<StudyCubit>(param1: config)..load(),
@@ -119,8 +118,9 @@ class _StudyViewState extends State<_StudyView> {
               isFlipped: state.isFlipped,
               reversed: state.reversed,
             );
-            final showingFront =
-                state.reversed ? state.isFlipped : !state.isFlipped;
+            final showingFront = state.reversed
+                ? state.isFlipped
+                : !state.isFlipped;
             final key = '${card.id}-${showingFront ? 'front' : 'back'}';
             if (key == _lastAutoSpokenKey) return;
             _lastAutoSpokenKey = key;
@@ -220,6 +220,18 @@ class _StudyViewState extends State<_StudyView> {
                     ),
                     child: Column(
                       children: [
+                        if (context.read<StudyCubit>().config.isMistakeRetry)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              AppStrings.mistakePracticeBadge,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: context.recallColors.mutedForeground,
+                              ),
+                            ),
+                          ),
                         _HouseTrack(
                           box: card.box,
                           maxBox: context
@@ -255,7 +267,9 @@ class _StudyViewState extends State<_StudyView> {
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
                                 color: context.recallColors.mutedForeground,
-                                fontFeatures: const [FontFeature.tabularFigures()],
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
                               ),
                             ),
                           ],
@@ -275,6 +289,12 @@ class _StudyViewState extends State<_StudyView> {
                               knowCount: state.knowCount,
                               dontKnowCount: state.dontKnowCount,
                               mistakeCount: state.mistakeCount,
+                              mistakes: [
+                                for (final id in state.mistakeCardIds.toSet())
+                                  ?state.queue
+                                      .where((c) => c.id == id)
+                                      .firstOrNull,
+                              ],
                               onRetryMistakes: state.mistakeCount == 0
                                   ? null
                                   : () => _retryMistakes(context),
@@ -282,17 +302,18 @@ class _StudyViewState extends State<_StudyView> {
                           : card != null
                           ? _FlashcardView(
                               text: questionText,
-                              styleJson: _showingFront(
-                                isFlipped: state.isFlipped,
-                                reversed: state.reversed,
-                              )
+                              styleJson:
+                                  _showingFront(
+                                    isFlipped: state.isFlipped,
+                                    reversed: state.reversed,
+                                  )
                                   ? card.frontStyle
                                   : card.backStyle,
                               media: card.mediaFor(
                                 _showingFront(
-                                  isFlipped: state.isFlipped,
-                                  reversed: state.reversed,
-                                )
+                                      isFlipped: state.isFlipped,
+                                      reversed: state.reversed,
+                                    )
                                     ? CardMediaSide.front
                                     : CardMediaSide.back,
                               ),
@@ -300,8 +321,8 @@ class _StudyViewState extends State<_StudyView> {
                                 AppStrings.boxBadge(card.box),
                                 if (state.currentDeckName != null)
                                   state.currentDeckName!,
-                                if (CardDifficulty.fromTags(card.tags) case
-                                    final difficulty?)
+                                if (CardDifficulty.fromTags(card.tags)
+                                    case final difficulty?)
                                   difficulty.label,
                               ].join(' · '),
                               fontSize: context
@@ -469,9 +490,7 @@ class _StudyViewState extends State<_StudyView> {
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
-        builder: (_) => StudyScreen(
-          config: cubit.config.withMistakeRetry(ids),
-        ),
+        builder: (_) => StudyScreen(config: cubit.config.withMistakeRetry(ids)),
       ),
     );
   }
@@ -529,8 +548,9 @@ class _FlashcardView extends StatelessWidget {
         final tint = learned
             ? AppColors.gold.withValues(alpha: isDark ? 0.16 : 0.20)
             : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08);
-        final borderColor =
-            learned ? AppColors.gold.withValues(alpha: 0.65) : colors.border;
+        final borderColor = learned
+            ? AppColors.gold.withValues(alpha: 0.65)
+            : colors.border;
 
         return Align(
           alignment: Alignment.center,
@@ -611,6 +631,7 @@ class _FinishedView extends StatelessWidget {
     required this.knowCount,
     required this.dontKnowCount,
     this.mistakeCount = 0,
+    this.mistakes = const [],
     this.onRetryMistakes,
   });
 
@@ -620,6 +641,9 @@ class _FinishedView extends StatelessWidget {
 
   /// How many cards were missed, which drives the retry button.
   final int mistakeCount;
+
+  /// The missed cards themselves, so they can be read before retrying.
+  final List<Flashcard> mistakes;
 
   final VoidCallback? onRetryMistakes;
 
@@ -641,11 +665,7 @@ class _FinishedView extends StatelessWidget {
                 color: context.accentColor.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.check,
-                size: 36,
-                color: context.accentColor,
-              ),
+              child: Icon(Icons.check, size: 36, color: context.accentColor),
             ),
             const SizedBox(height: 24),
           ],
@@ -680,10 +700,21 @@ class _FinishedView extends StatelessWidget {
               ),
               const SizedBox(height: 20),
             ],
-            _SessionResultChart(
-              knowCount: knowCount,
-              dontKnowCount: dontKnowCount,
+            // The chart opens the missed cards too: tapping the red part of
+            // "15 right, 5 wrong" is the natural way to ask which five.
+            GestureDetector(
+              onTap: mistakes.isEmpty ? null : () => _showMistakes(context),
+              child: _SessionResultChart(
+                knowCount: knowCount,
+                dontKnowCount: dontKnowCount,
+              ),
             ),
+            if (mistakes.isNotEmpty)
+              TextButton.icon(
+                onPressed: () => _showMistakes(context),
+                icon: const Icon(Icons.list_alt_rounded, size: 18),
+                label: Text(AppStrings.seeMistakes(mistakes.length)),
+              ),
             const SizedBox(height: 20),
             Text(
               AppStrings.sessionResultSummary(knowCount, dontKnowCount),
@@ -710,6 +741,48 @@ class _FinishedView extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+extension on _FinishedView {
+  void _showMistakes(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(sheetContext).size.height * 0.8,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  AppStrings.sessionMistakesTitle,
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                MistakeCardList(cards: mistakes),
+                if (onRetryMistakes != null) ...[
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      onRetryMistakes!();
+                    },
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: Text(AppStrings.reviewMistakes(mistakes.length)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -813,8 +886,11 @@ class _JustLearnedBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.workspace_premium_rounded,
-                color: AppColors.gold, size: 26),
+            const Icon(
+              Icons.workspace_premium_rounded,
+              color: AppColors.gold,
+              size: 26,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(

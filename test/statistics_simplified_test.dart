@@ -31,15 +31,15 @@ ReviewLog _log(
   );
 }
 
-Flashcard _card(String id, {int box = 1}) => Flashcard(
-      id: id,
-      deckId: 'd1',
-      front: 'w-$id',
-      back: 'x',
-      box: box,
-      createdAt: _now.subtract(const Duration(days: 30)),
-      lastReviewed: _now.subtract(const Duration(days: 5)),
-    );
+Flashcard _card(String id, {int box = 1, bool reviewed = true}) => Flashcard(
+  id: id,
+  deckId: 'd1',
+  front: 'w-$id',
+  back: 'x',
+  box: box,
+  createdAt: _now.subtract(const Duration(days: 30)),
+  lastReviewed: reviewed ? _now.subtract(const Duration(days: 5)) : null,
+);
 
 StatisticsSnapshot _build({
   List<ReviewLog> logs = const [],
@@ -61,8 +61,12 @@ void main() {
       final logs = [
         _log('t1', 'c1', ReviewRating.know, at: _now),
         _log('t2', 'c1', ReviewRating.dontKnow, at: _now),
-        _log('y1', 'c2', ReviewRating.know,
-            at: _now.subtract(const Duration(days: 3))),
+        _log(
+          'y1',
+          'c2',
+          ReviewRating.know,
+          at: _now.subtract(const Duration(days: 3)),
+        ),
       ];
 
       for (final range in StatisticsRange.values) {
@@ -79,8 +83,12 @@ void main() {
           _log('t1', 'c1', ReviewRating.know, at: _now),
           _log('t2', 'c2', ReviewRating.know, at: _now),
           _log('t3', 'c3', ReviewRating.dontKnow, at: _now),
-          _log('y1', 'c4', ReviewRating.dontKnow,
-              at: _now.subtract(const Duration(days: 2))),
+          _log(
+            'y1',
+            'c4',
+            ReviewRating.dontKnow,
+            at: _now.subtract(const Duration(days: 2)),
+          ),
         ],
       );
 
@@ -115,7 +123,8 @@ void main() {
   group('the distribution stays a three-way split', () {
     test('every card lands in exactly one bucket', () {
       final cards = [
-        _card('a', box: 1), // fresh: never left house 1
+        _card('a', box: 1, reviewed: false), // fresh: never studied
+        _card('e', box: 1), // learning: failed back to house 1, not new
         _card('b', box: 3), // learning: a middle house
         _card('c', box: 6), // learned: past the last house
         _card('d', box: 6), // learned
@@ -124,7 +133,7 @@ void main() {
       final distribution = snapshot.distribution;
 
       expect(distribution.freshCount, 1);
-      expect(distribution.learningCount, 1);
+      expect(distribution.learningCount, 2);
       expect(distribution.learnedCount, 2);
       expect(
         distribution.freshCount +
@@ -142,7 +151,11 @@ void main() {
       final cards = [_card('a', box: 6)];
 
       final classic = _build(cards: cards);
-      expect(classic.distribution.learnedCount, 1, reason: 'box 6 is the archive');
+      expect(
+        classic.distribution.learnedCount,
+        1,
+        reason: 'box 6 is the archive',
+      );
       expect(classic.maxBox, 5);
 
       final extended = _build(
@@ -156,11 +169,7 @@ void main() {
 
     test('the mastery share matches the learned count', () {
       final snapshot = _build(
-        cards: [
-          _card('a', box: 6),
-          _card('b', box: 6),
-          _card('c', box: 1),
-        ],
+        cards: [_card('a', box: 6), _card('b', box: 6), _card('c', box: 1)],
       );
 
       expect(snapshot.masteredCards, 2);
@@ -174,8 +183,12 @@ void main() {
       final snapshot = _build(
         cards: [_card('a', box: 6), _card('b', box: 1)],
         logs: [
-          _log('old', 'a', ReviewRating.know,
-              at: _now.subtract(const Duration(days: 40))),
+          _log(
+            'old',
+            'a',
+            ReviewRating.know,
+            at: _now.subtract(const Duration(days: 40)),
+          ),
         ],
       );
 
@@ -198,10 +211,18 @@ void main() {
     test('is one flat number per period, not split by card state', () {
       final logs = [
         _log('a', 'c1', ReviewRating.know, at: _now),
-        _log('b', 'c1', ReviewRating.dontKnow,
-            at: _now.subtract(const Duration(days: 1))),
-        _log('c', 'c2', ReviewRating.know,
-            at: _now.subtract(const Duration(days: 5))),
+        _log(
+          'b',
+          'c1',
+          ReviewRating.dontKnow,
+          at: _now.subtract(const Duration(days: 1)),
+        ),
+        _log(
+          'c',
+          'c2',
+          ReviewRating.know,
+          at: _now.subtract(const Duration(days: 5)),
+        ),
       ];
 
       final snapshot = _build(logs: logs);
@@ -306,6 +327,45 @@ void main() {
       );
     });
 
+    test('a card due today is in today’s row, not lost', () {
+      // House 1 is a one-day interval: reviewed yesterday, due today. It used
+      // to be in neither the forecast nor the overdue count.
+      final dueToday = Flashcard(
+        id: 't',
+        deckId: 'd1',
+        front: 't',
+        back: 'x',
+        box: 1,
+        createdAt: _now.subtract(const Duration(days: 30)),
+        lastReviewed: _now.subtract(const Duration(days: 1)),
+      );
+      final snapshot = _build(cards: [dueToday]);
+
+      expect(snapshot.overdueCount, 0);
+      expect(snapshot.forecast.first.dueCount, 1);
+    });
+
+    test('cards due beyond the window are counted as later, not dropped', () {
+      final farOut = Flashcard(
+        id: 'f',
+        deckId: 'd1',
+        front: 'f',
+        back: 'x',
+        box: 6,
+        createdAt: _now,
+        lastReviewed: _now,
+      );
+      final snapshot = StatisticsAggregator(
+        cards: [farOut],
+        logs: const [],
+        boxes: const LeitnerBoxConfig(box6Enabled: true, box6Days: 60),
+        now: _now,
+      ).build();
+
+      expect(snapshot.forecast.fold<int>(0, (s, f) => s + f.dueCount), 0);
+      expect(snapshot.laterCount, 1);
+    });
+
     test('the forecast starts today and reaches forward', () {
       final snapshot = _build(cards: [_card('a', box: 2)]);
 
@@ -331,9 +391,7 @@ void main() {
     });
 
     test('the idle line only ever accumulates', () {
-      final snapshot = _build(
-        cards: [_card('a', box: 2), _card('b', box: 3)],
-      );
+      final snapshot = _build(cards: [_card('a', box: 2), _card('b', box: 3)]);
 
       final idle = [for (final f in snapshot.forecast) f.cumulativeIfIdle];
       for (var i = 1; i < idle.length; i++) {
@@ -377,8 +435,9 @@ void main() {
       );
     });
 
-    testWidgets('a day boundary of four in the morning still splits today',
-        (tester) async {
+    testWidgets('a day boundary of four in the morning still splits today', (
+      tester,
+    ) async {
       final snapshot = StatisticsAggregator(
         cards: const [],
         logs: [_log('x', 'a', ReviewRating.know, at: DateTime(2026, 3, 11, 2))],

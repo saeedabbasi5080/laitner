@@ -113,13 +113,7 @@ class _DeckListViewState extends State<_DeckListView>
                           CircleIconButton(
                             icon: Icons.error_outline_rounded,
                             label: AppStrings.todaysMistakes,
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => MistakesScreen(
-                                  spaceId: widget.space.id,
-                                ),
-                              ),
-                            ),
+                            onPressed: () => _openMistakes(context),
                           ),
                           const SizedBox(width: 8),
                           CircleIconButton(
@@ -127,9 +121,8 @@ class _DeckListViewState extends State<_DeckListView>
                             label: AppStrings.statistics,
                             onPressed: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
-                                builder: (_) => StatisticsScreen(
-                                  spaceId: widget.space.id,
-                                ),
+                                builder: (_) =>
+                                    StatisticsScreen(spaceId: widget.space.id),
                               ),
                             ),
                           ),
@@ -160,7 +153,9 @@ class _DeckListViewState extends State<_DeckListView>
                         onTap: () => _openAllDueStudy(context),
                       ),
                       if (state.totalDue == 0 &&
-                          state.totalCounts.values.any((count) => count > 0)) ...[
+                          state.totalCounts.values.any(
+                            (count) => count > 0,
+                          )) ...[
                         const SizedBox(height: 10),
                         Text(
                           AppStrings.noDueTodayHint,
@@ -169,6 +164,18 @@ class _DeckListViewState extends State<_DeckListView>
                             height: 1.5,
                             color: context.recallColors.mutedForeground,
                           ),
+                        ),
+                      ],
+                      if (state.todaysMistakes > 0) ...[
+                        const SizedBox(height: 12),
+                        SoftListTile(
+                          title: AppStrings.reviewTodaysMistakes,
+                          subtitle: AppStrings.todaysMistakesCount(
+                            state.todaysMistakes,
+                          ),
+                          icon: Icons.error_outline_rounded,
+                          accent: AppColors.rose,
+                          onTap: () => _openMistakes(context),
                         ),
                       ],
                       const SizedBox(height: 24),
@@ -349,6 +356,18 @@ class _DeckListViewState extends State<_DeckListView>
         });
   }
 
+  void _openMistakes(BuildContext context) {
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => MistakesScreen(spaceId: widget.space.id),
+          ),
+        )
+        .then((_) {
+          if (context.mounted) context.read<DeckListCubit>().load();
+        });
+  }
+
   void _openAllDueStudy(BuildContext context) {
     Navigator.of(context)
         .push(
@@ -367,10 +386,8 @@ class _DeckListViewState extends State<_DeckListView>
     Navigator.of(context)
         .push(
           MaterialPageRoute<void>(
-            builder: (_) => BoxCardsScreen(
-              boxNumber: box,
-              spaceId: widget.space.id,
-            ),
+            builder: (_) =>
+                BoxCardsScreen(boxNumber: box, spaceId: widget.space.id),
           ),
         )
         .then((_) {
@@ -394,10 +411,8 @@ class _DeckListViewState extends State<_DeckListView>
     Navigator.of(context)
         .push(
           MaterialPageRoute<void>(
-            builder: (_) => AddCardScreen(
-              deckId: deckId,
-              spaceId: widget.space.id,
-            ),
+            builder: (_) =>
+                AddCardScreen(deckId: deckId, spaceId: widget.space.id),
           ),
         )
         .then((_) {
@@ -409,10 +424,8 @@ class _DeckListViewState extends State<_DeckListView>
     Navigator.of(context)
         .push(
           MaterialPageRoute<void>(
-            builder: (_) => DeckDetailScreen(
-              deckId: deckId,
-              spaceId: widget.space.id,
-            ),
+            builder: (_) =>
+                DeckDetailScreen(deckId: deckId, spaceId: widget.space.id),
           ),
         )
         .then((_) {
@@ -555,9 +568,7 @@ class _DeckCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: due > 0
-                        ? Colors.white
-                        : colors.mutedForeground,
+                    color: due > 0 ? Colors.white : colors.mutedForeground,
                   ),
                 ),
               ),

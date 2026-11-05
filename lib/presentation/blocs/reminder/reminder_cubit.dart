@@ -33,13 +33,22 @@ class ReminderCubit extends Cubit<ReminderState> {
     }
 
     final enabled = await _notificationService.areNotificationsEnabled();
+    final restricted = await _notificationService.isBatteryRestricted();
     emit(
       ReminderState(
         supported: true,
         loading: false,
         permissionGranted: enabled,
+        batteryRestricted: restricted,
       ),
     );
+  }
+
+  /// Asks Android to stop optimising the app's battery use, then reads the
+  /// result back — the user may decline in the system dialog.
+  Future<void> allowBackground() async {
+    await _notificationService.requestBatteryUnrestricted();
+    await refreshStatus();
   }
 
   /// Asks for the runtime permission and reports whether reminders can fire.
@@ -62,6 +71,7 @@ class ReminderCubit extends Cubit<ReminderState> {
         loading: false,
         permissionGranted: granted,
         notificationsBlocked: blocked,
+        batteryRestricted: await _notificationService.isBatteryRestricted(),
       ),
     );
 

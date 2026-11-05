@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
+import 'package:recall/core/utils/jalali.dart';
 import 'package:recall/domain/usecases/statistics_aggregator.dart';
 
 /// What is waiting, day by day.
@@ -34,12 +35,13 @@ class UpcomingCard extends StatelessWidget {
       for (final f in forecast)
         if (f.dueCount > 0) (day: f.day, count: f.dueCount),
     ];
-    final restTotal = busy
-        .skip(shownDays)
-        .fold<int>(0, (sum, entry) => sum + entry.count);
+    // Busy days past the first [shownDays], plus everything beyond the window.
+    final restTotal =
+        busy.skip(shownDays).fold<int>(0, (sum, entry) => sum + entry.count) +
+        snapshot.laterCount;
 
-    // Nothing due and nothing overdue: one sentence, no rows.
-    if (busy.isEmpty && snapshot.overdueCount == 0) {
+    // Nothing due, nothing overdue, nothing later: one sentence, no rows.
+    if (busy.isEmpty && snapshot.overdueCount == 0 && restTotal == 0) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Text(
@@ -83,10 +85,7 @@ class UpcomingCard extends StatelessWidget {
             const Spacer(),
             Text(
               _formatLoad(snapshot.dailyLoad),
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -162,10 +161,7 @@ class _DayRow extends StatelessWidget {
             child: Text(
               '$count',
               textAlign: TextAlign.end,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -197,7 +193,7 @@ String forecastDayName(DateTime day, DateTime today) {
     0 => AppStrings.forecastToday,
     1 => AppStrings.forecastTomorrow,
     2 => AppStrings.forecastAfterTomorrow,
-    _ => '${day.day}/${day.month}',
+    _ => jalaliDayMonth(day),
   };
 }
 

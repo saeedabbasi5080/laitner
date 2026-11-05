@@ -15,7 +15,7 @@ class SettingsState extends Equatable {
     this.leitnerBoxes = LeitnerBoxConfig.classic,
     this.reminder = const ReminderSettings(),
     this.reviewSettings = const ReviewSettings(),
-    this.dailyExcelFeed = const DailyExcelFeedSettings(),
+    this.dailyExcelFeeds = const [],
     this.collectionEpoch = 0,
   });
 
@@ -32,7 +32,7 @@ class SettingsState extends Equatable {
   final LeitnerBoxConfig leitnerBoxes;
   final ReminderSettings reminder;
   final ReviewSettings reviewSettings;
-  final DailyExcelFeedSettings dailyExcelFeed;
+  final List<DailyExcelFeedSettings> dailyExcelFeeds;
   final int collectionEpoch;
 
   SettingsState copyWith({
@@ -49,7 +49,7 @@ class SettingsState extends Equatable {
     LeitnerBoxConfig? leitnerBoxes,
     ReminderSettings? reminder,
     ReviewSettings? reviewSettings,
-    DailyExcelFeedSettings? dailyExcelFeed,
+    List<DailyExcelFeedSettings>? dailyExcelFeeds,
     int? collectionEpoch,
     bool clearCurrentSpaceId = false,
   }) {
@@ -69,7 +69,7 @@ class SettingsState extends Equatable {
       leitnerBoxes: leitnerBoxes ?? this.leitnerBoxes,
       reminder: reminder ?? this.reminder,
       reviewSettings: reviewSettings ?? this.reviewSettings,
-      dailyExcelFeed: dailyExcelFeed ?? this.dailyExcelFeed,
+      dailyExcelFeeds: dailyExcelFeeds ?? this.dailyExcelFeeds,
       collectionEpoch: collectionEpoch ?? this.collectionEpoch,
     );
   }
@@ -89,7 +89,7 @@ class SettingsState extends Equatable {
     leitnerBoxes,
     reminder,
     reviewSettings,
-    dailyExcelFeed,
+    dailyExcelFeeds,
     collectionEpoch,
   ];
 }

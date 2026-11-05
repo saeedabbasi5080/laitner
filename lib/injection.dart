@@ -4,6 +4,7 @@ import 'package:recall/core/notifications/notification_service.dart';
 import 'package:recall/core/tts/tts_service.dart';
 import 'package:recall/data/datasources/auth_api_client.dart';
 import 'package:recall/data/datasources/device_identity.dart';
+import 'package:recall/data/datasources/http_catalog_remote.dart';
 import 'package:recall/data/datasources/http_sync_remote.dart';
 import 'package:recall/data/datasources/preferences_sync_state_store.dart';
 import 'package:recall/data/datasources/excel_import_store.dart';
@@ -21,6 +22,7 @@ import 'package:recall/data/repositories/flashcard_repository_impl.dart';
 import 'package:recall/data/repositories/review_history_repository_impl.dart';
 import 'package:recall/data/repositories/space_repository_impl.dart';
 import 'package:recall/domain/repositories/auth_token_store.dart';
+import 'package:recall/domain/repositories/catalog_remote.dart';
 import 'package:recall/domain/repositories/deck_repository.dart';
 import 'package:recall/domain/repositories/device_remote.dart';
 import 'package:recall/domain/repositories/excel_import_repository.dart';
@@ -31,6 +33,7 @@ import 'package:recall/domain/repositories/sync_remote.dart';
 import 'package:recall/domain/repositories/sync_state_store.dart';
 import 'package:recall/domain/services/id_generator.dart';
 import 'package:recall/domain/usecases/add_card_usecase.dart';
+import 'package:recall/domain/usecases/add_catalog_words_usecase.dart';
 import 'package:recall/domain/usecases/add_deck_usecase.dart';
 import 'package:recall/domain/usecases/add_selected_excel_rows_usecase.dart';
 import 'package:recall/domain/usecases/add_space_usecase.dart';
@@ -39,6 +42,7 @@ import 'package:recall/domain/usecases/delete_deck_usecase.dart';
 import 'package:recall/domain/usecases/delete_excel_import_usecase.dart';
 import 'package:recall/domain/usecases/delete_space_usecase.dart';
 import 'package:recall/domain/usecases/export_collection_backup_usecase.dart';
+import 'package:recall/domain/usecases/export_catalog_excel_usecase.dart';
 import 'package:recall/domain/usecases/export_deck_excel_usecase.dart';
 import 'package:recall/domain/usecases/restore_collection_backup_usecase.dart';
 import 'package:recall/domain/usecases/find_duplicate_card_usecase.dart';
@@ -56,6 +60,7 @@ import 'package:recall/domain/usecases/get_excel_imports_usecase.dart';
 import 'package:recall/domain/usecases/get_spaces_usecase.dart';
 import 'package:recall/domain/usecases/move_cards_to_deck_usecase.dart';
 import 'package:recall/domain/usecases/parse_and_save_excel_import_usecase.dart';
+import 'package:recall/domain/usecases/queue_catalog_words_usecase.dart';
 import 'package:recall/domain/usecases/remove_excel_rows_usecase.dart';
 import 'package:recall/domain/usecases/review_card_usecase.dart';
 import 'package:recall/domain/usecases/sync_reminders_usecase.dart';
@@ -79,6 +84,10 @@ import 'package:recall/presentation/blocs/space_list/space_list_cubit.dart';
 import 'package:recall/presentation/blocs/statistics/statistics_cubit.dart';
 import 'package:recall/presentation/blocs/study/study_config.dart';
 import 'package:recall/presentation/blocs/study/study_cubit.dart';
+import 'package:recall/presentation/blocs/gate/gate_cubit.dart';
+import 'package:recall/core/app_gate/app_gate.dart';
+import 'package:recall/domain/usecases/sync_app_gate_due_usecase.dart';
+import 'package:recall/domain/usecases/get_app_gate_cards_usecase.dart';
 import 'package:recall/presentation/blocs/sync/sync_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -94,8 +103,9 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<ExcelImportStore>(() => ExcelImportStore(sl()));
   sl.registerLazySingleton<SpaceSettingsStore>(() => SpaceSettingsStore(sl()));
 
-  // Registered before the migrations below, which need it: a first run has no
-  // spaces and has to mint an id for the one it creates.
+  // Registered before the migrations below, which need it: a collection from
+  // before spaces existed has to mint an id for the space it creates. A fresh
+  // install creates none.
   sl.registerLazySingleton<IdGenerator>(() => const UuidIdGenerator());
 
   // Sign-in is optional and the app works with none of this. Everything here is
@@ -125,14 +135,19 @@ Future<void> configureDependencies() async {
       // older than the previous account's last sync — silently, because those
       // entries look like ones the server already has.
       onSessionEnded: () => sl<SyncStateStore>().clear(),
+      // One device per account: the launch check can be the first to hear that
+      // a newer sign-in elsewhere took over, and the sync screen explains it.
+      onSignedOutElsewhere: (message) =>
+          sl<SyncCubit>().noteSignedOutElsewhere(message),
     ),
   );
   sl.registerLazySingleton<ActiveDevicesCubit>(
     () => ActiveDevicesCubit(remote: sl(), tokenStore: sl()),
   );
 
-  // Synchronisation. Registered but not run from anywhere yet: something has to
-  // decide when, and that is the next piece rather than this one.
+  // Synchronisation. Run by `main.dart` (launch, resume, connection back) and by
+  // the backup button. The nightly job in `core/background/nightly_sync.dart`
+  // runs in its own isolate and builds its own copies of these.
   sl.registerLazySingleton<SyncStateStore>(
     () => PreferencesSyncStateStore(prefs: prefs),
   );
@@ -233,11 +248,39 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => UpdateExcelRowUseCase(sl()));
   sl.registerLazySingleton(() => DeleteExcelImportUseCase(sl()));
 
+  // Ready-made lists from the server. Needs no sign-in.
+  sl.registerLazySingleton<CatalogRemote>(() => HttpCatalogRemote());
+  sl.registerLazySingleton(() => AddCatalogWordsUseCase(sl(), sl(), sl()));
+  sl.registerLazySingleton(() => const ExportCatalogExcelUseCase());
+
   sl.registerLazySingleton(
     () => SettingsCubit(sl(), sl(), sl(), sl()),
   );
 
   sl.registerLazySingleton<NotificationService>(() => NotificationService());
+
+  // App lock (Android): settings live on the native side, which also decides
+  // when to step in; the gate screen and the due count are this side's.
+  sl.registerLazySingleton<AppGatePlatform>(() => MethodChannelAppGate());
+  sl.registerLazySingleton(
+    () => GetAppGateCardsUseCase(
+      getSpaces: sl(),
+      getAllDueCards: sl(),
+      spaceSettingsStore: sl(),
+    ),
+  );
+  sl.registerLazySingleton(
+    () => SyncAppGateDueUseCase(platform: sl(), getCards: sl()),
+  );
+  sl.registerFactory(
+    () => GateCubit(
+      platform: sl(),
+      getCards: sl(),
+      reviewCard: sl(),
+      spaceSettingsStore: sl(),
+      syncDue: sl(),
+    ),
+  );
   sl.registerLazySingleton(
     () => SyncRemindersUseCase(
       localDataSource: sl(),
@@ -255,6 +298,16 @@ Future<void> configureDependencies() async {
       excelRepository: sl(),
       addSelectedRows: sl(),
       generateId: sl<IdGenerator>().generateId,
+    ),
+  );
+  sl.registerLazySingleton(
+    () => QueueCatalogWordsUseCase(
+      decks: sl(),
+      cards: sl(),
+      library: sl(),
+      settings: sl(),
+      runFeed: sl(),
+      ids: sl(),
     ),
   );
 
@@ -287,6 +340,7 @@ Future<void> configureDependencies() async {
       flashcardRepository: sl(),
       idGenerator: sl(),
       spaceSettingsStore: sl(),
+      getTodaysMistakesUseCase: sl(),
     ),
   );
 
@@ -322,7 +376,12 @@ Future<void> configureDependencies() async {
       reviewCardUseCase: sl(),
       updateCardUseCase: sl(),
       deleteCardUseCase: sl(),
-      onScheduleChanged: sl<SyncRemindersUseCase>().call,
+      // After a session: the reminder bodies and the app lock both depend on
+      // how many cards are still due.
+      onScheduleChanged: () async {
+        await sl<SyncRemindersUseCase>()();
+        await sl<SyncAppGateDueUseCase>()();
+      },
     ),
   );
 

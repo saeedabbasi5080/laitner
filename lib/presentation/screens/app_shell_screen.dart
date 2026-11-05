@@ -13,6 +13,8 @@ import 'package:recall/presentation/blocs/settings/settings_cubit.dart';
 import 'package:recall/presentation/blocs/space_list/space_list_cubit.dart';
 import 'package:recall/presentation/blocs/space_list/space_list_state.dart';
 import 'package:recall/presentation/blocs/study/study_config.dart';
+import 'package:recall/presentation/blocs/sync/sync_cubit.dart';
+import 'package:recall/presentation/screens/catalog_screen.dart';
 import 'package:recall/presentation/screens/deck_list_screen.dart';
 import 'package:recall/presentation/screens/settings_screen.dart';
 import 'package:recall/presentation/screens/space_cards_screen.dart';
@@ -85,12 +87,27 @@ class _AppShellViewState extends State<_AppShellView>
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<SettingsCubit, SettingsState>(
-      listenWhen: (previous, current) =>
-          previous.collectionEpoch != current.collectionEpoch,
-      listener: (context, _) {
-        context.read<SpaceListCubit>().load();
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<SettingsCubit, SettingsState>(
+          listenWhen: (previous, current) =>
+              previous.collectionEpoch != current.collectionEpoch,
+          listener: (context, _) {
+            context.read<SpaceListCubit>().load();
+          },
+        ),
+        // A sync replaces the collection on disk — on a new phone, with the
+        // whole account — and nothing else would tell the home screen.
+        BlocListener<SyncCubit, SyncState>(
+          bloc: sl<SyncCubit>(),
+          listenWhen: (previous, current) =>
+              previous.status != SyncStatus.succeeded &&
+              current.status == SyncStatus.succeeded,
+          listener: (context, _) {
+            context.read<SpaceListCubit>().load();
+          },
+        ),
+      ],
       child: BlocBuilder<SpaceListCubit, SpaceListState>(
         builder: (context, spaceState) {
           return Scaffold(
@@ -258,23 +275,26 @@ class _HomeTab extends StatelessWidget {
               value: totalDue,
               onTap: () => _startTodayReview(context),
             ),
-            if (totalDue == 0 && totalCards > 0) ...[
-              const SizedBox(height: 10),
-              Text(
-                AppStrings.noDueTodayHint,
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.5,
-                  color: context.recallColors.mutedForeground,
-                ),
-              ),
-            ],
             const SizedBox(height: 20),
-            _SummaryChips(spaceState: spaceState, totalCards: totalCards),
+            _SummaryChips(spaceState: spaceState),
             const SizedBox(height: 16),
             _RecentReviewRow(
               spaceState: spaceState,
               onTap: () => _openReviewedCards(context),
+            ),
+            const SizedBox(height: 12),
+            SoftListTile(
+              title: AppStrings.catalogTitle,
+              subtitle: AppStrings.catalogSubtitle,
+              icon: Icons.local_library_outlined,
+              accent: scheme.primary,
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const CatalogLanguagesScreen()),
+                );
+                // Lists added from there show up in the spaces' counts.
+                if (context.mounted) context.read<SpaceListCubit>().load();
+              },
             ),
             const SizedBox(height: 24),
             Text(
@@ -286,7 +306,7 @@ class _HomeTab extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            if (spaceState.summaries.isEmpty)
+            if (spaceState.summaries.isEmpty) ...[
               Text(
                 AppStrings.emptySpaces,
                 style: TextStyle(
@@ -294,8 +314,20 @@ class _HomeTab extends StatelessWidget {
                   color: context.recallColors.mutedForeground,
                   height: 1.5,
                 ),
-              )
-            else
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _showNewSpace(context),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text(
+                    AppStrings.newSpace,
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ] else
               ...spaceState.summaries.map(
                 (summary) => Padding(
                   padding: const EdgeInsets.only(bottom: 10),
@@ -373,16 +405,22 @@ class _HomeTab extends StatelessWidget {
 }
 
 class _SummaryChips extends StatelessWidget {
-  const _SummaryChips({required this.spaceState, required this.totalCards});
+  const _SummaryChips({required this.spaceState});
 
   final SpaceListState spaceState;
-  final int totalCards;
 
   @override
   Widget build(BuildContext context) {
-    final totalNew = spaceState.summaries.fold<int>(
+    // Each figure counts what its label says: learned is past the last house,
+    // learning is still in a house. They used to read the total and the total
+    // minus today's cards, so both showed the whole collection.
+    final totalLearned = spaceState.summaries.fold<int>(
       0,
-      (sum, s) => sum + s.totalCards - s.dueCards,
+      (sum, s) => sum + s.learnedCards,
+    );
+    final totalLearning = spaceState.summaries.fold<int>(
+      0,
+      (sum, s) => sum + s.learningCards,
     );
     final totalDue = spaceState.summaries.fold<int>(
       0,
@@ -394,7 +432,7 @@ class _SummaryChips extends StatelessWidget {
       children: [
         CircularStat(
           icon: Icons.workspace_premium_outlined,
-          value: '$totalCards',
+          value: '$totalLearned',
           label: 'یادگرفته',
           color: AppColors.lemon,
         ),
@@ -406,7 +444,7 @@ class _SummaryChips extends StatelessWidget {
         ),
         CircularStat(
           icon: Icons.school_outlined,
-          value: '$totalNew',
+          value: '$totalLearning',
           label: 'یادگیری',
           color: scheme.primary,
         ),

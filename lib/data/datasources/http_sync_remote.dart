@@ -35,6 +35,11 @@ class HttpSyncRemote implements SyncRemote {
   static const String collectionPath = '/sync/collection';
   static const String reviewLogsPath = '/sync/review-logs';
 
+  /// Far longer than a sign-in call's: these carry the whole collection, and on
+  /// a slow mobile connection eight seconds would fail every upload past a few
+  /// hundred cards — silently, since sync runs in the background.
+  static const Duration transferTimeout = Duration(seconds: 90);
+
   final AuthTokenStore _tokenStore;
   final ApiTransport _transport;
 
@@ -113,6 +118,7 @@ class HttpSyncRemote implements SyncRemote {
       accessToken: token,
       fallbackMessage: fallback,
       notConfiguredMessage: AppStrings.authServerNotConfigured,
+      within: transferTimeout,
     );
   }
 

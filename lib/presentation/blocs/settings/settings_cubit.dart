@@ -71,7 +71,7 @@ class SettingsCubit extends Cubit<SettingsState> {
         leitnerBoxes: spaceSettings.leitnerBoxes,
         reminder: spaceSettings.reminder,
         reviewSettings: spaceSettings.reviewSettings,
-        dailyExcelFeed: spaceSettings.dailyExcelFeed,
+        dailyExcelFeeds: spaceSettings.dailyExcelFeeds,
       ),
     );
   }
@@ -96,11 +96,20 @@ class SettingsCubit extends Cubit<SettingsState> {
     _syncRemindersInBackground();
   }
 
-  Future<void> setDailyExcelFeed(DailyExcelFeedSettings feed) async {
-    await _updateSpaceSettings(
-      (settings) => settings.copyWith(dailyExcelFeed: feed),
-    );
-    emit(state.copyWith(dailyExcelFeed: feed));
+  /// Saves [feed] in place of the one with its id, or as a new one.
+  Future<void> saveDailyExcelFeed(DailyExcelFeedSettings feed) async {
+    await _updateSpaceSettings((settings) => settings.withFeed(feed));
+    final index = state.dailyExcelFeeds.indexWhere((existing) => existing.id == feed.id);
+    emit(state.copyWith(
+      dailyExcelFeeds: index < 0
+          ? [...state.dailyExcelFeeds, feed]
+          : [for (final existing in state.dailyExcelFeeds) existing.id == feed.id ? feed : existing],
+    ));
+  }
+
+  Future<void> removeDailyExcelFeed(String feedId) async {
+    await _updateSpaceSettings((settings) => settings.withoutFeed(feedId));
+    emit(state.copyWith(dailyExcelFeeds: [for (final feed in state.dailyExcelFeeds) if (feed.id != feedId) feed]));
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {

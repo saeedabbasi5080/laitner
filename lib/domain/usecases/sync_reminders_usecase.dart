@@ -72,6 +72,7 @@ class SyncRemindersUseCase {
           body: _body(occurrence),
           when: occurrence.when,
           payload: occurrence.spaceId,
+          repeatsWeekly: occurrence.repeatsWeekly,
         ),
     ]);
   }

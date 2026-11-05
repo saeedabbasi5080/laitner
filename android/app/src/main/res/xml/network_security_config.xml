@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Plaintext HTTP for the test period only, and only to these hosts. Every other
+  host keeps Android's default (HTTPS required).
+
+  When the server moves to HTTPS: delete this file and the
+  android:networkSecurityConfig attribute in AndroidManifest.xml.
+
+  While this file exists it also overrides usesCleartextTraffic in the debug
+  manifest, which is why the emulator's loopback is listed too.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">185.239.3.63</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>

@@ -128,7 +128,7 @@ void main() {
     );
     cards = _Cards([]);
 
-    await settingsStore.save('s1', SpaceSettingsData(dailyExcelFeed: settings));
+    await settingsStore.save('s1', SpaceSettingsData(dailyExcelFeeds: [settings]));
     for (final file in files) {
       await excel.saveImport(file);
     }
@@ -201,8 +201,8 @@ void main() {
 
     await settingsStore.save(
       's1',
-      (await settingsStore.load('s1')).copyWith(
-        dailyExcelFeed: (await settingsStore.load('s1')).dailyExcelFeed.copyWith(
+      (await settingsStore.load('s1')).withFeed(
+        (await settingsStore.load('s1')).dailyExcelFeeds.single.copyWith(
               lastRunDay: dayNumber(_day1) - 7,
             ),
       ),
@@ -218,7 +218,7 @@ void main() {
 
     await feed(now: _day1);
 
-    final stored = (await settingsStore.load('s1')).dailyExcelFeed;
+    final stored = (await settingsStore.load('s1')).dailyExcelFeeds.single;
     expect(stored.lastRunDay, dayNumber(_day1));
     expect(stored.lastRunAdded, 3);
   });
@@ -276,7 +276,7 @@ void main() {
     final report = await feed(now: _day1);
 
     expect(report.totalAdded, 0);
-    final stored = (await settingsStore.load('s1')).dailyExcelFeed;
+    final stored = (await settingsStore.load('s1')).dailyExcelFeeds.single;
     expect(stored.importIds, isEmpty);
     expect(stored.enabled, isFalse, reason: 'nothing left to draw from');
   });
@@ -345,5 +345,43 @@ void main() {
 
     expect(report.totalAdded, 0);
     expect(report.totalBacklog, 0);
+  });
+
+  group('several decks', () {
+    test('each feed fills its own deck at its own pace', () async {
+      await setUpWorld(settings: ready, files: [_file('a', rows: 10), _file('b', rows: 10)]);
+      local.decks.add(Deck(id: 'd2', spaceId: 's1', name: 'Course', color: DeckColor.sky, createdAt: _day1));
+      await settingsStore.save(
+        's1',
+        (await settingsStore.load('s1')).withFeed(
+          const DailyExcelFeedSettings(id: 'course', enabled: true, deckId: 'd2', importIds: ['b'], dailyLimit: 5),
+        ),
+      );
+
+      final report = await feed(now: _day1);
+      expect(report.totalAdded, 8);
+      expect(cards.cards.where((c) => c.deckId == 'd1'), hasLength(3));
+      expect(cards.cards.where((c) => c.deckId == 'd2'), hasLength(5));
+      // Neither feed runs twice in a day.
+      expect((await feed(now: _day1)).totalAdded, 0);
+    });
+
+    test('one feed can run on its own, and a feed whose deck is gone does nothing', () async {
+      await setUpWorld(settings: ready, files: [_file('a', rows: 10), _file('b', rows: 10)]);
+      await settingsStore.save(
+        's1',
+        (await settingsStore.load('s1')).withFeed(
+          const DailyExcelFeedSettings(id: 'orphan', enabled: true, deckId: 'gone', importIds: ['b'], dailyLimit: 5),
+        ),
+      );
+
+      final run = await feed.runForFeed(spaceId: 's1', feedId: 'orphan', now: _day1);
+      expect(run!.skipped, isTrue);
+      expect(cards.cards, isEmpty);
+
+      final own = await feed.runForFeed(spaceId: 's1', feedId: '', now: _day1);
+      expect(own!.addedCount, 3);
+      expect(await feed.runForFeed(spaceId: 's1', feedId: 'missing', now: _day1), isNull);
+    });
   });
 }

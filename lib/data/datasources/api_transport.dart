@@ -36,7 +36,7 @@ class ApiTransport {
   /// Consulting the global would make an injected address — a test's, or a future
   /// settings screen's — look unconfigured, which is how a legitimate request ends
   /// up refused before it is made.
-  bool get isConfigured => _baseUrl != RemoteConfig.emulatorLoopback;
+  bool get isConfigured => _baseUrl.isNotEmpty;
 
   void close() => _client.close();
 
@@ -53,7 +53,9 @@ class ApiTransport {
     String? accessToken,
     required String fallbackMessage,
     required String notConfiguredMessage,
+    Duration? within,
   }) async {
+    final limit = within ?? timeout;
     if (!isConfigured) {
       // Checked before the request so the user is told the address is missing
       // rather than being shown a connection error to a host that was never named.
@@ -72,8 +74,8 @@ class ApiTransport {
       final request = http.Request(method, uri)..headers.addAll(headers);
       if (payload != null) request.body = jsonEncode(payload);
 
-      final streamed = await _client.send(request).timeout(timeout);
-      response = await http.Response.fromStream(streamed).timeout(timeout);
+      final streamed = await _client.send(request).timeout(limit);
+      response = await http.Response.fromStream(streamed).timeout(limit);
     } on TimeoutException {
       throw AuthError(AuthFailure.network, message: AppStrings.authServerUnreachable);
     } on SocketException {

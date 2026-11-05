@@ -18,8 +18,12 @@ import 'package:recall/core/utils/responsive.dart';
 import 'package:recall/domain/usecases/export_collection_backup_usecase.dart';
 import 'package:recall/domain/usecases/restore_collection_backup_usecase.dart';
 import 'package:recall/injection.dart';
+import 'package:recall/presentation/blocs/auth/auth_cubit.dart';
 import 'package:recall/presentation/blocs/settings/settings_cubit.dart';
+import 'package:recall/presentation/blocs/sync/sync_cubit.dart';
+import 'package:recall/core/app_gate/app_gate.dart';
 import 'package:recall/presentation/screens/about_app_screen.dart';
+import 'package:recall/presentation/screens/app_gate_settings_screen.dart';
 import 'package:recall/presentation/widgets/account_section.dart';
 import 'package:recall/presentation/screens/developer_screen.dart';
 import 'package:recall/presentation/widgets/common_widgets.dart';
@@ -299,16 +303,18 @@ class _SettingsView extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
                 ],
-                // The feed belongs to a space, so it is hidden when the screen was
-                // opened from the global tab where there is nothing to attach
-                // it to.
-                if (state.currentSpaceId != null) ...[
+                // The feed belongs to a space, so it is shown only in that space's
+                // settings. `currentSpaceId` alone is not enough: it remembers the
+                // last space opened, and the global settings then showed that
+                // space's feed as if it were everyone's.
+                if (hasSpace && state.currentSpaceId != null) ...[
                   const SectionLabel(AppStrings.dailyExcelFeed),
                   const SizedBox(height: 8),
                   DailyExcelFeedSection(
                     spaceId: state.currentSpaceId!,
-                    settings: state.dailyExcelFeed,
-                    onChanged: context.read<SettingsCubit>().setDailyExcelFeed,
+                    feeds: state.dailyExcelFeeds,
+                    onSave: context.read<SettingsCubit>().saveDailyExcelFeed,
+                    onRemove: context.read<SettingsCubit>().removeDailyExcelFeed,
                   ),
                   const SizedBox(height: 32),
                 ],
@@ -325,6 +331,22 @@ class _SettingsView extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 const _BackupSettings(),
+                if (sl<AppGatePlatform>().supported) ...[
+                  const SizedBox(height: 32),
+                  const SectionLabel(AppStrings.appGate),
+                  const SizedBox(height: 12),
+                  SoftListTile(
+                    title: AppStrings.appGate,
+                    subtitle: AppStrings.appGateHint,
+                    icon: Icons.lock_clock_outlined,
+                    accent: context.accentColor,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const AppGateSettingsScreen(),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 32),
                 const SectionLabel(AppStrings.about),
                 const SizedBox(height: 12),
@@ -931,6 +953,8 @@ class _ExtraHouseTile extends StatelessWidget {
   }
 }
 
+enum _ServerBackup { saved, failed, notSignedIn }
+
 class _BackupSettings extends StatefulWidget {
   const _BackupSettings();
 
@@ -948,29 +972,66 @@ class _BackupSettingsState extends State<_BackupSettings> {
     return 'atilearn-backup-${now.year}$month$day.json';
   }
 
+  /// Saves a file on the phone and, for somebody signed in, a copy on the server.
+  ///
+  /// The two are independent: cancelling the file dialog still uploads, and a
+  /// failed upload does not undo the file. The message reports each half, because
+  /// "saved" alone would hide which copy the user actually has.
   Future<void> _export() async {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      final backup = await sl<ExportCollectionBackupUseCase>()();
+      bool? onPhone;
+      try {
+        final backup = await sl<ExportCollectionBackupUseCase>()();
+        if (!mounted) return;
+        onPhone = await saveBackupFile(
+          context,
+          fileName: _fileName(),
+          jsonText: _encodePretty(backup.toJson()),
+        );
+      } catch (_) {
+        onPhone = null;
+      }
+
+      final onServer = await _uploadToServer();
       if (!mounted) return;
-      final saved = await saveBackupFile(
-        context,
-        fileName: _fileName(),
-        jsonText: _encodePretty(backup.toJson()),
-      );
-      if (!mounted || !saved) return;
+
+      final cancelled = onPhone == false;
+      final lines = [
+        if (onPhone == true) AppStrings.backupPhoneSaved,
+        if (onPhone == null) AppStrings.backupPhoneFailed,
+        switch (onServer) {
+          _ServerBackup.saved => AppStrings.backupServerSaved,
+          _ServerBackup.failed => AppStrings.backupServerFailed,
+          _ServerBackup.notSignedIn when !cancelled =>
+            AppStrings.backupServerNeedsSignIn,
+          _ServerBackup.notSignedIn => null,
+        },
+      ].nonNulls;
+      if (lines.isEmpty) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.backupSaved)),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.backupFailed)),
+        SnackBar(content: Text(lines.join('\n'))),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// The server copy is the account's synced collection, so a backup is a sync.
+  Future<_ServerBackup> _uploadToServer() async {
+    if (!sl<AuthCubit>().state.isSignedIn) return _ServerBackup.notSignedIn;
+
+    final sync = sl<SyncCubit>();
+    // An automatic sync already under way would make `run` return at once and
+    // report its half-finished state as this one's result.
+    if (sync.state.isRunning) {
+      await sync.stream.firstWhere((state) => !state.isRunning);
+    }
+    await sync.run();
+    return sync.state.status == SyncStatus.succeeded
+        ? _ServerBackup.saved
+        : _ServerBackup.failed;
   }
 
   Future<void> _restore() async {

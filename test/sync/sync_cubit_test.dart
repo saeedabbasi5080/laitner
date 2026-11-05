@@ -105,14 +105,15 @@ void main() {
   });
 
   group('run', () {
-    test('reports success and records when it happened', () async {
+    test('reports success and when it happened', () async {
+      // Storing the time is the use case's job, so the nightly job records it
+      // too; the cubit only shows it.
       final cubit = build();
 
       await cubit.run();
 
       expect(cubit.state.status, SyncStatus.succeeded);
       expect(cubit.state.lastSyncedAt, now);
-      expect(store.lastSyncedAt, now);
       expect(cubit.state.lastSentReviews, 2);
     });
 
@@ -243,6 +244,62 @@ void main() {
 
       expect(sync.syncCalls, 1);
       expect(cubit.state.status, SyncStatus.succeeded);
+    });
+
+    test('forced, runs inside the interval: the connection came back', () async {
+      // The attempt made while offline used up the interval; waiting it out would
+      // leave the offline days' reviews on the phone with the network right there.
+      final cubit = build(interval: const Duration(minutes: 5));
+
+      await cubit.autoSync();
+      await cubit.autoSync(force: true);
+
+      expect(sync.syncCalls, 2);
+    });
+
+    test('does not run again once today\'s sync is done', () async {
+      // `now` is 12:00; a sync at 03:30 the same day already covered today.
+      store = InMemorySyncStateStore(null, DateTime(2026, 1, 2, 3, 30));
+
+      await build().autoSync();
+      await build().autoSync(force: true);
+
+      expect(sync.syncCalls, 0);
+    });
+
+    test('runs when the last sync was before this morning\'s three o\'clock', () async {
+      store = InMemorySyncStateStore(null, DateTime(2026, 1, 2, 2, 59));
+
+      await build().autoSync();
+
+      expect(sync.syncCalls, 1);
+    });
+
+    test('just after midnight, yesterday afternoon\'s sync still counts', () async {
+      // The sync day starts at 03:00, so 00:30 belongs to the day before.
+      now = DateTime(2026, 1, 3, 0, 30);
+      store = InMemorySyncStateStore(null, DateTime(2026, 1, 2, 15));
+
+      await build().autoSync();
+
+      expect(sync.syncCalls, 0);
+    });
+
+    test('shows the notice when the launch check found the device signed out', () {
+      final cubit = build(signedIn: false);
+
+      cubit.noteSignedOutElsewhere('این دستگاه از حساب خارج شده است.');
+
+      expect(cubit.state.signedOutElsewhere, isTrue);
+      expect(cubit.state.error, 'این دستگاه از حساب خارج شده است.');
+    });
+
+    test('forced, still does nothing when nobody is signed in', () async {
+      final cubit = build(signedIn: false);
+
+      await cubit.autoSync(force: true);
+
+      expect(sync.syncCalls, 0);
     });
 
     test('does not run twice in quick succession', () async {

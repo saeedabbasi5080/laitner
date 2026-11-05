@@ -14,10 +14,10 @@ class MistakesCubit extends Cubit<MistakesState> {
     required GetTodaysMistakesUseCase getMistakesUseCase,
     required GetDecksUseCase getDecksUseCase,
     required String spaceId,
-  })  : _getMistakesUseCase = getMistakesUseCase,
-        _getDecksUseCase = getDecksUseCase,
-        _spaceId = spaceId,
-        super(const MistakesState());
+  }) : _getMistakesUseCase = getMistakesUseCase,
+       _getDecksUseCase = getDecksUseCase,
+       _spaceId = spaceId,
+       super(const MistakesState());
 
   final GetTodaysMistakesUseCase _getMistakesUseCase;
   final GetDecksUseCase _getDecksUseCase;
@@ -57,17 +57,23 @@ class MistakesCubit extends Cubit<MistakesState> {
 
   /// Card ids for a deck, ordered so the worst-known cards come first.
   List<String> cardIdsFor(String deckId) => [
-        for (final mistake in state.mistakesFor(deckId)) mistake.card.id,
-      ];
+    for (final mistake in state.mistakesFor(deckId)) mistake.card.id,
+  ];
 
   /// A ready-to-open session that retries one deck's mistakes.
   ///
   /// Carries the space's own Leitner layout and review preferences, so a retry
   /// reschedules exactly as a normal session would.
   StudyConfig retryConfig(String deckId) => StudyConfig.deck(
-        spaceId: _spaceId,
-        deckId: deckId,
-      ).withMistakeRetry(cardIdsFor(deckId));
+    spaceId: _spaceId,
+    deckId: deckId,
+  ).withMistakeRetry(cardIdsFor(deckId));
+
+  /// One session over every deck's mistakes in this space.
+  StudyConfig retryAllConfig() =>
+      StudyConfig.allDue(spaceId: _spaceId).withMistakeRetry([
+        for (final deckId in state.mistakesByDeck.keys) ...cardIdsFor(deckId),
+      ]);
 }
 
 class MistakesByDeck extends Equatable {

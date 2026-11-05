@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:recall/core/utils/nightly_window.dart';
 import 'package:recall/domain/entities/auth_error.dart';
 import 'package:recall/domain/repositories/auth_token_store.dart';
 import 'package:recall/domain/repositories/sync_state_store.dart';
@@ -86,7 +87,16 @@ class SyncCubit extends Cubit<SyncState> {
   /// switched apps would be an interruption rather than information. What is still
   /// waiting is refreshed either way — that count is the honest signal, and it is
   /// the one the user will act on.
-  Future<void> autoSync() async {
+  ///
+  /// Once per sync day, which starts at 03:00 with the nightly sync: once a sync
+  /// has completed since the last three o'clock, opening the app again does not
+  /// start another. The next one is tonight's. A sync that never completed — no
+  /// network at three, a fresh sign-in — is still owed, so the launch makes it.
+  ///
+  /// [force] skips the short in-memory throttle, not the daily rule. It is for
+  /// the connection coming back: the attempt made while offline used up the
+  /// throttle, and the sync it failed to make is still owed.
+  Future<void> autoSync({bool force = false}) async {
     if (state.isRunning) return;
 
     // Nothing to sync, and nothing to report. Checked here rather than left to the
@@ -94,8 +104,17 @@ class SyncCubit extends Cubit<SyncState> {
     // somebody who has no account and never asked for one.
     if (!await _hasSession()) return;
 
+    final lastSynced = await _state.readLastSyncedAt();
+    if (lastSynced != null && !lastSynced.isBefore(currentSyncDayStart(_now()))) {
+      return;
+    }
+
     final last = _lastAutomaticAttempt;
-    if (last != null && _now().difference(last) < _autoSyncInterval) return;
+    if (!force &&
+        last != null &&
+        _now().difference(last) < _autoSyncInterval) {
+      return;
+    }
 
     _lastAutomaticAttempt = _now();
     await run(quiet: true);
@@ -118,8 +137,8 @@ class SyncCubit extends Cubit<SyncState> {
     try {
       final outcome = await _sync.sync();
 
+      // The use case records the time in the store; this one is only shown.
       final now = _now();
-      await _state.writeLastSyncedAt(now);
 
       // After the watermark has moved, so this reads what is *still* waiting rather
       // than what was just sent.
@@ -173,6 +192,18 @@ class SyncCubit extends Cubit<SyncState> {
         pendingReviews: pending,
       ));
     }
+  }
+
+  /// Shows the signed-out-elsewhere notice when the launch check, not a sync,
+  /// was what found out. Same notice as from [run], so the user reads one
+  /// explanation whichever call met the refusal first.
+  void noteSignedOutElsewhere(String message) {
+    if (isClosed) return;
+    emit(state.copyWith(
+      status: SyncStatus.failed,
+      signedOutElsewhere: true,
+      error: message,
+    ));
   }
 
   /// Acknowledges the notice that this device was signed out elsewhere.

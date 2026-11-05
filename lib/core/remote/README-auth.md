@@ -1,8 +1,9 @@
 # Phone sign-in
 
 Optional sign-in by phone number. The point is future backup: a card collection
-on a lost device cannot be recovered without an account to attach it to. Nothing
-is synced yet, and the app is fully usable without signing in.
+on a lost device cannot be recovered without an account to attach it to. A
+signed-in device syncs its cards and review history with the server (see
+`SyncCollectionUseCase`), and the app is fully usable without signing in.
 
 The service lives in `D:\litner\AtilearnBackend` — a sibling of this project,
 not inside it. The two are separate builds with separate toolchains: Maven on one
@@ -71,26 +72,31 @@ that they cannot recover their cards would be simply wrong.
 
 ## The address
 
+The default is the test server, `http://185.239.3.63:5050/api/v1`
+(`RemoteConfig.testServer`), so a plain `flutter build apk --release` reaches it.
+
+Against a backend on the laptop, from the emulator:
+
 ```bash
 flutter run --dart-define=ATILEARN_API_BASE_URL=http://10.0.2.2:5070/api/v1
 ```
 
-The default is `http://10.0.2.2:5070/api/v1` — the Android emulator's route to
-the host. `RemoteConfig.isConfigured` is `false` for exactly that value, and the
-client refuses to send anything rather than failing later with a connection error
-to a host that was never named.
+`RemoteConfig.isConfigured` is `false` only for an empty address; the client then
+refuses to send anything rather than failing with a connection error to a host
+that was never named.
 
-A production build must set it:
+### Cleartext, for the test period
 
-```bash
-flutter build apk --release \
-  --dart-define=ATILEARN_API_BASE_URL=https://api.atilearn.ir/api/v1
-```
+`android/app/src/main/res/xml/network_security_config.xml` allows plain HTTP to
+`185.239.3.63`, `10.0.2.2` and `localhost` only, in every build type. Every other
+host still requires HTTPS. The one-time code travels over this connection, so this
+is for testing, not for release.
 
-`RemoteConfig.isCleartext` reports whether the address is plain HTTP. Cleartext is
-allowed in the debug manifest only; the release manifest is untouched, so a
-shipped build refuses it. The one-time code travels over this connection, which
-is why the split is between build types and not a runtime setting.
+Moving to HTTPS:
+
+1. Point `RemoteConfig.apiBaseUrl`'s default at the `https://` address.
+2. Delete `network_security_config.xml` and the `android:networkSecurityConfig`
+   attribute in `android/app/src/main/AndroidManifest.xml`.
 
 ---
 

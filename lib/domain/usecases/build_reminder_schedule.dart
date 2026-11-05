@@ -30,6 +30,7 @@ class ReminderOccurrence {
     required this.dueCount,
     required this.notificationId,
     required this.showDueCount,
+    this.repeatsWeekly = false,
   });
 
   final String spaceId;
@@ -43,12 +44,16 @@ class ReminderOccurrence {
   final int dueCount;
 
   /// Stable id inside one batch, so the notification queue can address it.
-///
-/// Not stable across syncs on purpose — the queue is rebuilt from scratch each
-/// time, so uniqueness within a batch is all that is required.
-final int notificationId;
+  ///
+  /// Not stable across syncs on purpose — the queue is rebuilt from scratch each
+  /// time, so uniqueness within a batch is all that is required.
+  final int notificationId;
 
   final bool showDueCount;
+
+  /// A fallback the operating system repeats every week at [when]'s weekday and
+  /// time, from [when] on, with no count in it. See [BuildReminderSchedule].
+  final bool repeatsWeekly;
 }
 
 /// Plans reminder notifications ahead of time.
@@ -58,6 +63,16 @@ final int notificationId;
 /// trade-off AnkiMobile makes: it pre-computes the coming days whenever the app
 /// is opened and reschedules, because it cannot rely on running in the
 /// background to recompute later.
+///
+/// ## The fallback after the window
+///
+/// The dated reminders run out after [horizonDays] if nothing refreshes them —
+/// the app is not opened and the nightly job is held back by a battery saver.
+/// So each enabled weekday also gets a weekly repeating reminder that **starts
+/// where the window ends**. The system repeats it on its own, forever, with a
+/// generic body (a count frozen today would be wrong next month). Every refresh
+/// pushes its start out again, so while the app is in use it never fires and
+/// never doubles a dated reminder; it only takes over once refreshes stop.
 class BuildReminderSchedule {
   const BuildReminderSchedule();
 
@@ -66,7 +81,8 @@ class BuildReminderSchedule {
   static const horizonDays = 7;
 
   /// Each space gets a block this large, so a space's day offsets never
-  /// collide with another space's.
+  /// collide with another space's: dated reminders take offsets 1–7 and the
+  /// weekly fallbacks `horizonDays + weekday`, 8–14.
   static const idsPerSpace = horizonDays + 8;
 
   List<ReminderOccurrence> call({
@@ -111,7 +127,13 @@ class BuildReminderSchedule {
       final day = addDays(now, offset);
       if (!settings.includesWeekday(day.weekday)) continue;
 
-      final when = DateTime(day.year, day.month, day.day, settings.hour, settings.minute);
+      final when = DateTime(
+        day.year,
+        day.month,
+        day.day,
+        settings.hour,
+        settings.minute,
+      );
       // Skip times that have already passed today, so enabling the reminder at
       // 21:00 for 20:00 does not fire one that is already late.
       if (!when.isAfter(now)) continue;
@@ -127,6 +149,32 @@ class BuildReminderSchedule {
           dueCount: waiting,
           notificationId: spaceIndex * idsPerSpace + offset + 1,
           showDueCount: settings.showDueCount,
+        ),
+      );
+    }
+
+    // The weekly fallbacks, each starting on the first enabled weekday at or
+    // after the end of the window. Seven consecutive days hold every weekday
+    // exactly once.
+    for (var offset = horizonDays; offset < horizonDays + 7; offset++) {
+      final day = addDays(now, offset);
+      if (!settings.includesWeekday(day.weekday)) continue;
+
+      occurrences.add(
+        ReminderOccurrence(
+          spaceId: source.spaceId,
+          spaceName: source.spaceName,
+          when: DateTime(
+            day.year,
+            day.month,
+            day.day,
+            settings.hour,
+            settings.minute,
+          ),
+          dueCount: 0,
+          notificationId: spaceIndex * idsPerSpace + horizonDays + day.weekday,
+          showDueCount: false,
+          repeatsWeekly: true,
         ),
       );
     }

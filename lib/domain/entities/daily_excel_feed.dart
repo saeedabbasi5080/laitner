@@ -1,6 +1,12 @@
 import 'package:equatable/equatable.dart';
 
-/// Per-space configuration for the automatic daily card feed.
+/// One automatic daily card feed: a deck, the library files that feed it, and
+/// how many cards a day may enter it.
+///
+/// A space holds a list of these, one per deck, so a learner can feed a course
+/// into one deck and their own files into another, each at its own pace. A
+/// space used to hold exactly one; [listFromSpaceJson] reads that older shape
+/// as a list of one.
 ///
 /// Modelled on Anki's "new cards per day" limit: a file can be left with far
 /// more rows than the user wants to see at once, so a daily allowance decides
@@ -8,6 +14,7 @@ import 'package:equatable/equatable.dart';
 /// stays queued in the Excel library and is released a chunk at a time.
 class DailyExcelFeedSettings extends Equatable {
   const DailyExcelFeedSettings({
+    this.id = '',
     this.enabled = false,
     this.deckId,
     this.importIds = const [],
@@ -24,6 +31,10 @@ class DailyExcelFeedSettings extends Equatable {
   /// allowance is one card. The cap only exists to stop a runaway import.
   static const int minDailyLimit = 1;
   static const int maxDailyLimit = 5000;
+
+  /// Tells the feeds of one space apart. Empty for the feed carried over from
+  /// the one-feed-per-space days; new feeds get a generated id.
+  final String id;
 
   final bool enabled;
 
@@ -59,6 +70,7 @@ class DailyExcelFeedSettings extends Equatable {
       );
 
   DailyExcelFeedSettings copyWith({
+    String? id,
     bool? enabled,
     String? deckId,
     List<String>? importIds,
@@ -69,6 +81,7 @@ class DailyExcelFeedSettings extends Equatable {
     bool clearLastRun = false,
   }) {
     return DailyExcelFeedSettings(
+      id: id ?? this.id,
       enabled: enabled ?? this.enabled,
       deckId: clearDeckId ? null : (deckId ?? this.deckId),
       importIds: importIds ?? this.importIds,
@@ -79,6 +92,7 @@ class DailyExcelFeedSettings extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
+        'id': id,
         'enabled': enabled,
         'deckId': deckId,
         'importIds': importIds,
@@ -96,6 +110,7 @@ class DailyExcelFeedSettings extends Equatable {
     // space on every launch.
     final rawIds = json['importIds'];
     return DailyExcelFeedSettings(
+      id: json['id'] is String ? json['id'] as String : '',
       enabled: json['enabled'] == true,
       deckId: json['deckId'] is String ? json['deckId'] as String : null,
       importIds: rawIds is List
@@ -110,8 +125,29 @@ class DailyExcelFeedSettings extends Equatable {
     );
   }
 
+  /// The feeds stored in a space's settings blob.
+  ///
+  /// `dailyExcelFeeds` is the list. Without it, the older single
+  /// `dailyExcelFeed` is read as a list of one, if it was ever set up, so an
+  /// update keeps the feed a learner already had running.
+  static List<DailyExcelFeedSettings> listFromSpaceJson(Map<String, dynamic> json) {
+    final list = json['dailyExcelFeeds'];
+    if (list is List) {
+      return [
+        for (final item in list)
+          if (item is Map<String, dynamic>) DailyExcelFeedSettings.fromJson(item),
+      ];
+    }
+    final legacy = json['dailyExcelFeed'];
+    if (legacy is! Map<String, dynamic>) return const [];
+    final feed = DailyExcelFeedSettings.fromJson(legacy);
+    final used = feed.enabled || feed.deckId != null || feed.importIds.isNotEmpty;
+    return used ? [feed] : const [];
+  }
+
   @override
   List<Object?> get props => [
+        id,
         enabled,
         deckId,
         importIds,

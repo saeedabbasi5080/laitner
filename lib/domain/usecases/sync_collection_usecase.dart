@@ -55,25 +55,48 @@ class SyncOutcome {
 /// user who deliberately deletes every space will not see that propagate. Doing
 /// so needs a mechanism for "this emptiness is intentional", which is a
 /// distinction the current data model cannot express. Deliberately deferred.
+///
+/// ## The first sync merges
+///
+/// Uploading first is only safe once this device and the account have met. The
+/// first sync after a sign-in — on a new phone, or after creating cards before
+/// signing in — would otherwise replace the account's structure with whatever
+/// this device happened to hold. So the first sync pulls before it pushes, keeps
+/// the union of both sides (this device wins where an id exists on both), and
+/// only then uploads. Nothing on either side is lost.
+///
+/// "First" is "no completed sync since the sign-in": [SyncStateStore.clear] runs
+/// on every sign-out, so signing in to another account merges again.
 class SyncCollectionUseCase {
   const SyncCollectionUseCase({
     required LocalDataSource localDataSource,
     required SyncRemote remote,
     required SyncStateStore state,
+    DateTime Function()? clock,
   })  : _local = localDataSource,
         _remote = remote,
-        _state = state;
+        _state = state,
+        _clock = clock;
 
   final LocalDataSource _local;
   final SyncRemote _remote;
   final SyncStateStore _state;
+  final DateTime Function()? _clock;
 
   /// Exchanges this device's work with the server's copy.
   ///
   /// Throws whatever the transport throws. Sync runs in the background, so the
   /// caller is responsible for guarding it — an unhandled failure here must not
   /// reach the user as a crash while they are studying.
+  ///
+  /// Records the time of a completed sync itself, so every caller — the screen
+  /// and the nightly job alike — leaves the same trail, and the next sync knows
+  /// it is no longer the first.
   Future<SyncOutcome> sync() async {
+    if (await _state.readLastSyncedAt() == null) {
+      await _mergeWithServer();
+    }
+
     final spaces = await _local.getAllSpaces();
     final decks = await _local.getAllDecks();
     final cards = await _local.getAllCards();
@@ -99,12 +122,65 @@ class SyncCollectionUseCase {
 
     final pulled = await _remote.pull();
     await _apply(pulled);
+    await _state.writeLastSyncedAt((_clock ?? DateTime.now)());
 
     return SyncOutcome(
       reviewLogsSent: pending.length,
       structureSent: hasStructure,
       applied: pulled,
     );
+  }
+
+  /// Folds the server's collection into this device's, keeping both.
+  ///
+  /// Applied locally before anything is uploaded, so the push that follows
+  /// carries the union and an upload that fails half-way loses nothing: the
+  /// device already holds everything. Review entries are merged too, because
+  /// [_apply] replaces the local history with the pulled one and entries this
+  /// device has not uploaded yet would otherwise vanish with it.
+  Future<void> _mergeWithServer() async {
+    final server = await _remote.pull();
+
+    final reviewLogs = _union(
+      local: await _local.getAllReviewLogs(),
+      server: server.reviewLogs,
+      id: (log) => log.id,
+    );
+
+    await _apply(
+      SyncCollection(
+        spaces: _union(
+          local: await _local.getAllSpaces(),
+          server: server.spaces,
+          id: (space) => space.id,
+        ),
+        decks: _union(
+          local: await _local.getAllDecks(),
+          server: server.decks,
+          id: (deck) => deck.id,
+        ),
+        cards: _union(
+          local: await _local.getAllCards(),
+          server: server.cards,
+          id: (card) => card.id,
+        ),
+        reviewLogs: reviewLogs,
+      ),
+    );
+  }
+
+  /// Everything in [local], plus whatever [server] holds that [local] does not.
+  static List<T> _union<T>({
+    required List<T> local,
+    required List<T> server,
+    required String Function(T) id,
+  }) {
+    final held = {for (final item in local) id(item)};
+    return [
+      ...local,
+      for (final item in server)
+        if (!held.contains(id(item))) item,
+    ];
   }
 
   /// Replaces this device's collection with the server's.

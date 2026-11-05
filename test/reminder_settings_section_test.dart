@@ -40,6 +40,19 @@ class _FakeNotificationService implements NotificationService {
 
   @override
   Future<void> clearAll() async {}
+
+  bool batteryRestricted = false;
+  int batteryRequests = 0;
+
+  @override
+  Future<bool> isBatteryRestricted() async => batteryRestricted;
+
+  @override
+  Future<bool> requestBatteryUnrestricted() async {
+    batteryRequests++;
+    batteryRestricted = false;
+    return true;
+  }
 }
 
 void main() {
@@ -67,6 +80,34 @@ void main() {
     service.blocked = false;
     service.permissionRequests = 0;
     service.statusReads = 0;
+    service.batteryRestricted = false;
+    service.batteryRequests = 0;
+  });
+
+  group('battery restriction', () {
+    testWidgets('is explained, with a way to lift it', (tester) async {
+      service.batteryRestricted = true;
+      await tester.pumpWidget(
+        host(const ReminderSettings(enabled: true), (_) {}),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.reminderBatteryRestricted), findsOneWidget);
+
+      await tester.tap(find.text(AppStrings.reminderBatteryAllow));
+      await tester.pumpAndSettle();
+
+      expect(service.batteryRequests, 1);
+      expect(find.text(AppStrings.reminderBatteryRestricted), findsNothing);
+    });
+
+    testWidgets('is not mentioned while reminders are off', (tester) async {
+      service.batteryRestricted = true;
+      await tester.pumpWidget(host(const ReminderSettings(), (_) {}));
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.reminderBatteryRestricted), findsNothing);
+    });
   });
 
   group('the switch shows what is saved', () {

@@ -93,7 +93,11 @@ void main() {
   late _Repo repo;
   late _Decks decks;
 
-  StudyCubit build(StudyConfig config, List<Flashcard> cards) {
+  StudyCubit build(
+    StudyConfig config,
+    List<Flashcard> cards, {
+    FakeReviewHistoryRepository? history,
+  }) {
     repo = _Repo(cards);
     decks = _Decks([
       Deck(
@@ -112,7 +116,10 @@ void main() {
       getCardsByBoxUseCase: GetCardsByBoxUseCase(repo),
       getCardsByDeckUseCase: GetCardsByDeckUseCase(repo),
       getDecksUseCase: GetDecksUseCase(decks),
-      reviewCardUseCase: ReviewCardUseCase(repo, FakeReviewHistoryRepository()),
+      reviewCardUseCase: ReviewCardUseCase(
+        repo,
+        history ?? FakeReviewHistoryRepository(),
+      ),
       updateCardUseCase: UpdateCardUseCase(repo),
       deleteCardUseCase: DeleteCardUseCase(repo),
     );
@@ -227,25 +234,74 @@ void main() {
   });
 
   group('the retry run is still a normal session', () {
-    test('answers reschedule the cards as usual', () async {
+    test('is practice: answers move no card and log nothing', () async {
       final first = build(
         StudyConfig.deck(spaceId: 's1', deckId: 'd1'),
         [_card('c1')],
       );
       final missed = await runAndFail(first);
       await first.close();
+      final afterFailing = repo.cards.single;
 
       final cards = List.of(repo.cards);
+      final history = FakeReviewHistoryRepository();
       final retry = build(
         StudyConfig.deck(spaceId: 's1', deckId: 'd1').withMistakeRetry(missed),
         cards,
+        history: history,
       );
       await retry.load();
 
       retry.flipCard();
       await retry.rateCard(ReviewRating.know);
 
-      // It went from house 1 (after failing) up to house 2.
+      // Still where the failed answer left it, with the same date, so it comes
+      // back on the normal schedule; and nothing reaches the statistics.
+      expect(cards.single.box, afterFailing.box);
+      expect(cards.single.lastReviewed, afterFailing.lastReviewed);
+      expect(history.logs, isEmpty);
+      expect(retry.state.justLearned, isEmpty);
+      await retry.close();
+    });
+
+    test('can be repeated as often as wanted, and never promotes', () async {
+      final first = build(
+        StudyConfig.deck(spaceId: 's1', deckId: 'd1'),
+        [_card('c1')],
+      );
+      final missed = await runAndFail(first);
+      await first.close();
+      final box = repo.cards.single.box;
+
+      for (var round = 0; round < 3; round++) {
+        final retry = build(
+          StudyConfig.allDue(spaceId: 's1').withMistakeRetry(missed),
+          List.of(repo.cards),
+        );
+        await retry.load();
+        expect(retry.state.queue, hasLength(1));
+        retry.flipCard();
+        await retry.rateCard(ReviewRating.know);
+        await retry.close();
+      }
+
+      expect(repo.cards.single.box, box);
+    });
+
+    test('is practice even from a house review of overdue cards', () async {
+      // Cards that are due would otherwise count in a house review; a retry
+      // must not, wherever it was started.
+      final overdue = _card('c1', box: 2);
+      final cards = [overdue];
+      final retry = build(
+        StudyConfig.byBox(2, spaceId: 's1', overdueOnly: true)
+            .withMistakeRetry(['c1']),
+        cards,
+      );
+      await retry.load();
+      retry.flipCard();
+      await retry.rateCard(ReviewRating.know);
+
       expect(cards.single.box, 2);
       await retry.close();
     });

@@ -81,7 +81,13 @@ class _ReminderSettingsView extends StatelessWidget {
             if (reminder.enabled && !state.permissionGranted)
               _ReminderWarning(message: AppStrings.reminderPermissionNeeded)
             else if (reminder.enabled && state.notificationsBlocked)
-              _ReminderWarning(message: AppStrings.reminderBlocked),
+              _ReminderWarning(message: AppStrings.reminderBlocked)
+            else if (reminder.enabled && state.batteryRestricted)
+              _ReminderWarning(
+                message: AppStrings.reminderBatteryRestricted,
+                actionLabel: AppStrings.reminderBatteryAllow,
+                onAction: context.read<ReminderCubit>().allowBackground,
+              ),
             if (reminder.enabled) ...[
               const SizedBox(height: 8),
               _ReminderTimeTile(
@@ -147,9 +153,15 @@ class _ReminderSettingsView extends StatelessWidget {
 }
 
 class _ReminderWarning extends StatelessWidget {
-  const _ReminderWarning({required this.message});
+  const _ReminderWarning({
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
 
   final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -167,13 +179,20 @@ class _ReminderWarning extends StatelessWidget {
           const Icon(Icons.info_outline, size: 18),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              message,
-              style: TextStyle(
-                fontSize: 12,
-                height: 1.6,
-                color: colors.mutedForeground,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.6,
+                    color: colors.mutedForeground,
+                  ),
+                ),
+                if (actionLabel != null && onAction != null)
+                  TextButton(onPressed: onAction, child: Text(actionLabel!)),
+              ],
             ),
           ),
         ],

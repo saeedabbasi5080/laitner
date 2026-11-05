@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/core/utils/due_day_utils.dart';
+import 'package:recall/data/datasources/space_settings_store.dart';
 import 'package:recall/domain/entities/deck.dart';
+import 'package:recall/domain/entities/leitner_box_config.dart';
 import 'package:recall/domain/entities/flashcard.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/domain/usecases/get_cards_by_box_usecase.dart';
@@ -33,12 +35,19 @@ class _BoxCardsScreenState extends State<BoxCardsScreen> {
   DateTime? _selectedDueDay;
   bool _selectedOverdue = false;
 
-  List<DueDayBucket> get _dayBuckets => groupCardsByDueDay(_cards);
+  /// This space's houses and their intervals. The buckets below were computed
+  /// with the defaults, so a house with its own interval was shown as "overdue"
+  /// while the study queue — which uses this config — did not count it as due.
+  LeitnerBoxConfig _boxes = LeitnerBoxConfig.classic;
+
+  List<DueDayBucket> get _dayBuckets =>
+      groupCardsByDueDay(_cards, boxes: _boxes);
 
   List<Flashcard> get _visibleCards => filterCardsByDueDay(
     _cards,
     dueDay: _selectedDueDay,
     overdueOnly: _selectedOverdue,
+    boxes: _boxes,
   );
 
   String get _selectedDayLabel {
@@ -60,8 +69,10 @@ class _BoxCardsScreenState extends State<BoxCardsScreen> {
       spaceId: widget.spaceId,
     );
     final decks = await sl<GetDecksUseCase>()(widget.spaceId);
+    final settings = await sl<SpaceSettingsStore>().load(widget.spaceId);
     if (mounted) {
       setState(() {
+        _boxes = settings.leitnerBoxes;
         _cards = cards;
         _deckMap = {for (final d in decks) d.id: d};
         _loading = false;

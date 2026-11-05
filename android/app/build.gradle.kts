@@ -44,6 +44,9 @@ android {
 
     dependencies {
         coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+        // The app-lock decision logic (gate/GateDecider.kt) is plain Kotlin and
+        // unit tested on the JVM.
+        testImplementation("junit:junit:4.13.2")
     }
 
     signingConfigs {

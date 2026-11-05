@@ -13,6 +13,7 @@ class DeckListState extends Equatable {
     this.boxes = LeitnerBoxConfig.classic,
     this.totalDue = 0,
     this.learnedCount = 0,
+    this.todaysMistakes = 0,
     this.errorMessage,
   });
 
@@ -25,6 +26,9 @@ class DeckListState extends Equatable {
   final LeitnerBoxConfig boxes;
   final int totalDue;
   final int learnedCount;
+
+  /// Cards answered wrong today in this space, counted once each.
+  final int todaysMistakes;
   final String? errorMessage;
 
   DeckListState copyWith({
@@ -37,6 +41,7 @@ class DeckListState extends Equatable {
     LeitnerBoxConfig? boxes,
     int? totalDue,
     int? learnedCount,
+    int? todaysMistakes,
     String? errorMessage,
   }) {
     return DeckListState(
@@ -49,21 +54,23 @@ class DeckListState extends Equatable {
       boxes: boxes ?? this.boxes,
       totalDue: totalDue ?? this.totalDue,
       learnedCount: learnedCount ?? this.learnedCount,
+      todaysMistakes: todaysMistakes ?? this.todaysMistakes,
       errorMessage: errorMessage,
     );
   }
 
   @override
   List<Object?> get props => [
-        status,
-        decks,
-        dueCounts,
-        totalCounts,
-        boxCounts,
-        maxBox,
-        boxes,
-        totalDue,
-        learnedCount,
-        errorMessage,
-      ];
+    status,
+    decks,
+    dueCounts,
+    totalCounts,
+    boxCounts,
+    maxBox,
+    boxes,
+    totalDue,
+    learnedCount,
+    todaysMistakes,
+    errorMessage,
+  ];
 }

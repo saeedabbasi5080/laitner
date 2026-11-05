@@ -11,6 +11,7 @@ import 'package:recall/domain/usecases/delete_deck_usecase.dart';
 import 'package:recall/domain/usecases/get_decks_usecase.dart';
 import 'package:recall/domain/usecases/get_due_cards_usecase.dart';
 import 'package:recall/domain/usecases/get_cards_by_deck_usecase.dart';
+import 'package:recall/domain/usecases/get_todays_mistakes_usecase.dart';
 import 'package:recall/domain/usecases/update_deck_usecase.dart';
 
 part 'deck_list_event.dart';
@@ -28,17 +29,19 @@ class DeckListCubit extends Cubit<DeckListState> {
     required IFlashcardRepository flashcardRepository,
     required IdGenerator idGenerator,
     required SpaceSettingsStore spaceSettingsStore,
-  })  : _spaceId = spaceId,
-        _getDecksUseCase = getDecksUseCase,
-        _getDueCardsUseCase = getDueCardsUseCase,
-        _getCardsByDeckUseCase = getCardsByDeckUseCase,
-        _addDeckUseCase = addDeckUseCase,
-        _updateDeckUseCase = updateDeckUseCase,
-        _deleteDeckUseCase = deleteDeckUseCase,
-        _flashcardRepository = flashcardRepository,
-        _idGenerator = idGenerator,
-        _spaceSettingsStore = spaceSettingsStore,
-        super(const DeckListState());
+    GetTodaysMistakesUseCase? getTodaysMistakesUseCase,
+  }) : _spaceId = spaceId,
+       _getTodaysMistakesUseCase = getTodaysMistakesUseCase,
+       _getDecksUseCase = getDecksUseCase,
+       _getDueCardsUseCase = getDueCardsUseCase,
+       _getCardsByDeckUseCase = getCardsByDeckUseCase,
+       _addDeckUseCase = addDeckUseCase,
+       _updateDeckUseCase = updateDeckUseCase,
+       _deleteDeckUseCase = deleteDeckUseCase,
+       _flashcardRepository = flashcardRepository,
+       _idGenerator = idGenerator,
+       _spaceSettingsStore = spaceSettingsStore,
+       super(const DeckListState());
 
   final String _spaceId;
   final GetDecksUseCase _getDecksUseCase;
@@ -50,6 +53,9 @@ class DeckListCubit extends Cubit<DeckListState> {
   final IFlashcardRepository _flashcardRepository;
   final IdGenerator _idGenerator;
   final SpaceSettingsStore _spaceSettingsStore;
+
+  /// Optional so the page still works where review history is not wired.
+  final GetTodaysMistakesUseCase? _getTodaysMistakesUseCase;
 
   String get spaceId => _spaceId;
 
@@ -63,11 +69,17 @@ class DeckListCubit extends Cubit<DeckListState> {
       final spaceSettings = await _spaceSettingsStore.load(_spaceId);
       final boxes = spaceSettings.leitnerBoxes;
 
+      var todaysMistakes = 0;
       for (final deck in decks) {
         final due = await _getDueCardsUseCase(deck.id, boxes: boxes);
         final all = await _getCardsByDeckUseCase(deck.id);
         dueCounts[deck.id] = due.length;
         totalCounts[deck.id] = all.length;
+        final mistakes = await _getTodaysMistakesUseCase?.call(
+          spaceId: _spaceId,
+          deckId: deck.id,
+        );
+        todaysMistakes += mistakes?.length ?? 0;
       }
 
       final allCards = await _flashcardRepository.getCardsBySpaceId(_spaceId);
@@ -78,11 +90,14 @@ class DeckListCubit extends Cubit<DeckListState> {
         }
       }
 
-      final learnedCount =
-          allCards.where((card) => card.isLearnedIn(boxes.maxBox)).length;
+      final learnedCount = allCards
+          .where((card) => card.isLearnedIn(boxes.maxBox))
+          .length;
 
-      final totalDue =
-          dueCounts.values.fold<int>(0, (sum, count) => sum + count);
+      final totalDue = dueCounts.values.fold<int>(
+        0,
+        (sum, count) => sum + count,
+      );
 
       emit(
         state.copyWith(
@@ -95,6 +110,7 @@ class DeckListCubit extends Cubit<DeckListState> {
           boxes: boxes,
           totalDue: totalDue,
           learnedCount: learnedCount,
+          todaysMistakes: todaysMistakes,
         ),
       );
     } catch (e) {

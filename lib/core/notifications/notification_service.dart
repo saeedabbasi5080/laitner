@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -28,6 +29,7 @@ class ScheduledReminder {
     required this.body,
     required this.when,
     this.payload,
+    this.repeatsWeekly = false,
   });
 
   final int id;
@@ -37,6 +39,10 @@ class ScheduledReminder {
   /// Local wall-clock time the notification should appear.
   final DateTime when;
   final String? payload;
+
+  /// Repeated by the system every week on [when]'s weekday and time, starting
+  /// at [when], without the app having to run again.
+  final bool repeatsWeekly;
 }
 
 /// Thin wrapper over `flutter_local_notifications`.
@@ -160,6 +166,31 @@ class NotificationService {
     return true;
   }
 
+  /// Whether Android's battery optimisation applies to this app.
+  ///
+  /// When it does, scheduled reminders can be delayed and, on some phones
+  /// (Samsung's "sleeping apps"), dropped once the app goes unopened. False on
+  /// other platforms, and when the answer cannot be read.
+  Future<bool> isBatteryRestricted() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
+    try {
+      return !(await Permission.ignoreBatteryOptimizations.status).isGranted;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Shows Android's own dialog for letting the app run unrestricted. Returns
+  /// whether it now is.
+  Future<bool> requestBatteryUnrestricted() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return true;
+    try {
+      return (await Permission.ignoreBatteryOptimizations.request()).isGranted;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Replaces every reminder with [reminders].
   ///
   /// The whole set is cancelled first because the due counts change whenever
@@ -206,6 +237,9 @@ class NotificationService {
           iOS: DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: reminder.repeatsWeekly
+            ? DateTimeComponents.dayOfWeekAndTime
+            : null,
         payload: reminder.payload,
       );
     } catch (error) {

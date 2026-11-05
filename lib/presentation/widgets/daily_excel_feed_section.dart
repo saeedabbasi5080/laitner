@@ -6,150 +6,102 @@ import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/domain/entities/daily_excel_feed.dart';
 import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/domain/entities/excel_import.dart';
+import 'package:recall/domain/services/id_generator.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/daily_feed/daily_feed_cubit.dart';
 import 'package:recall/presentation/blocs/settings/settings_cubit.dart';
 import 'package:recall/presentation/widgets/soft_ui.dart';
 
-/// Settings for the automatic daily Excel feed.
+/// The daily Excel feeds of one space: one per deck, each with its own files
+/// and its own number of new cards a day, in the shape of Anki's new-cards-per-
+/// day limit. Each opens on a page of its own to be set up.
 ///
-/// The section follows the shape of Anki's new-cards-per-day limit: a toggle, a
-/// destination deck, the files to draw from, and one number that decides how
-/// much of them is released per day. The backlog is shown rather than hidden,
-/// because a feed that stopped at the cap looks broken unless it says so.
+/// The backlog is shown rather than hidden, because a feed that stopped at its
+/// cap looks broken unless it says so.
 class DailyExcelFeedSection extends StatelessWidget {
   const DailyExcelFeedSection({
     super.key,
     required this.spaceId,
-    required this.settings,
-    required this.onChanged,
+    required this.feeds,
+    required this.onSave,
+    required this.onRemove,
   });
 
   final String spaceId;
-  final DailyExcelFeedSettings settings;
-  final ValueChanged<DailyExcelFeedSettings> onChanged;
+  final List<DailyExcelFeedSettings> feeds;
+  final Future<void> Function(DailyExcelFeedSettings feed) onSave;
+  final Future<void> Function(String feedId) onRemove;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<DailyFeedCubit>(param1: spaceId)..load(),
-      child: _DailyFeedView(
-        spaceId: spaceId,
-        settings: settings,
-        onChanged: onChanged,
-      ),
+      child: _FeedList(spaceId: spaceId, feeds: feeds, onSave: onSave, onRemove: onRemove),
     );
   }
 }
 
-class _DailyFeedView extends StatelessWidget {
-  const _DailyFeedView({
-    required this.spaceId,
-    required this.settings,
-    required this.onChanged,
-  });
+class _FeedList extends StatelessWidget {
+  const _FeedList({required this.spaceId, required this.feeds, required this.onSave, required this.onRemove});
 
   final String spaceId;
-  final DailyExcelFeedSettings settings;
-  final ValueChanged<DailyExcelFeedSettings> onChanged;
+  final List<DailyExcelFeedSettings> feeds;
+  final Future<void> Function(DailyExcelFeedSettings feed) onSave;
+  final Future<void> Function(String feedId) onRemove;
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.recallColors;
     return BlocBuilder<DailyFeedCubit, DailyFeedState>(
       builder: (context, state) {
-        final feed = settings;
-        final deck = state.deckNamed(feed.deckId);
-        final backlog = state.backlogFor(feed);
-
+        final anyReady = feeds.any((feed) => feed.isConfigured);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SwitchListTile.adaptive(
-              value: feed.enabled,
-              onChanged: (value) =>
-                  onChanged(feed.copyWith(enabled: value)),
-              title: const Text(AppStrings.dailyExcelFeed),
-              subtitle: const Text(AppStrings.dailyExcelFeedHint),
+            Text(
+              AppStrings.dailyFeedListHint,
+              style: TextStyle(fontSize: 12, height: 1.6, color: colors.mutedForeground),
             ),
-            if (feed.needsSetup)
-              _FeedWarning(message: AppStrings.dailyFeedPickDeckHint),
-            if (feed.enabled) ...[
-              const SizedBox(height: 8),
-              _DeckPickerTile(
-                deckName: deck?.name,
-                onPick: () => _pickDeck(context, deck),
+            const SizedBox(height: 12),
+            for (final feed in feeds)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _FeedTile(
+                  feed: feed,
+                  deck: state.deckNamed(feed.deckId),
+                  backlog: state.backlogFor(feed),
+                  onTap: () => _open(context, feed),
+                ),
               ),
-              const SizedBox(height: 12),
-              _FilesTile(
-                settings: feed,
-                imports: state.imports,
-                onChanged: onChanged,
-              ),
-              const SizedBox(height: 12),
-              _DailyLimitTile(
-                settings: feed,
-                onChanged: (limit) =>
-                    onChanged(feed.copyWith(dailyLimit: limit)),
-              ),
-              const SizedBox(height: 12),
-              _FeedStatus(
-                settings: feed,
-                backlog: backlog,
-              ),
+            OutlinedButton.icon(
+              onPressed: state.loading ? null : () => _open(context, null),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text(AppStrings.dailyFeedAdd),
+            ),
+            if (anyReady) ...[
               const SizedBox(height: 12),
               Align(
                 alignment: AlignmentDirectional.centerEnd,
                 child: FilledButton.icon(
-                  onPressed: state.running ||
-                          !feed.isConfigured ||
-                          state.loading
-                      ? null
-                      : () => _runNow(context),
+                  onPressed: state.running || state.loading ? null : () => _runNow(context),
                   icon: state.running
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.play_arrow_rounded, size: 18),
-                  label: Text(
-                    state.running
-                        ? AppStrings.dailyFeedRunning
-                        : AppStrings.dailyFeedRunNow,
-                  ),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 10,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
+                  label: Text(state.running ? AppStrings.dailyFeedRunning : AppStrings.dailyFeedRunNow),
                 ),
               ),
               const SizedBox(height: 12),
               Text(
                 AppStrings.dailyFeedCatchUpNote,
-                style: TextStyle(
-                  fontSize: 11,
-                  height: 1.7,
-                  color: context.recallColors.mutedForeground,
-                ),
+                style: TextStyle(fontSize: 11, height: 1.7, color: colors.mutedForeground),
               ),
               if (state.lastResult != null) ...[
                 const SizedBox(height: 8),
                 Text(
                   state.lastResult!.addedCount > 0
-                      ? AppStrings.dailyFeedAddedNow(
-                          state.lastResult!.addedCount,
-                        )
+                      ? AppStrings.dailyFeedAddedNow(state.lastResult!.addedCount)
                       : AppStrings.dailyFeedNothingToAdd,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: context.accentColor,
-                  ),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.accentColor),
                 ),
               ],
             ],
@@ -159,47 +111,300 @@ class _DailyFeedView extends StatelessWidget {
     );
   }
 
+  Future<void> _open(BuildContext context, DailyExcelFeedSettings? feed) async {
+    final cubit = context.read<DailyFeedCubit>();
+    final state = cubit.state;
+    final others = feeds.where((other) => other.id != feed?.id);
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => DailyFeedEditorScreen(
+          feed: feed ?? DailyExcelFeedSettings(id: sl<IdGenerator>().generateId(), enabled: true),
+          isNew: feed == null,
+          decks: state.decks,
+          imports: state.imports,
+          takenDeckIds: {for (final other in others) ?other.deckId},
+          takenImportIds: {for (final other in others) ...other.importIds},
+          onSave: onSave,
+          onRemove: onRemove,
+        ),
+      ),
+    );
+    await cubit.load();
+  }
+
   Future<void> _runNow(BuildContext context) async {
     await context.read<DailyFeedCubit>().runNow();
     // The run wrote the new last-run day and backlog straight to the store, so
-    // the surrounding settings state has to be re-read or the status card would
-    // keep showing yesterday's numbers.
+    // the surrounding settings state has to be re-read or the tiles would keep
+    // showing yesterday's numbers.
     if (!context.mounted) return;
     await context.read<SettingsCubit>().loadForSpace(spaceId);
   }
+}
 
-  Future<void> _pickDeck(BuildContext context, Deck? current) async {
-    final decks = context.read<DailyFeedCubit>().state.decks;
-    if (decks.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.dailyFeedNoDeckYet)),
-      );
+class _FeedTile extends StatelessWidget {
+  const _FeedTile({required this.feed, required this.deck, required this.backlog, required this.onTap});
+
+  final DailyExcelFeedSettings feed;
+  final Deck? deck;
+  final int backlog;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = deck?.name ?? (feed.deckId == null ? AppStrings.dailyFeedNoDeck : AppStrings.dailyFeedDeckMissing);
+    final subtitle = feed.enabled
+        ? AppStrings.dailyFeedSummary(feed.dailyLimit, backlog)
+        : '${AppStrings.dailyFeedPaused} · ${AppStrings.dailyFeedSummary(feed.dailyLimit, backlog)}';
+    return SoftListTile(
+      title: title,
+      subtitle: subtitle,
+      icon: feed.enabled ? Icons.schedule_rounded : Icons.pause_circle_outline,
+      accent: deck == null ? AppColors.lemon : AppColors.forDeck(deck!.color),
+      onTap: onTap,
+      trailing: const Icon(Icons.chevron_left),
+    );
+  }
+}
+
+/// One feed on a page of its own: its deck, its files, how many a day, on or
+/// off. Nothing is written until "save".
+///
+/// A deck has at most one feed, and a file feeds at most one deck: two feeds
+/// drawing on one file would race for the same rows, so what other feeds use
+/// is shown and cannot be picked.
+class DailyFeedEditorScreen extends StatefulWidget {
+  const DailyFeedEditorScreen({
+    super.key,
+    required this.feed,
+    required this.isNew,
+    required this.decks,
+    required this.imports,
+    required this.takenDeckIds,
+    required this.takenImportIds,
+    required this.onSave,
+    required this.onRemove,
+  });
+
+  final DailyExcelFeedSettings feed;
+  final bool isNew;
+  final List<Deck> decks;
+  final List<ExcelImport> imports;
+  final Set<String> takenDeckIds;
+  final Set<String> takenImportIds;
+  final Future<void> Function(DailyExcelFeedSettings feed) onSave;
+  final Future<void> Function(String feedId) onRemove;
+
+  @override
+  State<DailyFeedEditorScreen> createState() => _DailyFeedEditorScreenState();
+}
+
+class _DailyFeedEditorScreenState extends State<DailyFeedEditorScreen> {
+  late DailyExcelFeedSettings _feed = widget.feed;
+  bool _saving = false;
+
+  Deck? get _deck => widget.decks.where((deck) => deck.id == _feed.deckId).firstOrNull;
+
+  int get _backlog {
+    final wanted = _feed.importIds.toSet();
+    return widget.imports.where((import) => wanted.contains(import.id)).fold(0, (sum, import) => sum + import.pendingCount);
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    await widget.onSave(_feed);
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  Future<void> _remove() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(AppStrings.dailyFeedDelete),
+        content: const Text(AppStrings.dailyFeedDeleteConfirm),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text(AppStrings.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text(AppStrings.dailyFeedDelete)),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _saving = true);
+    await widget.onRemove(_feed.id);
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.recallColors;
+    return Scaffold(
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          children: [
+            AppPageHeader(
+              title: widget.isNew ? AppStrings.dailyFeedNewTitle : AppStrings.dailyFeedEditTitle,
+              subtitle: _deck?.name,
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile.adaptive(
+              value: _feed.enabled,
+              onChanged: _saving ? null : (value) => setState(() => _feed = _feed.copyWith(enabled: value)),
+              title: const Text(AppStrings.dailyFeedEnabled),
+              subtitle: const Text(AppStrings.dailyExcelFeedHint),
+            ),
+            if (_feed.deckId == null) const _FeedWarning(message: AppStrings.dailyFeedPickDeckHint),
+            const SizedBox(height: 12),
+            SoftListTile(
+              title: AppStrings.dailyFeedPickDeck,
+              subtitle: _deck?.name ?? (_feed.deckId == null ? AppStrings.dailyFeedNoDeck : AppStrings.dailyFeedDeckMissing),
+              icon: Icons.folder_outlined,
+              accent: context.accentColor,
+              onTap: _saving ? null : _pickDeck,
+            ),
+            const SizedBox(height: 12),
+            SoftListTile(
+              title: AppStrings.dailyFeedPickFiles,
+              subtitle: _feed.importIds.isEmpty
+                  ? AppStrings.dailyFeedNoFiles
+                  : AppStrings.dailyFeedSelectedFiles(_feed.importIds.length),
+              icon: Icons.table_chart_outlined,
+              accent: context.accentColor,
+              onTap: _saving ? null : _pickFiles,
+            ),
+            const SizedBox(height: 12),
+            SoftListTile(
+              title: AppStrings.dailyFeedDailyLimit,
+              subtitle: '${_feed.dailyLimit}',
+              icon: Icons.speed_outlined,
+              accent: context.accentColor,
+              onTap: _saving ? null : _editLimit,
+            ),
+            const SizedBox(height: 12),
+            _FeedStatus(settings: _feed, backlog: _backlog),
+            const SizedBox(height: 12),
+            Text(
+              AppStrings.dailyFeedCatchUpNote,
+              style: TextStyle(fontSize: 11, height: 1.7, color: colors.mutedForeground),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _saving || _feed.deckId == null ? null : _save,
+                child: const Text(AppStrings.dailyFeedSave),
+              ),
+            ),
+            if (!widget.isNew) ...[
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: _saving ? null : _remove,
+                  icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+                  label: Text(AppStrings.dailyFeedDelete, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickDeck() async {
+    if (widget.decks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.dailyFeedNoDeckYet)));
       return;
     }
-
     final picked = await showModalBottomSheet<String>(
       context: context,
       builder: (context) => SafeArea(
         child: ListView(
           shrinkWrap: true,
           children: [
-            for (final deck in decks)
+            for (final deck in widget.decks)
               ListTile(
+                enabled: !widget.takenDeckIds.contains(deck.id),
                 leading: Icon(
-                  deck.id == current?.id
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_unchecked,
+                  deck.id == _feed.deckId ? Icons.radio_button_checked : Icons.radio_button_unchecked,
                 ),
                 title: Text(deck.name),
+                subtitle: widget.takenDeckIds.contains(deck.id) ? const Text(AppStrings.dailyFeedDeckTaken) : null,
                 onTap: () => Navigator.of(context).pop(deck.id),
               ),
           ],
         ),
       ),
     );
+    if (picked != null) setState(() => _feed = _feed.copyWith(deckId: picked));
+  }
 
-    if (picked == null) return;
-    onChanged(settings.copyWith(deckId: picked));
+  Future<void> _pickFiles() async {
+    if (widget.imports.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.dailyFeedNoLibraryFiles)));
+      return;
+    }
+    final result = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => DailyFileChooserSheet(
+        imports: widget.imports,
+        selected: _feed.importIds.toSet(),
+        taken: widget.takenImportIds,
+      ),
+    );
+    if (result == null) return;
+    // In the order they were in, then the new ones: the feed drains oldest first.
+    final kept = [for (final id in _feed.importIds) if (result.contains(id)) id];
+    setState(() => _feed = _feed.copyWith(importIds: [...kept, for (final id in result) if (!kept.contains(id)) id]));
+  }
+
+  Future<void> _editLimit() async {
+    final controller = TextEditingController(text: _feed.dailyLimit.toString());
+    final result = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(AppStrings.dailyFeedDailyLimit),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(hintText: AppStrings.dailyFeedDailyLimitHint),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final preset in const [10, 20, 50, 100, 200])
+                  ActionChip(label: Text('$preset'), onPressed: () => controller.text = '$preset'),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text(AppStrings.cancel)),
+          FilledButton(
+            onPressed: () {
+              final value = int.tryParse(controller.text.trim());
+              if (value != null) Navigator.of(context).pop(value);
+            },
+            child: const Text(AppStrings.done),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result == null) return;
+    // Clamped here so the field can never hold a value the run treats as "off".
+    setState(() => _feed = _feed.copyWith(
+          dailyLimit: result.clamp(DailyExcelFeedSettings.minDailyLimit, DailyExcelFeedSettings.maxDailyLimit),
+        ));
   }
 }
 
@@ -225,94 +430,12 @@ class _FeedWarning extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: TextStyle(
-                fontSize: 12,
-                height: 1.6,
-                color: context.recallColors.mutedForeground,
-              ),
+              style: TextStyle(fontSize: 12, height: 1.6, color: context.recallColors.mutedForeground),
             ),
           ),
         ],
       ),
     );
-  }
-}
-
-class _DeckPickerTile extends StatelessWidget {
-  const _DeckPickerTile({required this.deckName, required this.onPick});
-
-  final String? deckName;
-  final VoidCallback onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    return SoftListTile(
-      title: AppStrings.dailyFeedPickDeck,
-      subtitle: deckName ?? AppStrings.dailyFeedNoDeck,
-      icon: Icons.folder_outlined,
-      accent: context.accentColor,
-      onTap: onPick,
-    );
-  }
-}
-
-class _FilesTile extends StatelessWidget {
-  const _FilesTile({
-    required this.settings,
-    required this.imports,
-    required this.onChanged,
-  });
-
-  final DailyExcelFeedSettings settings;
-  final List<ExcelImport> imports;
-  final ValueChanged<DailyExcelFeedSettings> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final chosen = settings.importIds
-        .map(
-          (id) => imports.where((import) => import.id == id).firstOrNull,
-        )
-        .whereType<ExcelImport>()
-        .toList();
-
-    final subtitle = chosen.isEmpty
-        ? AppStrings.dailyFeedNoFiles
-        : AppStrings.dailyFeedSelectedFiles(chosen.length);
-
-    return SoftListTile(
-      title: AppStrings.dailyFeedPickFiles,
-      subtitle: subtitle,
-      icon: Icons.table_chart_outlined,
-      accent: context.accentColor,
-      onTap: () => _chooseFiles(context, chosen),
-    );
-  }
-
-  Future<void> _chooseFiles(
-    BuildContext context,
-    List<ExcelImport> chosen,
-  ) async {
-    if (imports.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.dailyFeedNoLibraryFiles)),
-      );
-      return;
-    }
-
-    final selected = chosen.map((import) => import.id).toSet();
-
-    final result = await showModalBottomSheet<List<String>>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => DailyFileChooserSheet(
-        imports: imports,
-        selected: selected,
-      ),
-    );
-
-    if (result == null) return;
-    onChanged(settings.copyWith(importIds: result));
   }
 }
 
@@ -327,17 +450,21 @@ class DailyFileChooserSheet extends StatefulWidget {
     super.key,
     required this.imports,
     required this.selected,
+    this.taken = const {},
   });
 
   final List<ExcelImport> imports;
   final Set<String> selected;
+
+  /// Files another deck's feed already draws on; shown, but not pickable.
+  final Set<String> taken;
 
   @override
   State<DailyFileChooserSheet> createState() => _DailyFileChooserSheetState();
 }
 
 class _DailyFileChooserSheetState extends State<DailyFileChooserSheet> {
-  late Set<String> _selected = {...widget.selected};
+  late final Set<String> _selected = {...widget.selected};
 
   @override
   Widget build(BuildContext context) {
@@ -356,18 +483,14 @@ class _DailyFileChooserSheetState extends State<DailyFileChooserSheet> {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: Row(
                 children: [
-                  Expanded(
+                  const Expanded(
                     child: Text(
                       AppStrings.dailyFeedManageFiles,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                     ),
                   ),
                   TextButton(
-                    onPressed: () =>
-                        Navigator.of(context).pop(_selected.toList()),
+                    onPressed: () => Navigator.of(context).pop(_selected.toList()),
                     child: const Text(AppStrings.done),
                   ),
                 ],
@@ -381,10 +504,7 @@ class _DailyFileChooserSheetState extends State<DailyFileChooserSheet> {
                         padding: const EdgeInsets.all(24),
                         child: Text(
                           AppStrings.dailyFeedNoFiles,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: context.recallColors.mutedForeground,
-                          ),
+                          style: TextStyle(fontSize: 13, color: context.recallColors.mutedForeground),
                         ),
                       ),
                     )
@@ -393,23 +513,20 @@ class _DailyFileChooserSheetState extends State<DailyFileChooserSheet> {
                         for (final import in widget.imports)
                           CheckboxListTile(
                             value: _selected.contains(import.id),
-                            onChanged: (value) => setState(() {
-                              if (value ?? false) {
-                                _selected.add(import.id);
-                              } else {
-                                _selected.remove(import.id);
-                              }
-                            }),
-                            title: Text(
-                              import.fileName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            onChanged: widget.taken.contains(import.id)
+                                ? null
+                                : (value) => setState(() {
+                                      if (value ?? false) {
+                                        _selected.add(import.id);
+                                      } else {
+                                        _selected.remove(import.id);
+                                      }
+                                    }),
+                            title: Text(import.fileName, maxLines: 1, overflow: TextOverflow.ellipsis),
                             subtitle: Text(
-                              AppStrings.dailyFeedFileCounts(
-                                import.pendingCount,
-                                import.addedCount,
-                              ),
+                              widget.taken.contains(import.id)
+                                  ? AppStrings.dailyFeedFileTaken
+                                  : AppStrings.dailyFeedFileCounts(import.pendingCount, import.addedCount),
                             ),
                           ),
                       ],
@@ -417,89 +534,6 @@ class _DailyFileChooserSheetState extends State<DailyFileChooserSheet> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _DailyLimitTile extends StatelessWidget {
-  const _DailyLimitTile({required this.settings, required this.onChanged});
-
-  final DailyExcelFeedSettings settings;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SoftListTile(
-      title: AppStrings.dailyFeedDailyLimit,
-      subtitle: '${settings.dailyLimit}',
-      icon: Icons.speed_outlined,
-      accent: context.accentColor,
-      onTap: () => _edit(context),
-    );
-  }
-
-  Future<void> _edit(BuildContext context) async {
-    final controller = TextEditingController(
-      text: settings.dailyLimit.toString(),
-    );
-
-    final result = await showDialog<int>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(AppStrings.dailyFeedDailyLimit),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: controller,
-              autofocus: true,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                hintText: AppStrings.dailyFeedDailyLimitHint,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final preset in const [50, 100, 200, 500])
-                  ActionChip(
-                    label: Text('$preset'),
-                    onPressed: () => controller.text = '$preset',
-                  ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(AppStrings.cancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              final value = int.tryParse(controller.text.trim());
-              if (value == null) return;
-              Navigator.of(context).pop(value);
-            },
-            child: const Text(AppStrings.done),
-          ),
-        ],
-      ),
-    );
-
-    controller.dispose();
-
-    if (result == null) return;
-    // Clamped here rather than at write time so the field can never hold a
-    // value the run would treat as "off".
-    onChanged(
-      result.clamp(
-        DailyExcelFeedSettings.minDailyLimit,
-        DailyExcelFeedSettings.maxDailyLimit,
       ),
     );
   }
@@ -525,10 +559,7 @@ class _FeedStatus extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _StatusRow(
-            label: AppStrings.dailyFeedBacklog,
-            value: '$backlog',
-          ),
+          _StatusRow(label: AppStrings.dailyFeedBacklog, value: '$backlog'),
           const SizedBox(height: 8),
           _StatusRow(
             label: AppStrings.dailyFeedLastRun,
@@ -545,12 +576,8 @@ class _FeedStatus extends StatelessWidget {
     if (lastRunDay == null) return AppStrings.dailyFeedNeverRun;
     final today = DateTime.now();
     final that = DateTime.fromMillisecondsSinceEpoch(lastRunDay * 86400000);
-    final isToday = that.year == today.year &&
-        that.month == today.month &&
-        that.day == today.day;
-    return isToday
-        ? AppStrings.dailyFeedLastRunToday(added)
-        : AppStrings.dailyFeedLastRunCount(added);
+    final isToday = that.year == today.year && that.month == today.month && that.day == today.day;
+    return isToday ? AppStrings.dailyFeedLastRunToday(added) : AppStrings.dailyFeedLastRunCount(added);
   }
 }
 
@@ -565,16 +592,8 @@ class _StatusRow extends StatelessWidget {
     final colors = context.recallColors;
     return Row(
       children: [
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 12, color: colors.mutedForeground),
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-        ),
+        Expanded(child: Text(label, style: TextStyle(fontSize: 12, color: colors.mutedForeground))),
+        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
       ],
     );
   }

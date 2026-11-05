@@ -11,6 +11,7 @@ class ReminderState extends Equatable {
     this.loading = true,
     this.permissionGranted = true,
     this.notificationsBlocked = false,
+    this.batteryRestricted = false,
   });
 
   /// False on platforms without a notification scheduler, in which case the
@@ -26,6 +27,11 @@ class ReminderState extends Equatable {
   /// Permission was granted but the OS still has notifications switched off.
   final bool notificationsBlocked;
 
+  /// Android's battery optimisation applies to the app. Reminders are allowed
+  /// but may be held back, or dropped once the app has not been opened for a
+  /// while — the usual reason one arrives and the next day's does not.
+  final bool batteryRestricted;
+
   /// True while the platform has not reported back yet.
   ///
   /// The section stays hidden for this, so a switch never appears in a state
@@ -39,5 +45,6 @@ class ReminderState extends Equatable {
         loading,
         permissionGranted,
         notificationsBlocked,
+        batteryRestricted,
       ];
 }

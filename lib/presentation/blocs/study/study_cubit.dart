@@ -12,6 +12,7 @@ import 'package:recall/domain/usecases/get_cards_by_deck_usecase.dart';
 import 'package:recall/domain/usecases/get_space_cards_usecase.dart';
 import 'package:recall/domain/usecases/get_decks_usecase.dart';
 import 'package:recall/domain/usecases/get_due_cards_usecase.dart';
+import 'package:recall/domain/usecases/leitner_logic.dart';
 import 'package:recall/domain/usecases/review_card_usecase.dart';
 import 'package:recall/domain/usecases/update_card_usecase.dart';
 import 'package:recall/presentation/blocs/study/study_config.dart';
@@ -32,6 +33,7 @@ class StudyCubit extends Cubit<StudyState> {
     required DeleteCardUseCase deleteCardUseCase,
     this.onScheduleChanged,
     Random? random,
+    DateTime Function()? clock,
   }) : _config = config,
        _getDueCardsUseCase = getDueCardsUseCase,
        _getAllDueCardsUseCase = getAllDueCardsUseCase,
@@ -43,6 +45,7 @@ class StudyCubit extends Cubit<StudyState> {
        _updateCardUseCase = updateCardUseCase,
        _deleteCardUseCase = deleteCardUseCase,
        _random = random ?? Random(),
+       _now = clock ?? DateTime.now,
        super(const StudyState());
 
   final StudyConfig _config;
@@ -60,6 +63,7 @@ class StudyCubit extends Cubit<StudyState> {
   final UpdateCardUseCase _updateCardUseCase;
   final DeleteCardUseCase _deleteCardUseCase;
   final Random _random;
+  final DateTime Function() _now;
 
   /// Invoked once a session completes so the notification queue can pick up
   /// the new due counts.
@@ -168,9 +172,22 @@ class StudyCubit extends Cubit<StudyState> {
     // Whether this answer pushed the card into the learned archive.
     var graduated = false;
     try {
-      // Free review is a preview session: answers must not change the card's
-      // box, last-reviewed date, normal schedule, or review statistics.
-      if (!state.isFreeReview) {
+      // Free review is a preview session: answers must not change the box,
+      // date, schedule or statistics of a card that was not due. A card that
+      // *was* due — overdue, or due today — is reviewed for real wherever it is
+      // answered. Otherwise reviewing a house's overdue cards from the house
+      // screen changed nothing, and they stayed overdue for ever instead of
+      // moving on to the next house or to the learned cards.
+      //
+      // A retry over today's mistakes is practice, wherever it was started:
+      // nothing is rescheduled or logged, so it can be repeated all day and
+      // the cards come back tomorrow exactly as the failed answer left them.
+      // Counting it would let one afternoon of retries push a card several
+      // houses forward without the Leitner intervals in between.
+      if (_config.isMistakeRetry) {
+        // Practice only.
+      } else if (!state.isFreeReview ||
+          isCardDue(card, _now(), boxes: _config.boxConfig)) {
         final reviewed = await _reviewCardUseCase(
           card,
           rating,

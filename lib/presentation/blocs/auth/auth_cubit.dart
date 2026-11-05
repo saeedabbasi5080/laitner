@@ -28,6 +28,7 @@ class AuthCubit extends Cubit<AuthState> {
     required this.tokenStore,
     this.deviceIdentity,
     this.onSessionEnded,
+    this.onSignedOutElsewhere,
     DateTime Function()? clock,
   })  : _now = clock ?? DateTime.now,
         super(const AuthState.unknown());
@@ -47,6 +48,14 @@ class AuthCubit extends Cubit<AuthState> {
   /// not have to know that synchronisation exists. What is wired to it is decided
   /// where the graph is assembled.
   final Future<void> Function()? onSessionEnded;
+
+  /// Called when the launch check finds this device signed out by a sign-in on
+  /// another one. Only one device may use an account at a time.
+  ///
+  /// The session ends here like any other; this is for saying why, which the
+  /// sync screen does. The cards on this device are not touched: they stay, and
+  /// merge into the account if this device signs in again.
+  final void Function(String message)? onSignedOutElsewhere;
 
   /// Names this install to the server, so it can be listed and signed out from
   /// elsewhere.
@@ -129,6 +138,12 @@ class AuthCubit extends Cubit<AuthState> {
         if (error.failure == AuthFailure.unauthorized) {
           await _endSession();
           emit(const AuthState.signedOut());
+          return;
+        }
+        if (error.failure == AuthFailure.deviceSignedOut) {
+          await _endSession();
+          emit(const AuthState.signedOut());
+          onSignedOutElsewhere?.call(error.message);
           return;
         }
         // Network down, service down, unexpected body: the stored session is

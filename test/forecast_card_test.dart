@@ -200,14 +200,15 @@ void main() {
 
       // Three weeks out is not "soon", and pretending otherwise would turn the
       // forecast into a riddle.
-      expect(forecastDayName(today.add(const Duration(days: 21)), today), '1/4');
+      // 1 April 2026 is 12 Farvardin 1405: dates are in the Persian calendar.
+      expect(forecastDayName(today.add(const Duration(days: 21)), today), '12/1');
     });
 
     test('a day before today is still just a date', () {
       final today = DateTime(2026, 3, 11);
       expect(
         forecastDayName(today.subtract(const Duration(days: 2)), today),
-        '9/3',
+        '18/12', // 9 March 2026 = 18 Esfand 1404
       );
     });
   });

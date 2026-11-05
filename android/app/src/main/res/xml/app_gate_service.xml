@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The app lock's accessibility service. It listens only for "a window came to
+  the front" and reads only that window's package name: no screen content
+  (canRetrieveWindowContent is false), no gestures, no key events.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:notificationTimeout="100"
+    android:canRetrieveWindowContent="false"
+    android:isAccessibilityTool="false"
+    android:description="@string/app_gate_service_description" />

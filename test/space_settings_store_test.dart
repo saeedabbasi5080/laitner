@@ -30,28 +30,56 @@ void main() {
 
     await store.save(
       'space-1',
-      const SpaceSettingsData(dailyExcelFeed: feed),
+      const SpaceSettingsData(dailyExcelFeeds: [feed]),
     );
 
     final loaded = await store.load('space-1');
-    expect(loaded.dailyExcelFeed.enabled, isTrue);
-    expect(loaded.dailyExcelFeed.deckId, 'deck-1');
-    expect(loaded.dailyExcelFeed.importIds, ['file-a', 'file-b']);
-    expect(loaded.dailyExcelFeed.dailyLimit, 75);
-    expect(loaded.dailyExcelFeed.lastRunDay, 20500);
-    expect(loaded.dailyExcelFeed.lastRunAdded, 75);
+    expect(loaded.dailyExcelFeeds.single.enabled, isTrue);
+    expect(loaded.dailyExcelFeeds.single.deckId, 'deck-1');
+    expect(loaded.dailyExcelFeeds.single.importIds, ['file-a', 'file-b']);
+    expect(loaded.dailyExcelFeeds.single.dailyLimit, 75);
+    expect(loaded.dailyExcelFeeds.single.lastRunDay, 20500);
+    expect(loaded.dailyExcelFeeds.single.lastRunAdded, 75);
   });
 
-  test('an untouched space still reads the feed defaults', () async {
+  test('an untouched space has no feeds', () async {
     final loaded = await store.load('never-saved');
+    expect(loaded.dailyExcelFeeds, isEmpty);
+  });
 
-    expect(loaded.dailyExcelFeed.enabled, isFalse);
-    expect(loaded.dailyExcelFeed.deckId, isNull);
-    expect(loaded.dailyExcelFeed.importIds, isEmpty);
-    expect(
-      loaded.dailyExcelFeed.dailyLimit,
-      DailyExcelFeedSettings.defaultDailyLimit,
-    );
+  test('the single feed of an older version becomes the first of the list', () async {
+    SharedPreferences.setMockInitialValues({
+      'recall_space_settings_space-1':
+          '{"dailyExcelFeed":{"enabled":true,"deckId":"deck-1","importIds":["file-a"],"dailyLimit":30,"lastRunDay":20500}}',
+    });
+    final old = SpaceSettingsStore(await SharedPreferences.getInstance());
+
+    final feed = (await old.load('space-1')).dailyExcelFeeds.single;
+    expect((feed.id, feed.enabled, feed.deckId, feed.dailyLimit, feed.lastRunDay), ('', true, 'deck-1', 30, 20500));
+    expect(feed.importIds, ['file-a']);
+  });
+
+  test('an older feed that was never set up is not carried over', () async {
+    SharedPreferences.setMockInitialValues({
+      'recall_space_settings_space-1': '{"dailyExcelFeed":{"enabled":false,"importIds":[],"dailyLimit":200}}',
+    });
+    final old = SpaceSettingsStore(await SharedPreferences.getInstance());
+    expect((await old.load('space-1')).dailyExcelFeeds, isEmpty);
+  });
+
+  test('several decks keep their own feeds, and one is replaced by its id', () async {
+    final settings = const SpaceSettingsData()
+        .withFeed(const DailyExcelFeedSettings(id: 'f1', enabled: true, deckId: 'd1', dailyLimit: 10))
+        .withFeed(const DailyExcelFeedSettings(id: 'f2', enabled: true, deckId: 'd2', dailyLimit: 50))
+        .withFeed(const DailyExcelFeedSettings(id: 'f1', enabled: false, deckId: 'd1', dailyLimit: 20));
+    await store.save('space-1', settings);
+
+    final loaded = (await store.load('space-1')).dailyExcelFeeds;
+    expect(loaded.map((f) => (f.id, f.deckId, f.enabled, f.dailyLimit)), [
+      ('f1', 'd1', false, 20),
+      ('f2', 'd2', true, 50),
+    ]);
+    expect((await store.load('space-1')).withoutFeed('f1').dailyExcelFeeds.single.id, 'f2');
   });
 
   test('saving the feed does not wipe the other space settings', () async {
@@ -68,11 +96,13 @@ void main() {
     await store.save(
       'space-1',
       (await store.load('space-1')).copyWith(
-        dailyExcelFeed: const DailyExcelFeedSettings(
-          enabled: true,
-          deckId: 'deck-1',
-          importIds: ['file-a'],
-        ),
+        dailyExcelFeeds: const [
+          DailyExcelFeedSettings(
+            enabled: true,
+            deckId: 'deck-1',
+            importIds: ['file-a'],
+          ),
+        ],
       ),
     );
 
@@ -84,30 +114,32 @@ void main() {
       loaded.reviewSettings.dontKnowBehaviour,
       DontKnowBehaviour.stepBack,
     );
-    expect(loaded.dailyExcelFeed.enabled, isTrue);
+    expect(loaded.dailyExcelFeeds.single.enabled, isTrue);
   });
 
   test('the feed is included in the backup export and restore', () async {
     await store.save(
       'space-1',
       const SpaceSettingsData(
-        dailyExcelFeed: DailyExcelFeedSettings(
-          enabled: true,
-          deckId: 'deck-1',
-          importIds: ['file-a'],
-          dailyLimit: 40,
-          lastRunDay: 100,
-        ),
+        dailyExcelFeeds: [
+          DailyExcelFeedSettings(
+            enabled: true,
+            deckId: 'deck-1',
+            importIds: ['file-a'],
+            dailyLimit: 40,
+            lastRunDay: 100,
+          ),
+        ],
       ),
     );
 
     final exported = await store.exportAll();
-    expect(exported['space-1']!.dailyExcelFeed.dailyLimit, 40);
+    expect(exported['space-1']!.dailyExcelFeeds.single.dailyLimit, 40);
 
     await store.clearAll();
     await store.replaceAll(exported);
 
-    final restored = (await store.load('space-1')).dailyExcelFeed;
+    final restored = (await store.load('space-1')).dailyExcelFeeds.single;
     expect(restored.enabled, isTrue);
     expect(restored.deckId, 'deck-1');
     expect(restored.importIds, ['file-a']);
@@ -119,18 +151,18 @@ void main() {
     await store.save(
       'space-a',
       const SpaceSettingsData(
-        dailyExcelFeed: DailyExcelFeedSettings(enabled: true, deckId: 'da'),
+        dailyExcelFeeds: [DailyExcelFeedSettings(enabled: true, deckId: 'da')],
       ),
     );
     await store.save(
       'space-b',
       const SpaceSettingsData(
-        dailyExcelFeed: DailyExcelFeedSettings(enabled: true, deckId: 'db'),
+        dailyExcelFeeds: [DailyExcelFeedSettings(enabled: true, deckId: 'db')],
       ),
     );
 
-    expect((await store.load('space-a')).dailyExcelFeed.deckId, 'da');
-    expect((await store.load('space-b')).dailyExcelFeed.deckId, 'db');
+    expect((await store.load('space-a')).dailyExcelFeeds.single.deckId, 'da');
+    expect((await store.load('space-b')).dailyExcelFeeds.single.deckId, 'db');
   });
 
   test('a corrupt blob degrades to the defaults instead of throwing', () async {
@@ -140,7 +172,6 @@ void main() {
     final fresh = SpaceSettingsStore(await SharedPreferences.getInstance());
 
     final loaded = await fresh.load('space-1');
-    expect(loaded.dailyExcelFeed.enabled, isFalse);
-    expect(loaded.dailyExcelFeed.dailyLimit, 200);
+    expect(loaded.dailyExcelFeeds, isEmpty);
   });
 }

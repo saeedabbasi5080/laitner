@@ -145,6 +145,33 @@ void main() {
       expect(store.hasSession, isFalse);
     });
 
+    test('signs out and says why when another device has taken over', () async {
+      // One device per account: a sign-in elsewhere signed this one out, and the
+      // launch check is where it finds out.
+      store.write(StoredSession(
+        accessToken: 'old-device-token',
+        user: const AuthUser(id: 'u1', phoneNumber: '0912 111 2222'),
+      ));
+      api.failWith(AuthFailure.deviceSignedOut);
+      String? explained;
+      var sessionEnded = 0;
+      await cubit.close();
+      cubit = AuthCubit(
+        api: api,
+        tokenStore: store,
+        clock: () => now,
+        onSessionEnded: () async => sessionEnded++,
+        onSignedOutElsewhere: (message) => explained = message,
+      );
+
+      await cubit.restore();
+
+      expect(cubit.state.status, AuthStatus.signedOut);
+      expect(store.hasSession, isFalse);
+      expect(sessionEnded, 1);
+      expect(explained, isNotNull);
+    });
+
     test('discards an expired token without asking the server', () async {
       store.write(StoredSession(
         accessToken: 'expired-token',

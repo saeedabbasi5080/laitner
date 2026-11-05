@@ -68,6 +68,104 @@ void main() {
     );
   });
 
+  group('the first sync merges with the account', () {
+    SyncCollection account() => SyncCollection(
+          spaces: [space('s1')],
+          decks: [deck('d1', 's1')],
+          cards: [card('c1', 'd1')],
+          reviewLogs: [log('r1', t1)],
+        );
+
+    test('a new phone gets the account back and erases nothing', () async {
+      remote = FakeSyncRemote(stored: account());
+      useCase = SyncCollectionUseCase(
+        localDataSource: local,
+        remote: remote,
+        state: state,
+      );
+
+      await useCase.sync();
+
+      expect(local.cards.map((c) => c.id), ['c1']);
+      expect(local.reviewLogs.map((l) => l.id), ['r1']);
+      expect(remote.stored.cards.map((c) => c.id), ['c1']);
+    });
+
+    test('keeps both sides when both have data', () async {
+      remote = FakeSyncRemote(stored: account());
+      useCase = SyncCollectionUseCase(
+        localDataSource: local,
+        remote: remote,
+        state: state,
+      );
+      local.spaces.add(space('s2'));
+      local.decks.add(deck('d2', 's2'));
+      local.cards.add(card('c2', 'd2'));
+      local.reviewLogs.add(log('r2', t2));
+
+      await useCase.sync();
+
+      for (final side in [
+        (local.spaces, local.cards, local.reviewLogs),
+        (remote.stored.spaces, remote.stored.cards, remote.stored.reviewLogs),
+      ]) {
+        expect(side.$1.map((s) => s.id).toSet(), {'s1', 's2'});
+        expect(side.$2.map((c) => c.id).toSet(), {'c1', 'c2'});
+        expect(side.$3.map((l) => l.id).toSet(), {'r1', 'r2'});
+      }
+    });
+
+    test('this device wins where both hold the same id', () async {
+      remote = FakeSyncRemote(stored: account());
+      useCase = SyncCollectionUseCase(
+        localDataSource: local,
+        remote: remote,
+        state: state,
+      );
+      local.spaces.add(space('s1'));
+      local.decks.add(deck('d1', 's1'));
+      local.cards.add(card('c1', 'd1').copyWith(front: 'edited here'));
+
+      await useCase.sync();
+
+      expect(remote.stored.cards.single.front, 'edited here');
+      expect(local.cards.single.front, 'edited here');
+    });
+
+    test('a later sync does not merge, so a deletion here sticks', () async {
+      remote = FakeSyncRemote(stored: account());
+      useCase = SyncCollectionUseCase(
+        localDataSource: local,
+        remote: remote,
+        state: state,
+        clock: () => t3,
+      );
+      await useCase.sync();
+      expect(state.lastSyncedAt, t3);
+
+      local.cards.clear();
+      await useCase.sync();
+
+      expect(remote.stored.cards, isEmpty);
+    });
+
+    test('a failed first sync stays first, and merges next time', () async {
+      remote = FakeSyncRemote(stored: account())..failReplace = true;
+      useCase = SyncCollectionUseCase(
+        localDataSource: local,
+        remote: remote,
+        state: state,
+      );
+      local.spaces.add(space('s2'));
+
+      await expectLater(useCase.sync(), throwsStateError);
+
+      expect(state.lastSyncedAt, isNull);
+      // Already merged locally, so the failed upload cost nothing.
+      expect(local.spaces.map((s) => s.id).toSet(), {'s1', 's2'});
+    });
+  });
+
   group('a first sync from a device that has data', () {
     setUp(() {
       local.spaces.add(space('s1'));

@@ -48,15 +48,19 @@ void main() {
       expect(settings.enabled, isFalse);
       expect(settings.daysOfWeek, ReminderSettings.allDays);
       expect(settings.showDueCount, isTrue);
-      for (var weekday = DateTime.monday;
-          weekday <= DateTime.sunday;
-          weekday++) {
+      for (
+        var weekday = DateTime.monday;
+        weekday <= DateTime.sunday;
+        weekday++
+      ) {
         expect(settings.includesWeekday(weekday), isTrue);
       }
     });
 
     test('cannot toggle off the last selected day', () {
-      const onlyMonday = ReminderSettings(daysOfWeek: ReminderSettings.mondayBit);
+      const onlyMonday = ReminderSettings(
+        daysOfWeek: ReminderSettings.mondayBit,
+      );
 
       expect(onlyMonday.toggleWeekday(DateTime.monday), onlyMonday);
       expect(onlyMonday.includesWeekday(DateTime.monday), isTrue);
@@ -157,7 +161,9 @@ void main() {
         horizonDays: 7,
       );
 
-      expect(occurrences, hasLength(2));
+      // Two dated reminders and two weekly fallbacks, all on the masked days.
+      expect(occurrences.where((o) => !o.repeatsWeekly), hasLength(2));
+      expect(occurrences.where((o) => o.repeatsWeekly), hasLength(2));
       for (final occurrence in occurrences) {
         expect(
           occurrence.when.weekday == DateTime.wednesday ||
@@ -165,6 +171,40 @@ void main() {
           isTrue,
         );
       }
+    });
+
+    test(
+      'adds a weekly fallback per weekday, starting where the window ends',
+      () {
+        final occurrences = builder.call(spaces: [_source()], now: _now);
+        final dated = occurrences.where((o) => !o.repeatsWeekly).toList();
+        final fallbacks = occurrences.where((o) => o.repeatsWeekly).toList();
+
+        expect(fallbacks, hasLength(7));
+        expect(fallbacks.map((o) => o.when.weekday).toSet(), hasLength(7));
+
+        // Never before or alongside a dated reminder: it only takes over once
+        // nothing has refreshed the window.
+        final lastDated = dated
+            .map((o) => o.when)
+            .reduce((a, b) => a.isAfter(b) ? a : b);
+        for (final fallback in fallbacks) {
+          expect(fallback.when.isAfter(lastDated), isTrue);
+          expect(fallback.showDueCount, isFalse);
+        }
+      },
+    );
+
+    test('gives every reminder of every space its own id', () {
+      final occurrences = builder.call(
+        spaces: [
+          _source(spaceId: 'a'),
+          _source(spaceId: 'b'),
+        ],
+        now: _now,
+      );
+      final ids = occurrences.map((o) => o.notificationId).toList();
+      expect(ids.toSet(), hasLength(ids.length));
     });
 
     test('a disabled reminder produces nothing', () {
@@ -193,8 +233,9 @@ void main() {
       );
 
       final today = occurrences.firstWhere((item) => item.when.day == _now.day);
-      final later =
-          occurrences.firstWhere((item) => item.when.day == _now.day + 4);
+      final later = occurrences.firstWhere(
+        (item) => item.when.day == _now.day + 4,
+      );
 
       expect(today.dueCount, 1);
       expect(later.dueCount, 2);
@@ -261,24 +302,25 @@ void main() {
         now: _now,
       );
 
-      final crowdedIds = crowded
-          .map((item) => item.notificationId)
-          .toSet();
-      expect(alone.map((item) => item.notificationId).toSet().length,
-          alone.length);
+      final crowdedIds = crowded.map((item) => item.notificationId).toSet();
+      expect(
+        alone.map((item) => item.notificationId).toSet().length,
+        alone.length,
+      );
       expect(crowdedIds.length, crowded.length);
     });
 
     test('stays inside the planning horizon', () {
-      final occurrences = builder.call(
-        spaces: [_source()],
-        now: _now,
-      );
+      final occurrences = builder.call(spaces: [_source()], now: _now);
 
       final furthest = occurrences
+          .where((item) => !item.repeatsWeekly)
           .map((item) => item.when.difference(_now).inDays)
           .reduce((a, b) => a > b ? a : b);
-      expect(furthest, lessThanOrEqualTo(BuildReminderSchedule.horizonDays - 1));
+      expect(
+        furthest,
+        lessThanOrEqualTo(BuildReminderSchedule.horizonDays - 1),
+      );
     });
   });
 

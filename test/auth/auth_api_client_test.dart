@@ -426,12 +426,9 @@ void main() {
   });
 
   group('configured address', () {
-    test('the compiled-in address is the emulator loopback by default', () {
-      // Not asserting the value is wrong — asserting that the app knows it is
-      // the value it has to be told to change, which is what stops the failure
-      // from being silent.
-      expect(RemoteConfig.isConfigured, isFalse);
-      expect(RemoteConfig.apiBaseUrl, RemoteConfig.emulatorLoopback);
+    test('the compiled-in address is the test server by default', () {
+      expect(RemoteConfig.isConfigured, isTrue);
+      expect(RemoteConfig.apiBaseUrl, RemoteConfig.testServer);
     });
 
     test('flags a plaintext address, because the code travels over it', () {
@@ -449,7 +446,7 @@ void main() {
       await client.requestCode('0912 123 4567');
     });
 
-    test('a client left on the emulator loopback refuses before making a request',
+    test('a client with no address refuses before making a request',
         () async {
       // Refused up front, so the user is told the address is missing rather than
       // shown a connection error to a host that was never named.
@@ -459,7 +456,7 @@ void main() {
           called = true;
           return codeSent();
         }),
-        baseUrl: RemoteConfig.emulatorLoopback,
+        baseUrl: '',
       );
 
       expect(client.isConfigured, isFalse);

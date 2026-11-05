@@ -1,4 +1,5 @@
 import 'package:recall/core/utils/day_key.dart';
+import 'package:recall/core/utils/jalali.dart';
 import 'package:recall/domain/entities/flashcard.dart';
 import 'package:recall/domain/entities/leitner_box_config.dart';
 import 'package:recall/domain/entities/review_log.dart';
@@ -69,13 +70,13 @@ class ReviewBucket {
   double get passRate => answered == 0 ? 0 : knowCount / answered;
 
   ReviewBucket operator +(ReviewBucket other) => ReviewBucket(
-        start: start,
-        freshCount: freshCount + other.freshCount,
-        learningCount: learningCount + other.learningCount,
-        learnedCount: learnedCount + other.learnedCount,
-        knowCount: knowCount + other.knowCount,
-        dontKnowCount: dontKnowCount + other.dontKnowCount,
-      );
+    start: start,
+    freshCount: freshCount + other.freshCount,
+    learningCount: learningCount + other.learningCount,
+    learnedCount: learnedCount + other.learnedCount,
+    knowCount: knowCount + other.knowCount,
+    dontKnowCount: dontKnowCount + other.dontKnowCount,
+  );
 }
 
 /// One day of the future-due forecast.
@@ -108,7 +109,11 @@ class CalendarCell {
 
 /// One hour-of-day column of the hourly breakdown.
 class HourBucket {
-  const HourBucket({required this.hour, required this.knowCount, required this.dontKnowCount});
+  const HourBucket({
+    required this.hour,
+    required this.knowCount,
+    required this.dontKnowCount,
+  });
 
   /// Local hour of day, 0..23.
   final int hour;
@@ -156,6 +161,7 @@ class StatisticsSnapshot {
     required this.distribution,
     required this.dailyLoad,
     required this.overdueCount,
+    this.laterCount = 0,
     required this.totalCards,
     required this.masteredCards,
     required this.maxBox,
@@ -200,6 +206,9 @@ class StatisticsSnapshot {
   /// exactly like Anki, because they distort a forward-looking estimate.
   final int overdueCount;
 
+  /// Cards due after the last day of [forecast].
+  final int laterCount;
+
   final int totalCards;
   final int masteredCards;
 
@@ -234,11 +243,11 @@ class StatisticsSnapshot {
 
   double get knowRate => answeredReviews == 0 ? 0 : knowCount / answeredReviews;
 
-  double get masteryProgress => totalCards == 0 ? 0 : masteredCards / totalCards;
+  double get masteryProgress =>
+      totalCards == 0 ? 0 : masteredCards / totalCards;
 
-  int get answeredInRange => cumulativeAnswered.isEmpty
-      ? 0
-      : cumulativeAnswered.last;
+  int get answeredInRange =>
+      cumulativeAnswered.isEmpty ? 0 : cumulativeAnswered.last;
 }
 
 /// Pure statistics computation — no Flutter, no database.
@@ -306,6 +315,7 @@ class StatisticsAggregator {
       distribution: _buildDistribution(),
       dailyLoad: _dailyLoad(),
       overdueCount: _overdueCount(today),
+      laterCount: _laterCount(today),
       totalCards: cards.length,
       masteredCards: cards.where((card) => boxes.isLearnedBox(card.box)).length,
       maxBox: boxes.maxBox,
@@ -349,8 +359,13 @@ class StatisticsAggregator {
     return day > todayNum ? todayNum : day;
   }
 
-  List<ReviewBucket> _buildReviewBuckets(int startDay, int todayNum, BucketUnit unit) {
-    final weekOrigin = startDay - (weekdayOfDayNumber(startDay) - 1);
+  List<ReviewBucket> _buildReviewBuckets(
+    int startDay,
+    int todayNum,
+    BucketUnit unit,
+  ) {
+    // Weeks start on Saturday, as they do for the people using this app.
+    final weekOrigin = startDay - daysSinceSaturday(startDay);
     final monthOrigin = _monthIndex(startDay);
     final todayMonth = _monthIndex(todayNum);
 
@@ -389,37 +404,46 @@ class StatisticsAggregator {
       buckets[index] = ReviewBucket(
         start: current.start,
         freshCount:
-            current.freshCount + (_stateFor(log.boxBefore) == ReviewCardState.fresh ? 1 : 0),
-        learningCount: current.learningCount +
+            current.freshCount +
+            (_stateFor(log.boxBefore) == ReviewCardState.fresh ? 1 : 0),
+        learningCount:
+            current.learningCount +
             (_stateFor(log.boxBefore) == ReviewCardState.learning ? 1 : 0),
-        learnedCount: current.learnedCount +
+        learnedCount:
+            current.learnedCount +
             (_stateFor(log.boxBefore) == ReviewCardState.learned ? 1 : 0),
-        knowCount: current.knowCount + (log.rating == ReviewRating.know ? 1 : 0),
+        knowCount:
+            current.knowCount + (log.rating == ReviewRating.know ? 1 : 0),
         dontKnowCount:
-            current.dontKnowCount + (log.rating == ReviewRating.dontKnow ? 1 : 0),
+            current.dontKnowCount +
+            (log.rating == ReviewRating.dontKnow ? 1 : 0),
       );
     }
 
     return buckets;
   }
 
-  DateTime _bucketStart(int index, int startDay, int weekOrigin, BucketUnit unit) {
+  DateTime _bucketStart(
+    int index,
+    int startDay,
+    int weekOrigin,
+    BucketUnit unit,
+  ) {
     switch (unit) {
       case BucketUnit.day:
         return dateFromDayNumber(startDay + index);
       case BucketUnit.week:
         return dateFromDayNumber(weekOrigin + index * 7);
       case BucketUnit.month:
-        final origin = dateFromDayNumber(startDay);
-        return DateTime(origin.year + index ~/ 12, origin.month + index % 12);
+        return jalaliMonthStart(_monthIndex(startDay) + index);
     }
   }
 
-  /// Months between year 0 and the month containing [dayNumber].
-  int _monthIndex(int dayNumber) {
-    final date = dateFromDayNumber(dayNumber);
-    return date.year * 12 + date.month;
-  }
+  /// The Persian month containing [dayNumber], as a running number: the
+  /// users of this app count months in the Persian calendar, so a monthly bar
+  /// runs from the 1st of Aban to the 1st of Azar, not from a Gregorian 1st.
+  int _monthIndex(int dayNumber) =>
+      jalaliMonthIndex(dateFromDayNumber(dayNumber));
 
   ({List<int> answered, List<int> know}) _buildCumulative(
     List<ReviewBucket> buckets,
@@ -454,7 +478,11 @@ class StatisticsAggregator {
 
     return [
       for (var hour = 0; hour < 24; hour++)
-        HourBucket(hour: hour, knowCount: know[hour], dontKnowCount: dontKnow[hour]),
+        HourBucket(
+          hour: hour,
+          knowCount: know[hour],
+          dontKnowCount: dontKnow[hour],
+        ),
     ];
   }
 
@@ -466,13 +494,16 @@ class StatisticsAggregator {
     return ((hour % 24) + 24) % 24;
   }
 
+  /// Day 0 is today: cards due today belong in the list. Leaving them out
+  /// while also leaving them out of [_overdueCount] made a day with work to do
+  /// read as "nothing in the coming days". Overdue cards stay out, as in Anki.
   List<ForecastBucket> _buildForecast(DateTime today) {
     final perDay = List<int>.filled(forecastDays, 0);
 
     for (final card in cards) {
       if (boxes.isLearnedBox(card.box)) continue;
       final daysAway = daysBetween(today, nextReviewDate(card, boxes: boxes));
-      if (daysAway <= 0) continue;
+      if (daysAway < 0) continue;
       if (daysAway >= forecastDays) continue;
       perDay[daysAway]++;
     }
@@ -489,6 +520,18 @@ class StatisticsAggregator {
           );
         }(),
     ];
+  }
+
+  /// Cards due after the forecast window — the long intervals of the later
+  /// houses. Counted so "the days after" does not quietly drop them.
+  int _laterCount(DateTime today) {
+    var later = 0;
+    for (final card in cards) {
+      if (boxes.isLearnedBox(card.box)) continue;
+      final daysAway = daysBetween(today, nextReviewDate(card, boxes: boxes));
+      if (daysAway >= forecastDays) later++;
+    }
+    return later;
   }
 
   int _overdueCount(DateTime today) {
@@ -540,7 +583,14 @@ class StatisticsAggregator {
     var learned = 0;
 
     for (final card in cards) {
-      switch (_stateFor(card.box)) {
+      // "New" means never studied. A card that was answered wrong and sent
+      // back to the first house is being learned, not new.
+      final state =
+          _stateFor(card.box) == ReviewCardState.fresh &&
+              card.lastReviewed != null
+          ? ReviewCardState.learning
+          : _stateFor(card.box);
+      switch (state) {
         case ReviewCardState.fresh:
           fresh++;
         case ReviewCardState.learning:
@@ -563,7 +613,10 @@ class StatisticsAggregator {
     return ReviewCardState.learning;
   }
 
-  ({int total, int know, int dontKnow}) _reviewTotals(int startDay, int todayNum) {
+  ({int total, int know, int dontKnow}) _reviewTotals(
+    int startDay,
+    int todayNum,
+  ) {
     var total = 0;
     var know = 0;
     var dontKnow = 0;
@@ -580,7 +633,10 @@ class StatisticsAggregator {
     return (total: total, know: know, dontKnow: dontKnow);
   }
 
-  ({int current, int best}) _calculateStreaks(List<int> activeDays, int todayNum) {
+  ({int current, int best}) _calculateStreaks(
+    List<int> activeDays,
+    int todayNum,
+  ) {
     if (activeDays.isEmpty) return (current: 0, best: 0);
 
     var best = 1;
@@ -596,7 +652,8 @@ class StatisticsAggregator {
 
     final latestDistance = todayNum - activeDays.last;
     // A streak stays alive if the last study day was today or yesterday.
-    if (latestDistance > 1 || latestDistance < 0) return (current: 0, best: best);
+    if (latestDistance > 1 || latestDistance < 0)
+      return (current: 0, best: best);
 
     var current = 1;
     for (var index = activeDays.length - 1; index > 0; index--) {

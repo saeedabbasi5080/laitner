@@ -7,6 +7,7 @@ class SpaceSummary extends Equatable {
     required this.deckCount,
     required this.totalCards,
     required this.dueCards,
+    this.learnedCards = 0,
   });
 
   final LearningSpace space;
@@ -14,8 +15,20 @@ class SpaceSummary extends Equatable {
   final int totalCards;
   final int dueCards;
 
+  /// Cards past the space's last house.
+  final int learnedCards;
+
+  /// Cards still in a house, due or not.
+  int get learningCards => totalCards - learnedCards;
+
   @override
-  List<Object?> get props => [space, deckCount, totalCards, dueCards];
+  List<Object?> get props => [
+    space,
+    deckCount,
+    totalCards,
+    dueCards,
+    learnedCards,
+  ];
 }
 
 enum SpaceListStatus { initial, loading, loaded, error }

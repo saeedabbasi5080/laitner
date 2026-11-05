@@ -6,9 +6,11 @@ import 'package:recall/domain/repositories/excel_import_repository.dart';
 import 'package:recall/domain/usecases/add_selected_excel_rows_usecase.dart';
 import 'package:recall/domain/usecases/build_daily_excel_feed_plan.dart';
 
-/// What one space's feed did.
+/// What one feed did, or, summed, what a space's feeds did.
 class SpaceFeedRun {
   const SpaceFeedRun({
+    this.feedId,
+    this.deckId,
     required this.spaceId,
     required this.spaceName,
     required this.addedCount,
@@ -18,6 +20,9 @@ class SpaceFeedRun {
     this.skipped = false,
   });
 
+  /// The feed this run was for; null for a space's total or a space with none.
+  final String? feedId;
+  final String? deckId;
   final String spaceId;
   final String spaceName;
   final int addedCount;
@@ -54,7 +59,10 @@ class DailyExcelFeedReport {
   bool get didAnything => totalAdded > 0;
 }
 
-/// Releases one day's worth of queued Excel rows into each space's feed deck.
+/// Releases one day's worth of queued Excel rows into each feed's deck.
+///
+/// A space has a feed per deck, each with its own files and allowance, and
+/// each runs on its own: one feed having run today does not hold back another.
 ///
 /// Runs on app start and whenever the app returns to the foreground, next to
 /// the reminder sync: by then it is known how many cards are waiting, so any
@@ -87,22 +95,35 @@ class RunDailyExcelFeedUseCase {
 
     for (final space in spaces) {
       final settings = await spaceSettingsStore.load(space.id);
-      results.add(
-        await _runForSpace(
+      if (settings.dailyExcelFeeds.isEmpty) {
+        results.add(SpaceFeedRun(
           spaceId: space.id,
           spaceName: space.name,
-          feed: settings.dailyExcelFeed,
-          now: timestamp,
-          todayDay: todayDay,
-          force: force,
-        ),
-      );
+          addedCount: 0,
+          backlog: 0,
+          dailyLimit: 0,
+          skipped: true,
+        ));
+        continue;
+      }
+      for (final feed in settings.dailyExcelFeeds) {
+        results.add(
+          await _runFeed(
+            spaceId: space.id,
+            spaceName: space.name,
+            feed: feed,
+            now: timestamp,
+            todayDay: todayDay,
+            force: force,
+          ),
+        );
+      }
     }
 
     return DailyExcelFeedReport(spaces: results);
   }
 
-  /// The same work for one space, used by the settings screen's "add now"
+  /// Every feed of one space, summed, for the settings screen's "add now"
   /// button so a manual run reports to the person who pressed it.
   Future<SpaceFeedRun> runForSpaceId({
     required String spaceId,
@@ -113,17 +134,50 @@ class RunDailyExcelFeedUseCase {
     final settings = await spaceSettingsStore.load(spaceId);
     final name = await _spaceName(spaceId);
 
-    return _runForSpace(
+    final runs = <SpaceFeedRun>[
+      for (final feed in settings.dailyExcelFeeds)
+        await _runFeed(
+          spaceId: spaceId,
+          spaceName: name,
+          feed: feed,
+          now: timestamp,
+          todayDay: dayNumber(timestamp),
+          force: force,
+        ),
+    ];
+    return SpaceFeedRun(
       spaceId: spaceId,
       spaceName: name,
-      feed: settings.dailyExcelFeed,
+      addedCount: runs.fold(0, (sum, run) => sum + run.addedCount),
+      backlog: runs.fold(0, (sum, run) => sum + run.backlog),
+      dailyLimit: runs.fold(0, (sum, run) => sum + (run.skipped ? 0 : run.dailyLimit)),
+      duplicateCount: runs.fold(0, (sum, run) => sum + run.duplicateCount),
+      skipped: runs.every((run) => run.skipped),
+    );
+  }
+
+  /// One feed of one space, found by its id; null when it no longer exists.
+  Future<SpaceFeedRun?> runForFeed({
+    required String spaceId,
+    required String feedId,
+    DateTime? now,
+    bool force = false,
+  }) async {
+    final timestamp = now ?? DateTime.now();
+    final settings = await spaceSettingsStore.load(spaceId);
+    final feed = settings.dailyExcelFeeds.where((feed) => feed.id == feedId).firstOrNull;
+    if (feed == null) return null;
+    return _runFeed(
+      spaceId: spaceId,
+      spaceName: await _spaceName(spaceId),
+      feed: feed,
       now: timestamp,
       todayDay: dayNumber(timestamp),
       force: force,
     );
   }
 
-  Future<SpaceFeedRun> _runForSpace({
+  Future<SpaceFeedRun> _runFeed({
     required String spaceId,
     required String spaceName,
     required DailyExcelFeedSettings feed,
@@ -136,8 +190,13 @@ class RunDailyExcelFeedUseCase {
         deckId == null ||
         deckId.isEmpty ||
         feed.importIds.isEmpty ||
-        feed.dailyLimit <= 0) {
+        feed.dailyLimit <= 0 ||
+        // A deck deleted since the feed was set up: cards added to it would be
+        // cards nobody can see.
+        await localDataSource.getDeckById(deckId) == null) {
       return SpaceFeedRun(
+        feedId: feed.id,
+        deckId: deckId,
         spaceId: spaceId,
         spaceName: spaceName,
         addedCount: 0,
@@ -172,6 +231,8 @@ class RunDailyExcelFeedUseCase {
 
     if (plan.isEmpty) {
       return SpaceFeedRun(
+        feedId: feed.id,
+        deckId: deckId,
         spaceId: spaceId,
         spaceName: spaceName,
         addedCount: 0,
@@ -200,6 +261,8 @@ class RunDailyExcelFeedUseCase {
     );
 
     return SpaceFeedRun(
+      feedId: feed.id,
+      deckId: deckId,
       spaceId: spaceId,
       spaceName: spaceName,
       addedCount: added,
@@ -213,10 +276,7 @@ class RunDailyExcelFeedUseCase {
 
   Future<void> _saveFeed(String spaceId, DailyExcelFeedSettings feed) async {
     final settings = await spaceSettingsStore.load(spaceId);
-    await spaceSettingsStore.save(
-      spaceId,
-      settings.copyWith(dailyExcelFeed: feed),
-    );
+    await spaceSettingsStore.save(spaceId, settings.withFeed(feed));
   }
 
   Future<String> _spaceName(String spaceId) async {

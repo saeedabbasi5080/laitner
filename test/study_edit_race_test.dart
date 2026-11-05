@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:recall/domain/entities/deck.dart';
 import 'package:recall/domain/entities/deck_color.dart';
 import 'package:recall/domain/entities/flashcard.dart';
+import 'package:recall/domain/entities/leitner_box_config.dart';
 import 'package:recall/domain/entities/review_rating.dart';
 import 'package:recall/domain/entities/review_settings.dart';
 import 'package:recall/domain/repositories/deck_repository.dart';
@@ -209,7 +210,39 @@ void main() {
       await cubit.close();
     });
 
-    test('free review never raises it, since nothing is rescheduled', () async {
+    test('free review of a card that was not due never raises it', () async {
+      final today = DateTime.now();
+      final repo = _SlowRepo([
+        Flashcard(
+          id: 'f1',
+          deckId: 'd1',
+          front: 'Apple',
+          back: 'سیب',
+          box: 5,
+          lastReviewed: today,
+          createdAt: today,
+        ),
+      ]);
+      final cubit = _cubit(
+        const [],
+        repo: repo,
+        config: StudyConfig.byBox(5, spaceId: 's1'),
+      );
+      await cubit.load();
+
+      cubit.flipCard();
+      await cubit.rateCard(ReviewRating.know);
+
+      expect(cubit.state.justLearned, isEmpty);
+      expect(repo.cards.single.box, 5, reason: 'box is untouched');
+
+      await cubit.close();
+    });
+
+    test('an overdue card answered from its house graduates like any other',
+        () async {
+      // The bug: overdue cards in the last house, reviewed from the house
+      // screen, stayed overdue for ever instead of reaching the learned cards.
       final past = DateTime.now().subtract(const Duration(days: 20));
       final repo = _SlowRepo([
         Flashcard(
@@ -225,15 +258,53 @@ void main() {
       final cubit = _cubit(
         const [],
         repo: repo,
-        config: StudyConfig.byBox(5, spaceId: 's1'),
+        config: StudyConfig.byBox(5, spaceId: 's1', overdueOnly: true),
       );
       await cubit.load();
 
       cubit.flipCard();
       await cubit.rateCard(ReviewRating.know);
 
-      expect(cubit.state.justLearned, isEmpty);
-      expect(repo.cards.single.box, 5, reason: 'box is untouched');
+      expect(repo.cards.single.box, 6, reason: 'past the last house: learned');
+      expect(cubit.state.justLearned, hasLength(1));
+
+      await cubit.close();
+    });
+
+    test('with house 6 enabled, its overdue cards graduate from house 6',
+        () async {
+      const boxes = LeitnerBoxConfig(box6Enabled: true);
+      final past = DateTime.now()
+          .subtract(Duration(days: boxes.intervalDays(6) + 1));
+      final repo = _SlowRepo([
+        Flashcard(
+          id: 'f1',
+          deckId: 'd1',
+          front: 'Apple',
+          back: 'سیب',
+          box: 6,
+          lastReviewed: past,
+          createdAt: past,
+        ),
+      ]);
+      final cubit = _cubit(
+        const [],
+        repo: repo,
+        config: StudyConfig.byBox(6, spaceId: 's1', overdueOnly: true)
+            .applySpaceSettings(
+              randomOrder: false,
+              defaultReversed: false,
+              boxConfig: boxes,
+            ),
+      );
+      await cubit.load();
+      expect(cubit.state.queue, hasLength(1), reason: 'it is overdue');
+
+      cubit.flipCard();
+      await cubit.rateCard(ReviewRating.know);
+
+      expect(repo.cards.single.box, 7);
+      expect(boxes.isLearnedBox(repo.cards.single.box), isTrue);
 
       await cubit.close();
     });

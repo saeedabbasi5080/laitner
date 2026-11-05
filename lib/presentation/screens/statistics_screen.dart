@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recall/core/localization/app_strings.dart';
 import 'package:recall/core/theme/app_theme.dart';
+import 'package:recall/core/utils/jalali.dart';
 import 'package:recall/domain/usecases/statistics_aggregator.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/statistics/statistics_cubit.dart';
@@ -583,12 +584,11 @@ class _EmptyHint extends StatelessWidget {
   }
 }
 
-/// Short date under the axis: day and month, or month and year for month
-/// buckets, so a multi-year axis stays legible.
+/// Short Persian-calendar date under the axis: day and month, or month and
+/// year for month buckets, so a multi-year axis stays legible.
 String _periodLabel(DateTime day, BucketUnit unit) => switch (unit) {
-      BucketUnit.day => '${day.day}/${day.month}',
-      BucketUnit.week => '${day.day}/${day.month}',
-      BucketUnit.month => '${day.month}/${day.year % 100}',
+      BucketUnit.day || BucketUnit.week => jalaliDayMonth(day),
+      BucketUnit.month => jalaliMonthYear(day),
     };
 
 /// Anki keeps the review history of deleted cards and excludes it from a single

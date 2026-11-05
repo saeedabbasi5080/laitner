@@ -24,24 +24,41 @@ Future<void> runSpaceMigration({
 }) async {
   if (prefs.getBool(defaultSpaceMigrationKey) == true) return;
 
-  var spaces = await localDataSource.getAllSpaces();
-  final defaultSpaceId = spaces.isNotEmpty
-      ? spaces.first.id
-      : idGenerator.generateId();
+  final spaces = await localDataSource.getAllSpaces();
+  final decks = await localDataSource.getAllDecks();
+  final reviewLogs = await localDataSource.getAllReviewLogs();
+  final excelImports = await excelImportStore.getAll();
 
-  if (spaces.isEmpty) {
-    final defaultSpace = LearningSpace(
-      id: defaultSpaceId,
-      name: 'فضای من',
-      color: DeckColor.lavender,
-      createdAt: DateTime.now(),
-      sortOrder: 0,
+  // A space is created only to give legacy rows somewhere to live. A fresh
+  // install has none, and must stay empty: a device holding a space looks to
+  // sync like a device with a collection of its own, and its first sync would
+  // upload that empty space over the account it had just signed in to.
+  final hasOrphans = decks.any((deck) => deck.spaceId.isEmpty) ||
+      reviewLogs.any((log) => log.spaceId.isEmpty) ||
+      excelImports.any((import) => import.spaceId.isEmpty);
+
+  final String defaultSpaceId;
+  if (spaces.isNotEmpty) {
+    defaultSpaceId = spaces.first.id;
+  } else if (hasOrphans) {
+    defaultSpaceId = idGenerator.generateId();
+    await localDataSource.addSpace(
+      LearningSpace(
+        id: defaultSpaceId,
+        name: 'فضای من',
+        color: DeckColor.lavender,
+        createdAt: DateTime.now(),
+        sortOrder: 0,
+      ),
     );
-    await localDataSource.addSpace(defaultSpace);
-    spaces = [defaultSpace];
+  } else {
+    // Legacy preferences alone have nothing to attach to; the space the user
+    // creates starts from the defaults.
+    await prefs.setBool(defaultSpaceMigrationKey, true);
+    return;
   }
 
-  for (final deck in await localDataSource.getAllDecks()) {
+  for (final deck in decks) {
     if (deck.spaceId.isEmpty) {
       await localDataSource.updateDeck(
         deck.copyWith(spaceId: defaultSpaceId),
@@ -54,7 +71,6 @@ Future<void> runSpaceMigration({
       deck.id: deck.spaceId,
   };
 
-  final reviewLogs = await localDataSource.getAllReviewLogs();
   final migratedLogs = reviewLogs
       .map(
         (log) => log.spaceId.isNotEmpty
@@ -75,7 +91,6 @@ Future<void> runSpaceMigration({
     await localDataSource.replaceReviewLogs(migratedLogs);
   }
 
-  final excelImports = await excelImportStore.getAll();
   if (excelImports.any((import) => import.spaceId.isEmpty)) {
     await excelImportStore.replaceAll(
       excelImports

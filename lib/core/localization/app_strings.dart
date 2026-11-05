@@ -237,6 +237,78 @@ abstract final class AppStrings {
   static const todaysMistakesHint = 'کارت‌هایی که امروز اشتباه جواب دادی';
   static const noMistakesToday = 'امروز هیچ اشتباهی نداشتی. عالیه!';
   static const reviewMistakesNow = 'مرور دوباره';
+  static const reviewTodaysMistakes = 'مرور کارت‌های اشتباه امروز';
+
+  // قفل برنامه‌ها
+  static String gateTitle(String app) => 'قبل از باز شدن $app';
+  static String gateRemaining(int count) =>
+      count == 1 ? 'یک کارت مانده' : '$count کارت مانده';
+  static const appGate = 'قفل برنامه‌ها';
+  static const appGateHint =
+      'قبل از باز شدن برنامه‌هایی که انتخاب می‌کنی، چند کارت امروز را مرور کن.';
+  static const appGateAndroidOnly = 'این قابلیت فقط در اندروید کار می‌کند.';
+  static const appGateEnable = 'فعال باشد';
+  static const appGateSpace = 'کارت‌ها از کدام فضاها';
+  static const appGatePickSpace = 'یک فضا انتخاب کن';
+  static const appGateAllSpaces = 'همه‌ی فضاها';
+  static const appGateMode = 'چه وقت باز شود';
+  static String appGateModePerOpen(int n) =>
+      'هر بار $n کارت، تا وقتی کارت امروز مانده';
+  static const appGateModePerOpenHint =
+      'هر بار که برنامه را باز می‌کنی چند کارت می‌پرسد. وقتی کارت‌های امروز تمام شد، دیگر نمی‌پرسد.';
+  static const appGateModeAllDue = 'اول همه‌ی کارت‌های امروز';
+  static const appGateModeAllDueHint =
+      'تا همه‌ی کارت‌های امروز مرور نشده، برنامه‌ها باز نمی‌شوند.';
+  static const appGateCardsPerOpen = 'تعداد کارت در هر بار';
+  static const appGateGrace = 'بعد از باز شدن، تا چند دقیقه دوباره نپرسد';
+  static String appGateGraceMinutes(int minutes) => '$minutes دقیقه';
+  static const appGateApps = 'برنامه‌ها';
+  static const appGateAppsHint =
+      'تنظیمات گوشی، شماره‌گیر و صفحه‌ی اصلی گوشی هیچ‌وقت قفل نمی‌شوند.';
+  static const appGateSearch = 'جستجوی برنامه';
+  static String appGateSelected(int count) => '$count برنامه انتخاب شده';
+  static const appGatePermissions = 'دسترسی‌ها';
+  static const appGateAccessibility = 'سرویس دسترس‌پذیری';
+  static const appGateAccessibilityHint =
+      'برای اینکه بفهمد کدام برنامه باز می‌شود';
+  static const appGateOverlay = 'نمایش روی برنامه‌های دیگر';
+  static const appGateOverlayHint = 'برای اینکه کارت‌ها جلوی برنامه نمایش داده شوند';
+  static const appGateGranted = 'روشن';
+  static const appGateGrant = 'روشن کردن';
+  static const appGateOpenSettings = 'رفتن به تنظیمات و روشن کردن';
+  static const appGateAccessibilitySteps =
+      'در صفحه‌ای که باز می‌شود بخش «برنامه‌های نصب‌شده» (Installed apps) را بزن، بعد «قفل برنامه‌های آتی‌لرن» را روشن کن و «اجازه» را بزن.';
+  static const appGateRestrictedTitle =
+      'کلید خاکستری بود یا نوشت «تنظیم محدودشده»؟';
+  static const appGateRestrictedIntro =
+      'اندروید این کار را برای هر برنامه‌ای که از فایل APK نصب شده انجام می‌دهد. یک بار این دو قدم را انجام بده:';
+  static const appGateRestrictedStep1 =
+      'دکمه‌ی زیر را بزن. در صفحه‌ی اطلاعات برنامه، منوی ⋮ بالای صفحه را بزن و «اجازه دادن به تنظیمات محدودشده» را انتخاب کن (Allow restricted settings). ممکن است رمز یا اثر انگشت گوشی را بخواهد.';
+  static const appGateRestrictedStep2 =
+      'برگرد و دوباره دکمه‌ی «رفتن به تنظیمات و روشن کردن» بالا را بزن. حالا کلید روشن می‌شود.';
+  static const appGateRestrictedNote =
+      'منوی ⋮ فقط بعد از اینکه یک بار سعی کرده باشی سرویس را روشن کنی ظاهر می‌شود.';
+  static const appGateOverlaySteps =
+      'در صفحه‌ای که باز می‌شود کلید «اجازه نمایش روی برنامه‌های دیگر» را روشن کن، بعد برگرد.';
+  static const appGateOpenAppInfo = 'باز کردن اطلاعات برنامه';
+  static const appGateNotReady =
+      'تا هر دو دسترسی روشن نشده‌اند، قفل کار نمی‌کند.';
+  static const appGateDisclosureTitle = 'قبل از روشن کردن';
+  static const appGateDisclosure =
+      'آتی‌لرن برای این قابلیت از «سرویس دسترس‌پذیری» اندروید استفاده می‌کند.\n\n'
+      '• فقط نام برنامه‌ای را که باز می‌شود می‌بیند، تا اگر جزو برنامه‌های انتخابی تو بود، اول کارت‌ها را نشان دهد.\n'
+      '• محتوای صفحه، پیام‌ها یا هر چیزی که تایپ می‌کنی را نمی‌خواند.\n'
+      '• هیچ اطلاعاتی از این سرویس ذخیره یا به جایی فرستاده نمی‌شود.\n\n'
+      'هر وقت بخواهی می‌توانی از همین صفحه یا تنظیمات دسترس‌پذیری گوشی خاموشش کنی.';
+  static const appGateDisclosureAccept = 'موافقم، ادامه بده';
+  static const appGateDisclosureDecline = 'نه';
+  static const mistakePracticeBadge =
+      'تمرین اشتباه‌ها؛ خانه‌ی کارت‌ها و آمار تغییر نمی‌کند';
+  static String todaysMistakesCount(int count) =>
+      '$count کارت امروز اشتباه جواب داده شد';
+  static const reviewAllMistakes = 'مرور دوباره‌ی همه';
+  static String seeMistakes(int count) => 'دیدن $count کارت اشتباه';
+  static const sessionMistakesTitle = 'کارت‌های اشتباه این مرور';
   static String mistakeCount(int count) => '$count کارت';
   static String moreCards(int count) => 'و $count کارت دیگر';
 
@@ -274,6 +346,42 @@ abstract final class AppStrings {
   static String dailyFeedFileCounts(int pending, int added) =>
       '$pending در صف • $added اضافه‌شده';
   static const dailyFeedNoDeckYet = 'اول در این فضا یک دسته بساز';
+  static const dailyFeedListHint =
+      'هر دسته می‌تواند ورود روزانه‌ی خودش را داشته باشد: فایل‌های خودش و تعداد روزانه‌ی خودش.';
+  static const dailyFeedAdd = 'ورود روزانه‌ی جدید';
+  static const dailyFeedEditTitle = 'ورود روزانه';
+  static const dailyFeedNewTitle = 'ورود روزانه‌ی جدید';
+  static const dailyFeedEnabled = 'فعال';
+  static const dailyFeedSave = 'ذخیره';
+  static const dailyFeedDelete = 'حذف این ورود روزانه';
+  static const dailyFeedDeleteConfirm =
+      'ورود روزانه حذف می‌شود. کارت‌هایی که تا حالا اضافه شده‌اند و فایل‌های کتابخانه سر جایشان می‌مانند.';
+  static const dailyFeedDeckMissing = 'دسته حذف شده است';
+  static const dailyFeedDeckTaken = 'این دسته ورود روزانه‌ی دیگری دارد';
+  static const dailyFeedPaused = 'متوقف';
+  static const dailyFeedFileTaken = 'در ورود روزانه‌ی دسته‌ی دیگر';
+  static String dailyFeedSummary(int limit, int backlog) =>
+      'روزی ${_toPersianDigits('$limit')} کارت · ${_toPersianDigits('$backlog')} در صف';
+
+  // افزودن تدریجی از مجموعه‌های آماده
+  static const catalogGradual = 'افزودن تدریجی';
+  static const catalogGradualHint =
+      'لغت‌ها در «کتابخانه اکسل» این فضا صف می‌شوند و هر روز به تعدادی که انتخاب می‌کنید وارد دسته می‌شوند. '
+      'دسته‌ی اول همین حالا اضافه می‌شود. بعداً از تنظیمات فضا ← «ورود روزانه از اکسل» می‌توانید سرعت را عوض یا متوقفش کنید.';
+  static const catalogGradualPerDay = 'هر روز چند کارت؟';
+  static const catalogGradualStart = 'شروع افزودن تدریجی';
+  static const catalogGradualCustom = 'عدد دلخواه';
+  static String catalogGradualEstimate(int words, int perDay) {
+    final days = perDay <= 0 ? 0 : (words + perDay - 1) ~/ perDay;
+    return '${_toPersianDigits('$words')} لغت، روزی ${_toPersianDigits('$perDay')} تا: حدود ${_toPersianDigits('$days')} روز';
+  }
+  static String catalogGradualJoins(int oldLimit) =>
+      'این دسته از قبل ورود روزانه دارد (روزی ${_toPersianDigits('$oldLimit')} کارت). '
+      'این مجموعه به انتهای صف آن اضافه می‌شود و عدد روزانه همان عددی می‌شود که اینجا انتخاب کنید.';
+  static String catalogGradualQueued(int queued, int today, int perDay, String deck) => today > 0
+      ? '${_toPersianDigits('$queued')} لغت در صف «$deck» قرار گرفت؛ ${_toPersianDigits('$today')} تا همین حالا اضافه شد و بقیه روزی ${_toPersianDigits('$perDay')} تا.'
+      : '${_toPersianDigits('$queued')} لغت در صف «$deck» قرار گرفت و از فردا روزی ${_toPersianDigits('$perDay')} تا اضافه می‌شود.';
+  static const catalogGradualNothingNew = 'همه‌ی لغت‌های این مجموعه از قبل در این فضا هست.';
 
   // Simplified statistics screen.
   static const statsToday = 'امروز';
@@ -391,7 +499,7 @@ abstract final class AppStrings {
   static const reviewScheduleHint =
       'تعداد کارت‌ها بر اساس زمان سررسید بعدی تفکیک شده است';
   static const freeReviewPreviewHint =
-      'مرور آزاد فقط برای تمرین است و خانه یا زمان‌بندی کارت را تغییر نمی‌دهد.';
+      'مرور آزاد برای تمرین است و خانه‌ی کارت‌هایی را که هنوز نوبتشان نرسیده تغییر نمی‌دهد. کارت‌هایی که نوبتشان رسیده (معوق یا امروز) مثل مرور عادی جابه‌جا می‌شوند.';
   static const freeReviewStudyBadge =
       'مرور تمرینی؛ پاسخ‌ها خانه را تغییر نمی‌دهند';
   static const normalReview = 'نرمال (رو به پشت)';
@@ -470,6 +578,9 @@ abstract final class AppStrings {
   static const reminderShowCount = 'نمایش تعداد کارت در یادآوری';
   static const reminderShowCountHint = 'اگر خاموش باشد، یادآوری بدون عدد ارسال می‌شود';
   static const reminderPermissionNeeded = 'برای دریافت یادآوری، اجازه‌ی اعلان بدهید';
+  static const reminderBatteryRestricted =
+      'صرفه‌جویی باتری برای این برنامه روشن است و ممکن است یادآورها، مخصوصاً وقتی چند روز برنامه را باز نکرده‌اید، نرسند. محدودیت را بردارید. در گوشی‌های سامسونگ برنامه را از «Sleeping apps» هم بیرون بیاورید.';
+  static const reminderBatteryAllow = 'برداشتن محدودیت باتری';
   static const reminderUnsupported =
       'زمان‌بندی یادآوری روی این سیستم‌عامل پشتیبانی نمی‌شود.';
   static const reminderBlocked =
@@ -536,7 +647,7 @@ abstract final class AppStrings {
   static const about = 'درباره';
   static const backup = 'پشتیبان‌گیری';
   static const backupHint =
-      'یک فایل روی همین گوشی ذخیره می‌شود. اگر برنامه پاک شد یا مشکلی پیش آمد، می‌توانید لغت‌ها، دسته‌ها، فضاها و پیشرفت مرور را از همان فایل برگردانید.';
+      'یک فایل روی همین گوشی ذخیره می‌شود و اگر وارد حساب شده باشید، هم‌زمان روی سرور هم ذخیره می‌شود. اگر برنامه پاک شد یا گوشی را عوض کردید، می‌توانید لغت‌ها، دسته‌ها، فضاها و پیشرفت مرور را برگردانید.';
   static const exportBackup = 'تهیه نسخه پشتیبان';
   static const restoreBackup = 'بازگردانی از نسخه پشتیبان';
   static const restoreBackupWarning =
@@ -546,6 +657,13 @@ abstract final class AppStrings {
   static const backupInvalid =
       'این فایل نسخه پشتیبان آتی‌لرن نیست یا آسیب دیده است.';
   static const backupFailed = 'پشتیبان‌گیری انجام نشد. دوباره تلاش کنید.';
+  static const backupPhoneSaved = 'روی گوشی ذخیره شد.';
+  static const backupPhoneFailed = 'ذخیره روی گوشی انجام نشد.';
+  static const backupServerSaved = 'روی سرور ذخیره شد.';
+  static const backupServerFailed =
+      'ارسال به سرور انجام نشد؛ با اتصال بعدی به اینترنت خودکار ارسال می‌شود.';
+  static const backupServerNeedsSignIn =
+      'برای پشتیبان روی سرور، وارد حساب شوید.';
   static const aboutApp = 'درباره برنامه';
   static const aboutDeveloper = 'درباره توسعه‌دهنده';
   static const appName = 'Atilearn';
@@ -584,7 +702,7 @@ abstract final class AppStrings {
   static const pickSpaceForReview = 'کدام فضا را مرور می‌کنی؟';
   static const pickSpaceForStats = 'آمار کدام فضا را می‌بینی؟';
   static const pickSpaceForCards = 'کارت‌های کدام فضا را می‌بینی؟';
-  static const reviewedCardsHome = 'کارت‌های بازبینی شده';
+  static const reviewedCardsHome = 'همه‌ی کارت‌ها';
   static const spaceCardsEmpty = 'هنوز کارتی در این فضا نیست.';
   static const createSpaceFirst = 'اول یک فضای یادگیری بساز.';
 
@@ -628,7 +746,8 @@ abstract final class AppStrings {
       'وارد نشده‌اید. اگر دستگاهتان را گم کنید یا اطلاعاتش پاک شود، کارت‌هایتان برنمی‌گردد و ما نمی‌توانیم کمکی کنیم. برنامه بدون ورود هم کامل کار می‌کند.';
   static const notSignedInWarningShort =
       'بدون ورود، در صورت گم شدن دستگاه کارت‌هایتان قابل بازیابی نیست.';
-  static const backupComingSoon = 'پشتیبان‌گیری خودکار در نسخه‌های بعدی اضافه می‌شود.';
+  static const backupAutomatic =
+      'کارت‌ها هر شب حدود ساعت ۳ و هر بار که برنامه باز می‌شود با سرور همگام می‌شوند.';
 
   static String secondsLeft(int seconds) =>
       '${_toPersianDigits(seconds.toString())} ثانیه';
@@ -723,6 +842,74 @@ abstract final class AppStrings {
   static const yes = 'بله';
   static const no = 'خیر';
   static const close = 'بستن';
+
+  // مجموعه‌های آماده
+  static const catalogTitle = 'مجموعه‌های آماده';
+  static const catalogSubtitle = 'لغت‌های دسته‌بندی‌شده برای افزودن به دسته‌ها یا دانلود اکسل';
+  static const catalogPickLanguage = 'چه زبانی یاد می‌گیرید؟';
+  static const catalogEmpty = 'هنوز مجموعه‌ای منتشر نشده است.';
+  static const catalogNodeEmpty = 'اینجا چیزی نیست.';
+  static const catalogLoadFailed = 'دریافت مجموعه‌ها ناموفق بود.';
+  static const catalogNotConfigured = 'نشانی سرور تنظیم نشده است.';
+  static const catalogTopics = 'موضوعی';
+  static const catalogAddToDeck = 'افزودن به دسته';
+  static const catalogDownloadExcel = 'دانلود اکسل';
+  static const catalogLoadingWords = 'در حال دریافت لغت‌ها…';
+  static const catalogNewDeck = 'دسته‌ی جدید';
+  static const catalogExistingDeck = 'دسته‌ی موجود';
+  static const catalogDeckName = 'نام دسته';
+  static const catalogPickDeck = 'انتخاب دسته';
+  static const catalogNoDecks = 'این فضا هنوز دسته‌ای ندارد.';
+  static const catalogSpace = 'فضا';
+  static const catalogIncludePronunciation = 'تلفظ زیر معنی بیاید';
+  static const catalogTagLessons = 'برچسب درس روی هر کارت';
+  static const catalogAdd = 'افزودن';
+  static const catalogAdding = 'در حال افزودن…';
+  static const catalogAddFailed = 'افزودن لغت‌ها ناموفق بود.';
+  static const catalogExcelSaved = 'فایل اکسل ذخیره شد. می‌توانید بعداً از «کتابخانه اکسل» واردش کنید.';
+  static const catalogExcelFailed = 'ساخت فایل اکسل ناموفق بود.';
+  static const catalogNoWords = 'این مجموعه لغتی ندارد.';
+  static String catalogWords(int count) => '${_toPersianDigits('$count')} لغت';
+  static String catalogLists(int count) => '${_toPersianDigits('$count')} مجموعه';
+  static String catalogAdded(int added, int skipped, String deck) => skipped == 0
+      ? '${_toPersianDigits('$added')} کارت به «$deck» اضافه شد.'
+      : '${_toPersianDigits('$added')} کارت به «$deck» اضافه شد؛ ${_toPersianDigits('$skipped')} لغت از قبل در این فضا بود.';
+  static const catalogBulkTitle = 'افزودن یکجا';
+  static String catalogBulkWarning(int count) =>
+      '${_toPersianDigits('$count')} کارت همین حالا یکجا به دسته اضافه می‌شود و همه از خانه‌ی اول شروع می‌کنند؛ '
+      'یعنی از فردا ${_toPersianDigits('$count')} کارت تازه برای مرور دارید.\n\n'
+      'اگر می‌خواهید کارت‌ها کم‌کم و هر روز چندتا اضافه شوند، «افزودن تدریجی» را انتخاب کنید.\n\n'
+      'از افزودن یکجا مطمئن هستید؟';
+  static const catalogBulkConfirm = 'بله، همه را اضافه کن';
+  /// Above this many cards the direct add asks first.
+  static const catalogBulkWarnAbove = 50;
+  static String catalogPreviewMore(int count) => 'و ${_toPersianDigits('$count')} لغت دیگر';
+
+  /// A BCP-47 tag as the learner reads it.
+  static String languageName(String? tag) => switch (tag) {
+        null || '' => catalogTopics,
+        'en' => 'انگلیسی',
+        'en-US' => 'انگلیسی (آمریکایی)',
+        'en-GB' => 'انگلیسی (بریتانیایی)',
+        'de' => 'آلمانی',
+        'fr' => 'فرانسوی',
+        'es' || 'es-MX' => 'اسپانیایی',
+        'tr' => 'ترکی استانبولی',
+        'ar' || 'ar-EG' || 'ar-IQ' || 'ar-AE' => 'عربی',
+        'it' => 'ایتالیایی',
+        'ru' => 'روسی',
+        'zh' || 'zh-Hans' || 'zh-Hant' => 'چینی',
+        'ja' => 'ژاپنی',
+        'ko' => 'کره‌ای',
+        'fa' => 'فارسی',
+        'pt' || 'pt-PT' || 'pt-BR' => 'پرتغالی',
+        'nl' => 'هلندی',
+        'sv' => 'سوئدی',
+        'ku' => 'کردی',
+        'az' => 'آذربایجانی',
+        _ => tag,
+      };
+
 }
 
 /// Rewrites Latin digits as Persian ones.

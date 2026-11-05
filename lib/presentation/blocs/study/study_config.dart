@@ -111,8 +111,9 @@ class StudyConfig {
 
   /// A retry session over the cards that were answered wrongly today.
   ///
-  /// Answers still feed the normal scheduler, so a card that is answered
-  /// correctly here moves forward as it normally would.
+  /// Practice only: answers change no house, date or statistic, so it can be
+  /// repeated as often as wanted and the cards return on their normal
+  /// schedule. See `StudyCubit.rateCard`.
   StudyConfig withMistakeRetry(List<String> cardIds) => withSessionOptions(
     randomOrder: randomOrder,
     reversed: reversed,

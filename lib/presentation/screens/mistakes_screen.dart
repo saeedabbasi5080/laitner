@@ -5,7 +5,9 @@ import 'package:recall/core/theme/app_theme.dart';
 import 'package:recall/domain/usecases/get_todays_mistakes_usecase.dart';
 import 'package:recall/injection.dart';
 import 'package:recall/presentation/blocs/mistakes/mistakes_cubit.dart';
+import 'package:recall/presentation/blocs/study/study_config.dart';
 import 'package:recall/presentation/screens/study_screen.dart';
+import 'package:recall/presentation/widgets/mistake_card_list.dart';
 import 'package:recall/presentation/widgets/soft_ui.dart';
 
 /// Lists the cards answered wrongly today so any deck's mistakes can be
@@ -64,15 +66,29 @@ class _MistakesView extends StatelessWidget {
                       ),
                     ),
                   )
-                else
+                else ...[
+                  if (decks.length > 1)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () => _open(
+                            context,
+                            context.read<MistakesCubit>().retryAllConfig(),
+                          ),
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text(AppStrings.reviewAllMistakes),
+                        ),
+                      ),
+                    ),
                   Expanded(
                     child: RefreshIndicator(
                       onRefresh: context.read<MistakesCubit>().load,
                       child: ListView.separated(
                         padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
                         itemCount: decks.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 12),
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final deck = decks[index];
                           final mistakes = state.mistakesFor(deck.id);
@@ -85,6 +101,7 @@ class _MistakesView extends StatelessWidget {
                       ),
                     ),
                   ),
+                ],
               ],
             );
           },
@@ -94,14 +111,19 @@ class _MistakesView extends StatelessWidget {
   }
 
   void _retry(BuildContext context, String deckId, List<MistakeCard> mistakes) {
+    _open(context, context.read<MistakesCubit>().retryConfig(deckId));
+  }
+
+  /// Opens the retry, and reloads afterwards so the list reflects it.
+  void _open(BuildContext context, StudyConfig config) {
     final cubit = context.read<MistakesCubit>();
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => StudyScreen(
-          config: cubit.retryConfig(deckId),
-        ),
-      ),
-    );
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(builder: (_) => StudyScreen(config: config)),
+        )
+        .then((_) {
+          if (!cubit.isClosed) cubit.load();
+        });
   }
 }
 
@@ -156,35 +178,11 @@ class _MistakeDeckCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final mistake in mistakes.take(12))
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.muted,
-                    borderRadius: BorderRadius.circular(AppRadii.pill),
-                  ),
-                  child: Text(
-                    mistake.front,
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                ),
-              if (mistakes.length > 12)
-                Text(
-                  AppStrings.moreCards(mistakes.length - 12),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: colors.mutedForeground,
-                  ),
-                ),
-            ],
+          const SizedBox(height: 4),
+          // Every card with its answer, so the list can be read through before
+          // deciding to review it — the point of coming back hours later.
+          MistakeCardList(
+            cards: [for (final mistake in mistakes) mistake.card],
           ),
           const SizedBox(height: 12),
           Align(

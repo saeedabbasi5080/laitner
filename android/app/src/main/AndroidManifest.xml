@@ -10,11 +10,17 @@
          are needed here because scheduled notifications are app-level config. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Lets the reminder settings ask Android to stop delaying the reminders. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- App lock: lets the flashcard screen appear in front of the app being
+         opened (Android 10+ only allows that with this, granted by the user). -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <application
         android:label="Atilearn"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:largeHeap="true">
         <meta-data
             android:name="io.flutter.embedding.android.EnableImpeller"
@@ -41,6 +47,37 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- App lock: the flashcards shown before a chosen app opens. Its own
+             task, out of the recent-apps list. -->
+        <activity
+            android:name=".gate.GateActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.recall.recall.gate"
+            android:excludeFromRecents="true"
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <meta-data
+              android:name="io.flutter.embedding.android.NormalTheme"
+              android:resource="@style/NormalTheme"
+              />
+        </activity>
+        <!-- App lock: sees which app comes to the front. Turned on only by the
+             user, in the phone's accessibility settings. -->
+        <service
+            android:name=".gate.AppGateService"
+            android:label="@string/app_gate_service_label"
+            android:exported="false"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/app_gate_service" />
+        </service>
         <!-- Delivers scheduled study reminders, and re-registers them after a
              reboot so reminders survive a restart. -->
         <receiver
@@ -87,6 +124,17 @@
         <intent>
             <action android:name="android.intent.action.SENDTO" />
             <data android:scheme="mailto" />
+        </intent>
+        <!-- App lock: list the installed apps the user can choose from, find
+             the home screen, and open the chosen app afterwards (Android 11+
+             package visibility). -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
         </intent>
     </queries>
 </manifest>

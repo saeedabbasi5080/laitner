@@ -24,16 +24,16 @@ class SpaceListCubit extends Cubit<SpaceListState> {
     required DeleteSpaceUseCase deleteSpaceUseCase,
     required IdGenerator idGenerator,
     required SpaceSettingsStore spaceSettingsStore,
-  })  : _getSpacesUseCase = getSpacesUseCase,
-        _getDecksUseCase = getDecksUseCase,
-        _getDueCardsUseCase = getDueCardsUseCase,
-        _getCardsByDeckUseCase = getCardsByDeckUseCase,
-        _addSpaceUseCase = addSpaceUseCase,
-        _updateSpaceUseCase = updateSpaceUseCase,
-        _deleteSpaceUseCase = deleteSpaceUseCase,
-        _idGenerator = idGenerator,
-        _spaceSettingsStore = spaceSettingsStore,
-        super(const SpaceListState());
+  }) : _getSpacesUseCase = getSpacesUseCase,
+       _getDecksUseCase = getDecksUseCase,
+       _getDueCardsUseCase = getDueCardsUseCase,
+       _getCardsByDeckUseCase = getCardsByDeckUseCase,
+       _addSpaceUseCase = addSpaceUseCase,
+       _updateSpaceUseCase = updateSpaceUseCase,
+       _deleteSpaceUseCase = deleteSpaceUseCase,
+       _idGenerator = idGenerator,
+       _spaceSettingsStore = spaceSettingsStore,
+       super(const SpaceListState());
 
   final GetSpacesUseCase _getSpacesUseCase;
   final GetDecksUseCase _getDecksUseCase;
@@ -56,8 +56,13 @@ class SpaceListCubit extends Cubit<SpaceListState> {
         final boxes = (await _spaceSettingsStore.load(space.id)).leitnerBoxes;
         var totalCards = 0;
         var dueCards = 0;
+        var learnedCards = 0;
         for (final deck in decks) {
-          totalCards += (await _getCardsByDeckUseCase(deck.id)).length;
+          final cards = await _getCardsByDeckUseCase(deck.id);
+          totalCards += cards.length;
+          learnedCards += cards
+              .where((card) => boxes.isLearnedBox(card.box))
+              .length;
           dueCards += (await _getDueCardsUseCase(deck.id, boxes: boxes)).length;
         }
         summaries.add(
@@ -66,6 +71,7 @@ class SpaceListCubit extends Cubit<SpaceListState> {
             deckCount: decks.length,
             totalCards: totalCards,
             dueCards: dueCards,
+            learnedCards: learnedCards,
           ),
         );
       }

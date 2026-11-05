@@ -24,14 +24,12 @@ class MistakesState extends Equatable {
 
   /// Decks that have at least one mistake, in the order the user sees them.
   List<Deck> get decksWithMistakes => [
-        for (final deck in decks)
-          if (mistakesByDeck.containsKey(deck.id)) deck,
-      ];
+    for (final deck in decks)
+      if (mistakesByDeck.containsKey(deck.id)) deck,
+  ];
 
-  int get totalMistakes => mistakesByDeck.values.fold(
-        0,
-        (sum, mistakes) => sum + mistakes.length,
-      );
+  int get totalMistakes =>
+      mistakesByDeck.values.fold(0, (sum, mistakes) => sum + mistakes.length);
 
   MistakesState copyWith({
     MistakesStatus? status,

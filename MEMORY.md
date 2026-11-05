@@ -2,7 +2,186 @@
 
 Checkpoint for the Atilearn sign-in + server-backed-data project.
 
-Last updated: 2026-10-07. Read this first in a new session.
+Last updated: 2026-11-03. Read this first in a new session.
+
+## 000000. Word-list catalog, scraper, admin panel (backend) — built 2026-11-04, tested, NOT deployed
+
+- **V4 migration**: `users.role`, `catalog_nodes` (tree, `source_lang`/`target_lang` BCP-47, kind
+  group|course|lesson, status draft|published|rejected, `word_count`), `catalog_items`,
+  `scraper_sources` (encrypted cookie), `scrape_jobs` (queue).
+- **Adapters** `src/scraper/bamooz.ts` (no login; fa→en/de/fr/es/tr/ar; depth varies, walked by link
+  path) and `memrise.ts` (cookie **`sessionid_2`** + csrftoken; must send `Accept-Language: en` or
+  links move under `/fa/`; `/ajax/browse/?s_cat=persian&cat=<slug>&page=N`).
+- **Flow**: discover (menus only) → admin picks nodes → scrape → publish. Publishing cascades down
+  and up. Re-scrape skips published lessons unless `force`; edited items survive.
+- **Admin**: panel at `/admin` (vanilla JS, CSP, no build). Signs in WITHOUT deviceId so the phone
+  stays signed in. Admin = role admin or `ADMIN_PHONES`. New env: `ADMIN_PHONES`,
+  `SCRAPER_SECRET_KEY`, `SCRAPER_WORKER`.
+- **Public API** `/api/v1/catalog/{languages,nodes,nodes/:id,nodes/:id/words}`, no auth.
+- Verified live (local smoke DB `atilearn_smoke` on 5434): b-amooz ar most-common 558/558 words;
+  Memrise "504 Essential English Words" 727 words. Backend: **114 tests**.
+- **App side (built 2026-11-04, 586 tests, NOT run on a device)**: home tile «مجموعه‌های آماده» →
+  `CatalogLanguagesScreen` → `CatalogNodeScreen` (tree; lessons preview their words). Any node with
+  words: «افزودن به دسته» (`CatalogAddSheet`: space, new deck named after the list or an existing one;
+  same front+back skipped) and «دانلود اکسل» (A word, B meaning + `/ipa/`, C lesson tag; reads back
+  with `ExcelParser`). Shared mapping in `domain/usecases/catalog_cards.dart`. Source language is the
+  constant `catalogSourceLanguage = 'fa'` until the app is multilingual.
+- **Gradual add + multi-deck feed (2026-11-04, 596 tests, NOT run on a device)**:
+  - Catalog node page buttons: «افزودن تدریجی» (full page `CatalogGradualScreen`: space/deck, N per day,
+    estimate) → `QueueCatalogWordsUseCase` writes an `ExcelImport` into the space's library and
+    appends it to that deck's feed (or makes one), then runs that feed once so today's share lands now.
+    «افزودن یکجا» (sheet) asks first above 50 cards. «دانلود اکسل» unchanged.
+  - Duplicates (same front+back, case-insensitive) are now skipped across the **whole space**.
+  - **Feeds are a list per space** (`SpaceSettingsData.dailyExcelFeeds`, `withFeed`/`withoutFeed`, each
+    `DailyExcelFeedSettings` has an `id`). Old `dailyExcelFeed` JSON migrates to a list of one (id ''),
+    only if it was ever set up. Runner runs each feed separately (`runForFeed`), skips a feed whose deck
+    was deleted. Settings → «ورود روزانه از اکسل» lists feeds; each opens `DailyFeedEditorScreen`; a deck
+    has one feed, a file feeds one deck (taken ones shown disabled).
+- **Not done**: the dictionary feature, deploy. Legal risk of republishing b-amooz/Memrise content was flagged to the user.
+
+## 00000. App lock ("قفل برنامه‌ها", Android) — built 2026-11-05, NOT tried on a device
+
+Flashcards appear before the apps the user chose open.
+
+**Native side** (`android/.../gate/`):
+- `AppGateService`, an AccessibilityService that listens to `typeWindowStateChanged` and reads the
+  package name only.
+- `GateDecider`, pure Kotlin with 12 JUnit tests via `gradlew :app:testDebugUnitTest`. It locks only
+  on *opening*: arriving from another real app, the launcher or the recents list. Staying inside an
+  app never re-locks, and non-app windows (systemui, keyboard) are ignored.
+- A one-shot pass after unlock prevents a loop.
+- `GateActivity` is a separate task, excluded from recents, and runs the Dart entry point `gateMain`
+  in `main.dart`.
+- `AppGate` holds the config JSON and today's due count in the `app_gate` SharedPreferences.
+- `AppGateChannel` is the `recall/app_gate` MethodChannel.
+- `SYSTEM_ALERT_WINDOW` is required: it is the documented exception for starting an activity from
+  the background on Android 10+.
+
+**Settings** (`AppGateSettingsScreen`, opened from Settings):
+- A prominent disclosure, as Play policy requires.
+- Status of both permissions, the space, and two modes:
+  - `perOpen`: N cards (1–10) each time a chosen app is opened;
+  - `allDue`: every card due today first.
+- An **optional** free window (off by default, 1–60 min).
+- The app list. Settings, the dialer and the launcher can never be locked.
+
+**User decisions:**
+- No skip button.
+- **Nothing due today → never lock.** Mode 3 was dropped as redundant.
+
+**Behaviour:**
+- Only due cards are asked, and they count as real reviews; any answer counts.
+- Today's due count is pushed to the native side by `SyncAppGateDueUseCase` on launch, on resume
+  and after every study session. A count from a stale day makes the gate screen recompute.
+
+**Not verified:** behaviour on a real phone (Samsung, Xiaomi), and the policies of the Iranian stores.
+
+## 0000. 2026-11-04 changes — tested, NOT deployed, no APK, no publish package
+
+The user's rule: **never build an APK or a publish package unless they ask.**
+
+- **Phone number in settings** is wrapped in an LTR isolate (`core/utils/bidi.dart`); it read
+  reversed in RTL.
+- **Auto-sync runs once per "sync day"**, which starts at 03:00 (`core/utils/nightly_window.dart`,
+  `SyncCubit.autoSync`). A fresh sign-in syncs immediately (a listener in `main.dart`).
+- **One device per account (server).** Verify with a `deviceId` calls `signOutOthers`. `/auth/me` and
+  `/sync/*` refuse a removed device with `device_signed_out`, and refuse a device-less token once
+  the account has any device. `AuthCubit.restore` handles `deviceSignedOut` by ending the session
+  (local data kept) and calling `onSignedOutElsewhere`, which goes to `SyncCubit.noteSignedOutElsewhere`.
+  A re-login merges both sides. Backend: 96 tests.
+- **Reminders:** the 7-day dated one-shots stay as they were. On top of them:
+  - each enabled weekday gets a weekly repeating fallback (`DateTimeComponents.dayOfWeekAndTime`)
+    that starts after the window, with ids offset `horizonDays + weekday`;
+  - a second WorkManager job `atilearn-nightly-reminders` at 03:30, with no network constraint,
+    rebuilds the reminders;
+  - a battery-optimisation warning and button sit in the reminder settings
+    (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`).
+
+  The suspected cause of "the next day's reminder doesn't come" is Samsung sleeping apps or the
+  Android standby bucket. **Not verified on a device.**
+- App: 535 tests.
+
+## 000. DEPLOYED (2026-11-03): the Node backend is live on 185.239.3.63
+
+- The same NSSM service `AtilearnBackend` now runs `C:\Program Files\nodejs\node.exe` (v24.19, which
+  was already on the server for another site) with `C:\sites\atilearn\api\dist\server.js` on
+  `127.0.0.1:5020`. IIS `AtilearnApi :5050` is unchanged.
+- The env lives in the registry `AppEnvironmentExtra` (14 entries; DB on 5432). The Java settings
+  are saved as `AppEnvironmentExtraJava` and `AppParametersJava` for rollback. Rollback steps are in
+  `AtilearnBackend/deploy/windows/DEPLOY-WINDOWS.md`.
+- Verified: V1 adopted from Flyway, V2/V3 applied, `/health` UP, `/sync` 401, and a **real Kavenegar
+  SMS arrived** (template `LoginMessageTemplate`).
+- The publish package lives outside the repo: `D:\litner\AtilearnBackend-publish`. The user wants
+  build output kept out of git.
+- **The user wants one step at a time on the server**: give one step, wait for their output, then
+  the next. They found the long all-at-once guides confusing.
+
+## 00. Backend rewritten in TypeScript (2026-11-03) — supersedes the Java notes below
+
+- The user wanted the backend in JavaScript and chose **TypeScript + Node 24 + Fastify 5 + pg + jose**,
+  **dockerized** (`Dockerfile`, `docker-compose.yml` with postgres:18-alpine). It targets a future
+  **dedicated Linux server**; do not design around the current Windows/IIS box.
+- The Java project is kept read-only in `D:\litner\AtilearnBackend-java` as a reference. The
+  `AtilearnBackend` folder now holds only the Node code, and its git repo shows the Java files as
+  deleted (nothing committed).
+- **The contract is identical:** same endpoints, JSON, error codes and Persian messages, the same
+  SQL migrations `V1..V3` (copied verbatim), the same OTP hash, and the same JWT
+  (HS256/384/512 picked by secret length, like jjwt). The Flutter app needed no change.
+  `db/migrate.ts` adopts `flyway_schema_history`, so an old database can be restored into the new
+  server.
+- **The timezone trap is solved differently:** pg type 1114 (`timestamp without tz`) is parsed as
+  raw text, so it never goes through a `Date`. Tests run with `TZ=Asia/Tehran`.
+- Review logs use `INSERT … ON CONFLICT (id) DO NOTHING` (first copy wins). Structure is written with
+  `unnest` bulk inserts in one transaction. Body limit is 50 MB.
+- Tests: **90 vitest tests on real PostgreSQL**. Docker Desktop would not start here, so the tests
+  run on a throwaway cluster made from the installed PG18 binaries:
+  `.pgtest\data` on port **5434** (trust auth). Start it with `pg_ctl … -o "-p 5434" start`; see the
+  backend README.
+- A smoke test of the built `dist/server.js` passed end to end. **`docker build` has NOT been run**
+  (no Docker daemon available).
+- Secrets live in `.env` (see `.env.example`). `POSTGRES_PASSWORD` must be hex because it goes into a
+  URL. To keep existing users signed in, keep `JWT_SECRET` and `OTP_PEPPER` from the old server.
+- `DEPLOY.md` (Persian, Linux) covers the data move from the Windows server via `pg_dump`.
+
+## 0. Latest round (2026-11-03) — done, tested, NOT deployed yet
+
+- **Server still runs the old jar** (`/sync/*` and `/devices` answer 500). The Windows/NSSM deploy
+  guide is now only in `AtilearnBackend-java/DEPLOY.md`; the Node backend goes to a new Linux
+  server instead (see section 00).
+- **Kavenegar hardened:** the envelope's `return.status` is now checked on every answer, including
+  HTTP 200; timeouts are set; the token is validated; the phone is masked in the log. 11 tests.
+  Backend: **84 tests** (38 + 15 + 31).
+- **HTTP for testing:** the default `RemoteConfig.apiBaseUrl` is `http://185.239.3.63:5050/api/v1`.
+  `res/xml/network_security_config.xml` allows cleartext to that IP plus `10.0.2.2` and `localhost`
+  only. HTTPS later = change the default + delete that file and the manifest attribute.
+  `isConfigured` now means "not empty".
+- **«فضای من» removed for fresh installs.** `runSpaceMigration` creates a space only when legacy rows
+  (deck/log/import) have an empty `spaceId`. This was the bug where a new phone's first sync wiped
+  the account. The home tab got a «فضای جدید» button.
+- **First sync after sign-in merges.** It runs when `readLastSyncedAt() == null`, which is cleared on
+  sign-out. Order: pull, union by id (device wins), apply locally, then the normal push and pull.
+  `writeLastSyncedAt` moved from `SyncCubit` into `SyncCollectionUseCase.sync()`.
+- **Backup button** = local file + `SyncCubit.run()`; it reports each half separately. The server
+  backup holds cards, text and reviews only. **No media, by the user's decision.** Space settings
+  and Excel imports stay local-file-only.
+- **Nightly sync:** `lib/core/background/nightly_sync.dart` is a one-off WorkManager job at 03:00
+  with a `connected` constraint. It schedules its successor with `append` (`replace` would cancel
+  the running job). It is scheduled `keep` on every launch.
+  - It builds its own deps (no GetIt). `_resume` calls `prefs.reload()` because the job writes
+    prefs from another isolate.
+  - `connectivity_plus` triggers `autoSync(force: true)` when the connection comes back while the
+    app runs.
+- **Sync HTTP timeout** is 90 s (`HttpSyncRemote.transferTimeout`); sign-in stays at 8 s.
+- **Version trap:** `connectivity_plus >= 7.3.2` pulls `nm 0.6` / `dbus 0.8`, which forces
+  `file_picker` down to 10.2.4, and that breaks the release build (JVM target 11 vs 1.8). Hence
+  `file_picker: ^10.3.10` + `connectivity_plus: ^7.0.0` (resolves 7.3.1).
+- **Build trap on this machine:** Gradle/Maven fail with "Unable to establish loopback connection"
+  (JDK AF_UNIX socket in the `~1` temp path). Fix: run from PowerShell with
+  `$env:JAVA_TOOL_OPTIONS = "-Djdk.net.unixdomain.tmpdir=D:\litner\laitner\build\unixtmp"`.
+- App: **523 tests**, 0 analyzer errors or warnings, release APK builds.
+- Out of scope by user decision: subscriptions, online dictionary, media backup, HTTPS.
+- **Known limit:** after the first sync, two devices both editing structure still overwrite each
+  other (last push wins). Reviews merge.
 
 ---
 
@@ -315,7 +494,7 @@ lib/presentation/widgets/sync_section.dart
 
 - `applicationId = com.recall.recall`, release signed with `android/recall-release.jks` via `android/key.properties`. Unchanged signing + same applicationId means **an in-place upgrade keeps all user data**.
 - Installing a **debug** APK over a release build would fail (different signature) and require an uninstall = **data loss**. Always build release.
-- ⚠️ **Unresolved security issue:** `android/key.properties` holds the literal release passwords in plaintext and `.gitignore` has no entry for `key.properties` / `*.jks`. Not investigated whether they are tracked. Flagged to the user once, not acted on.
+- `android/key.properties` holds the release passwords in plaintext, but `android/.gitignore` ignores it and it is not tracked (checked 2026-11-03).
 
 ---
 

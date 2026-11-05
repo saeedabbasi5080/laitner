@@ -49,9 +49,7 @@ class SpaceSettingsStore {
         reviewSettings: ReviewSettings.fromJson(
           json['reviewSettings'] as Map<String, dynamic>?,
         ),
-        dailyExcelFeed: DailyExcelFeedSettings.fromJson(
-          json['dailyExcelFeed'] as Map<String, dynamic>?,
-        ),
+        dailyExcelFeeds: DailyExcelFeedSettings.listFromSpaceJson(json),
       );
     } on FormatException {
       return const SpaceSettingsData();
@@ -75,7 +73,7 @@ class SpaceSettingsStore {
         'leitnerBoxes': data.leitnerBoxes.toJson(),
         'reminder': data.reminder.toJson(),
         'reviewSettings': data.reviewSettings.toJson(),
-        'dailyExcelFeed': data.dailyExcelFeed.toJson(),
+        'dailyExcelFeeds': [for (final feed in data.dailyExcelFeeds) feed.toJson()],
       }),
     );
   }
@@ -124,7 +122,7 @@ class SpaceSettingsData {
     this.leitnerBoxes = LeitnerBoxConfig.classic,
     this.reminder = const ReminderSettings(),
   this.reviewSettings = const ReviewSettings(),
-    this.dailyExcelFeed = const DailyExcelFeedSettings(),
+    this.dailyExcelFeeds = const [],
   });
 
   final TtsLanguage ttsLanguage;
@@ -139,8 +137,21 @@ class SpaceSettingsData {
   final ReminderSettings reminder;
   final ReviewSettings reviewSettings;
 
-  /// Automatic daily release of queued Excel rows into a feed deck.
-  final DailyExcelFeedSettings dailyExcelFeed;
+  /// Automatic daily release of queued Excel rows, one feed per deck.
+  final List<DailyExcelFeedSettings> dailyExcelFeeds;
+
+  /// [feed] in place of the one with its id, or added when it is new.
+  SpaceSettingsData withFeed(DailyExcelFeedSettings feed) {
+    final index = dailyExcelFeeds.indexWhere((existing) => existing.id == feed.id);
+    return copyWith(
+      dailyExcelFeeds: index < 0
+          ? [...dailyExcelFeeds, feed]
+          : [...dailyExcelFeeds.sublist(0, index), feed, ...dailyExcelFeeds.sublist(index + 1)],
+    );
+  }
+
+  SpaceSettingsData withoutFeed(String feedId) =>
+      copyWith(dailyExcelFeeds: [for (final feed in dailyExcelFeeds) if (feed.id != feedId) feed]);
 
   SpaceSettingsData copyWith({
     TtsLanguage? ttsLanguage,
@@ -154,7 +165,7 @@ class SpaceSettingsData {
     LeitnerBoxConfig? leitnerBoxes,
     ReminderSettings? reminder,
       ReviewSettings? reviewSettings,
-      DailyExcelFeedSettings? dailyExcelFeed,
+      List<DailyExcelFeedSettings>? dailyExcelFeeds,
   }) {
     return SpaceSettingsData(
       ttsLanguage: ttsLanguage ?? this.ttsLanguage,
@@ -168,7 +179,7 @@ class SpaceSettingsData {
       leitnerBoxes: leitnerBoxes ?? this.leitnerBoxes,
       reminder: reminder ?? this.reminder,
       reviewSettings: reviewSettings ?? this.reviewSettings,
-      dailyExcelFeed: dailyExcelFeed ?? this.dailyExcelFeed,
+      dailyExcelFeeds: dailyExcelFeeds ?? this.dailyExcelFeeds,
     );
   }
 
@@ -184,7 +195,7 @@ class SpaceSettingsData {
         'leitnerBoxes': leitnerBoxes.toJson(),
         'reminder': reminder.toJson(),
       'reviewSettings': reviewSettings.toJson(),
-      'dailyExcelFeed': dailyExcelFeed.toJson(),
+      'dailyExcelFeeds': [for (final feed in dailyExcelFeeds) feed.toJson()],
       };
 
   factory SpaceSettingsData.fromJson(Map<String, dynamic> json) {
@@ -211,9 +222,7 @@ class SpaceSettingsData {
       reviewSettings: ReviewSettings.fromJson(
         json['reviewSettings'] as Map<String, dynamic>?,
       ),
-      dailyExcelFeed: DailyExcelFeedSettings.fromJson(
-        json['dailyExcelFeed'] as Map<String, dynamic>?,
-      ),
+      dailyExcelFeeds: DailyExcelFeedSettings.listFromSpaceJson(json),
     );
   }
 }
